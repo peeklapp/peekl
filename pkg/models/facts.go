@@ -1,16 +1,16 @@
 package models
 
 type OsFacts struct {
-	Arch   string
-	Distro string
+	Arch   string `json:"arch"`
+	Distro string `json:"distro"`
 }
 
 type PackageFact struct {
-	Name    string
-	Version string
+	Name    string `json:"name"`
+	Version string `json:"version"`
 }
 
 type Facts struct {
-	Os       OsFacts
-	Packages []PackageFact
+	Os       OsFacts       `json:"os"`
+	Packages []PackageFact `json:"packages"`
 }
