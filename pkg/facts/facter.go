@@ -1,0 +1,57 @@
+package facts
+
+import (
+	"fmt"
+	"runtime"
+
+	//"github.com/redat00/peekl/facts/internal/collectors"
+	"github.com/redat00/peekl/pkg/facts/collectors"
+	"github.com/redat00/peekl/pkg/models"
+	"github.com/redat00/peekl/pkg/utils"
+)
+
+type Facter struct {
+	distro string
+}
+
+func (f *Facter) collectPackage() ([]models.PackageFact, error) {
+	var packages []models.PackageFact
+
+	collectorMapping := map[string]string{
+		"debian": "dpkg",
+		"ubuntu": "dpkg",
+	}
+
+	packages, err := collectors.CollectPackagesBasedOnSource(collectorMapping[f.distro])
+	if err != nil {
+		return packages, fmt.Errorf("An error happening during collection of packages : %s", err.Error())
+	}
+
+	return packages, nil
+}
+
+func (f *Facter) Collect() (*models.Facts, error) {
+	var facts models.Facts
+
+	// First we need to determine the OS
+	distro, err := utils.GetLinuxOS()
+	if err != nil {
+		return &facts, err
+	}
+	f.distro = distro
+	facts.Os.Distro = distro
+	facts.Os.Arch = runtime.GOARCH
+
+	pkgs, err := f.collectPackage()
+	if err != nil {
+		return &facts, err
+	}
+	facts.Packages = pkgs
+
+	return &facts, nil
+}
+
+func NewFacter() *Facter {
+	var facter Facter
+	return &facter
+}
