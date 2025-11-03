@@ -294,10 +294,8 @@ func (u *UserResource) delete() error {
 func (u *UserResource) Process() (models.ResourceResult, error) {
 	var result models.ResourceResult
 
-	exist := u.exist()
-
 	// Handle user creation of deletion if needed
-	if !exist && u.Present {
+	if !u.exist() && u.Present {
 		logrus.Info(
 			fmt.Sprintf("User (%s) does not exist but should", u.Data.Username),
 		)
@@ -310,7 +308,7 @@ func (u *UserResource) Process() (models.ResourceResult, error) {
 			fmt.Sprintf("User (%s) created", u.Data.Username),
 		)
 		result.Created = true
-	} else if exist && !u.Present {
+	} else if u.exist() && !u.Present {
 		logrus.Info(
 			fmt.Sprintf("User (%s) exist but should not", u.Data.Username),
 		)
@@ -326,17 +324,18 @@ func (u *UserResource) Process() (models.ResourceResult, error) {
 	}
 
 	// Make sure user correspond to resource
-	exist = u.exist()
-	if exist && u.Present {
+	if u.exist() && u.Present {
 		// Update shell
 		shellHasChanged, err := u.updateShellIfNeeded()
 		if err != nil {
+			result.Failed = true
 			return result, err
 		}
 
 		// Updating user group membership
 		userHasBeenAddedToAGroup, err := u.addUserToGroupsIfNeeded()
 		if err != nil {
+			result.Failed = true
 			return result, err
 		}
 
@@ -355,24 +354,29 @@ func (u *UserResource) String() string {
 func NewUserResource(resource *models.Resource) (*UserResource, error) {
 	var userResource UserResource
 
-	userResource.Title = resource.Title
-	userResource.Type = resource.Type
-	userResource.Present = resource.Present
-
-	// Create user data with defaults
-	var userData UserData
 	defaults := map[string]any{
 		"shell":       "/bin/bash",
 		"manage_home": true,
 	}
+
+	// Define data struct
+	var userData UserData
+
+	// First we set default values
 	err := mapstructure.Decode(defaults, &userData)
 	if err != nil {
 		return &userResource, err
 	}
+
+	// Then we override with actual values
 	err = mapstructure.Decode(resource.Data, &userData)
 	if err != nil {
 		return &userResource, err
 	}
+
+	userResource.Title = resource.Title
+	userResource.Type = resource.Type
+	userResource.Present = resource.Present
 	userResource.Data = userData
 
 	return &userResource, nil
