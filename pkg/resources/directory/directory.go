@@ -219,7 +219,7 @@ func NewDirectoryResource(resource *models.Resource) (*DirectoryResource, error)
 	defaults := map[string]any{
 		"owner":        "root",
 		"group":        "root",
-		"mode":         0755,
+		"mode":         0644,
 		"force_delete": false,
 	}
 
