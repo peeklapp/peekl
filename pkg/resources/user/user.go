@@ -15,10 +15,10 @@ import (
 // Ability to create the resources
 
 type UserData struct {
-	Username   string   `yaml:"username" json:"username" mapstructure:"username"`
-	Groups     []string `yaml:"groups" json:"groups" mapstructure:"groups"`
-	ManageHome bool     `yaml:"manage_home" json:"manage_home" mapstructure:"manage_home"`
-	Shell      string   `yaml:"shell" json:"shell" mapstructure:"shell"`
+	Username   string   `mapstructure:"username"`
+	Groups     []string `mapstructure:"groups"`
+	ManageHome bool     `mapstructure:"manage_home"`
+	Shell      string   `mapstructure:"shell"`
 }
 
 type UserResource struct {
@@ -291,7 +291,7 @@ func (u *UserResource) delete() error {
 	return nil
 }
 
-func (u *UserResource) Process() (models.ResourceResult, error) {
+func (u *UserResource) Process(context *models.Context) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
 	// Handle user creation of deletion if needed

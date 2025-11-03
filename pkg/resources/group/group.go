@@ -12,7 +12,7 @@ import (
 )
 
 type GroupData struct {
-	Name string `yaml:"name" json:"name" mapstructure:"name"`
+	Name string `mapstructure:"name"`
 }
 
 type GroupResource struct {
@@ -90,7 +90,7 @@ func (g *GroupResource) delete() error {
 	return nil
 }
 
-func (g *GroupResource) Process() (models.ResourceResult, error) {
+func (g *GroupResource) Process(context *models.Context) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
 	exist := g.exist()

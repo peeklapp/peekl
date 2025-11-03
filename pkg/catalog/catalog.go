@@ -7,6 +7,7 @@ import (
 	"github.com/redat00/peekl/pkg/resources/directory"
 	"github.com/redat00/peekl/pkg/resources/file"
 	"github.com/redat00/peekl/pkg/resources/group"
+	"github.com/redat00/peekl/pkg/resources/pkg"
 	"github.com/redat00/peekl/pkg/resources/user"
 	"github.com/sirupsen/logrus"
 )
@@ -27,6 +28,9 @@ func (c *Catalog) Process() error {
 	var failed int
 	var unchanged int
 
+	var context models.Context
+	context.Facts = c.facts
+
 	logrus.Info(
 		fmt.Sprintf(
 			"Starting process of catalog with %d resources to process",
@@ -35,7 +39,7 @@ func (c *Catalog) Process() error {
 	)
 
 	for _, res := range c.resources {
-		result, err := res.Process()
+		result, err := res.Process(&context)
 		if err != nil {
 			return err
 		}
@@ -100,6 +104,12 @@ func loadResources(resources []models.Resource) ([]models.LoadedResource, error)
 				return loadedResources, err
 			}
 			loadedResources = append(loadedResources, directoryRes)
+		case "builtin.pkg":
+			pkgRes, err := pkg.NewPackageResource(&res)
+			if err != nil {
+				return loadedResources, err
+			}
+			loadedResources = append(loadedResources, pkgRes)
 		}
 	}
 

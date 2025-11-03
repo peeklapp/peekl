@@ -16,13 +16,13 @@ import (
 )
 
 type FileData struct {
-	Path        string      `yaml:"path" json:"path" mapstructure:"path"`
-	Owner       string      `yaml:"owner" json:"owner" mapstructure:"owner"`
-	Group       string      `yaml:"group" json:"group" mapstructure:"group"`
-	Content     string      `yaml:"content" json:"content" mapstructure:"content"`
-	Mode        fs.FileMode `yaml:"mode" json:"mode" mapstructure:"mode"`
-	Directory   bool        `yaml:"directory" json:"directory" mapstructure:"directory"`
-	ForceDelete bool        `yaml:"force_delete" json:"force_delete" mapstructure:"force_delete"`
+	Path        string      `mapstructure:"path"`
+	Owner       string      `mapstructure:"owner"`
+	Group       string      `mapstructure:"group"`
+	Content     string      `mapstructure:"content"`
+	Mode        fs.FileMode `mapstructure:"mode"`
+	Directory   bool        `mapstructure:"directory"`
+	ForceDelete bool        `mapstructure:"force_delete"`
 }
 
 type FileResource struct {
@@ -232,7 +232,7 @@ func (f *FileResource) delete() error {
 	return err
 }
 
-func (f *FileResource) Process() (models.ResourceResult, error) {
+func (f *FileResource) Process(context *models.Context) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
 	if !f.exist() && f.Present {

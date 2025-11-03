@@ -21,6 +21,6 @@ type ResourceResult struct {
 }
 
 type LoadedResource interface {
-	Process() (ResourceResult, error)
+	Process(*Context) (ResourceResult, error)
 	String() string
 }

@@ -14,11 +14,11 @@ import (
 )
 
 type DirectoryData struct {
-	Path        string      `yaml:"path" json:"path" mapstructure:"path"`
-	Owner       string      `yaml:"owner" json:"owner" mapstructure:"owner"`
-	Group       string      `yaml:"group" json:"group" mapstructure:"group"`
-	Mode        fs.FileMode `yaml:"mode" json:"mode" mapstructure:"mode"`
-	ForceDelete bool        `yaml:"force_delete" json:"force_delete" mapstructure:"force_delete"`
+	Path        string      `mapstructure:"path"`
+	Owner       string      `mapstructure:"owner"`
+	Group       string      `mapstructure:"group"`
+	Mode        fs.FileMode `mapstructure:"mode"`
+	ForceDelete bool        `mapstructure:"force_delete"`
 }
 
 type DirectoryResource struct {
@@ -151,7 +151,7 @@ func (d *DirectoryResource) delete() error {
 	return err
 }
 
-func (d *DirectoryResource) Process() (models.ResourceResult, error) {
+func (d *DirectoryResource) Process(context *models.Context) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
 	if !d.exist() && d.Present {

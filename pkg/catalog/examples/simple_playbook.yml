@@ -34,3 +34,8 @@
     path: /tmp/test_renaud
     mode: 0644
 
+- title: nginx
+  type: builtin.pkg
+  present: true
+  data:
+    name: nginx
