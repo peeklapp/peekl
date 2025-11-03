@@ -16,15 +16,21 @@
   data:
     name: max
 
-#- title: file_example
-#  type: builtin.file
-#  present: true
-#  data:
-#    type: file
-#    path: /tmp/hello_world
-#    owner: renaud
-#    group: renaud
-#    content: "Hello, world!"
-#  require:
-#    type: builtin.user
-#    title: user_renaud
+- title: file_example
+  type: builtin.file
+  present: true
+  data:
+    path: /tmp/test_renaud/hello
+    content: "hello world from renaud!"
+    mode: 0755
+  require:
+    title: directory_example
+    type: builtin.directory
+
+- title: directory_example
+  type: builtin.directory
+  present: true
+  data:
+    path: /tmp/test_renaud
+    mode: 0644
+

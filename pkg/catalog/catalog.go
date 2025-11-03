@@ -4,9 +4,10 @@ import (
 	"fmt"
 
 	"github.com/redat00/peekl/pkg/models"
+	"github.com/redat00/peekl/pkg/resources/directory"
+	"github.com/redat00/peekl/pkg/resources/file"
 	"github.com/redat00/peekl/pkg/resources/group"
 	"github.com/redat00/peekl/pkg/resources/user"
-
 	"github.com/sirupsen/logrus"
 )
 
@@ -87,6 +88,18 @@ func loadResources(resources []models.Resource) ([]models.LoadedResource, error)
 				return loadedResources, err
 			}
 			loadedResources = append(loadedResources, groupRes)
+		case "builtin.file":
+			fileRes, err := file.NewFileResource(&res)
+			if err != nil {
+				return loadedResources, err
+			}
+			loadedResources = append(loadedResources, fileRes)
+		case "builtin.directory":
+			directoryRes, err := directory.NewDirectoryResource(&res)
+			if err != nil {
+				return loadedResources, err
+			}
+			loadedResources = append(loadedResources, directoryRes)
 		}
 	}
 
