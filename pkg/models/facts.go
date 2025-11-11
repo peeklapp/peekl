@@ -11,6 +11,6 @@ type PackageFact struct {
 }
 
 type Facts struct {
-	Os       OsFacts       `json:"os"`
-	Packages []PackageFact `json:"packages"`
+	Os       OsFacts   `json:"os"`
+	Packages []Package `json:"packages"`
 }

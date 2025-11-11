@@ -14,8 +14,8 @@ type Facter struct {
 	distro string
 }
 
-func (f *Facter) collectPackage() ([]models.PackageFact, error) {
-	var packages []models.PackageFact
+func (f *Facter) collectPackage() ([]models.Package, error) {
+	var packages []models.Package
 
 	collectorMapping := map[string]string{
 		"debian": "dpkg",

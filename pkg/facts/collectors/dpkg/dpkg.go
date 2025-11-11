@@ -9,11 +9,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetInstalledPackagesList() ([]models.PackageFact, error) {
-	var pkgs []models.PackageFact
+func GetInstalledPackagesList() ([]models.Package, error) {
+	var pkgs []models.Package
 
 	command := "dpkg-query"
 	args := []string{"-W", "-f", "${Package};${Version}\n"}
+
+	logrus.Debug(
+		fmt.Sprintf(
+			"Getting list of installed packages using the following command : %s %s",
+			command,
+			strings.Join(args, " "),
+		),
+	)
 
 	executionOutput := utils.Execute(command, args...)
 	if executionOutput.ErrorDetails.ExitCode != 0 {
@@ -27,7 +35,7 @@ func GetInstalledPackagesList() ([]models.PackageFact, error) {
 	splittedOutput := strings.SplitSeq(executionOutput.Stdout, "\n")
 	for line := range splittedOutput {
 		if line != "" {
-			var pkg models.PackageFact
+			var pkg models.Package
 			splittedLine := strings.Split(line, ";")
 			pkg.Name = splittedLine[0]
 			pkg.Version = splittedLine[1]

@@ -1,41 +1,44 @@
-- title: user_ray
-  type: builtin.user
-  present: true
-  data:
-    username: ray
-    shell: "/bin/bash"
-    groups:
-      - max
-  require:
-    title: group_max
-    type: builtin.group
+#- title: user_ray
+#  type: builtin.user
+#  present: true
+#  data:
+#    username: ray
+#    shell: "/bin/bash"
+#    groups:
+#      - max
+#  require:
+#    title: group_max
+#    type: builtin.group
+#
+#- title: group_max
+#  type: builtin.group
+#  present: true
+#  data:
+#    name: max
+#
+#- title: file_example
+#  type: builtin.file
+#  present: true
+#  data:
+#    path: /tmp/test_renaud/hello
+#    content: "hello world from renaud!"
+#    mode: 0755
+#  require:
+#    title: directory_example
+#    type: builtin.directory
+#
+#- title: directory_example
+#  type: builtin.directory
+#  present: true
+#  data:
+#    path: /tmp/test_renaud
+#    mode: 0644
 
-- title: group_max
-  type: builtin.group
-  present: true
-  data:
-    name: max
-
-- title: file_example
-  type: builtin.file
-  present: true
-  data:
-    path: /tmp/test_renaud/hello
-    content: "hello world from renaud!"
-    mode: 0755
-  require:
-    title: directory_example
-    type: builtin.directory
-
-- title: directory_example
-  type: builtin.directory
-  present: true
-  data:
-    path: /tmp/test_renaud
-    mode: 0644
-
-- title: nginx
+- title: remove cowsay
   type: builtin.pkg
-  present: true
+  present: false
   data:
-    name: nginx
+    names: 
+      - cowsay
+
+

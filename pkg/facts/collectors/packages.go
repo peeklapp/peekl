@@ -7,7 +7,7 @@ import (
 	"github.com/redat00/peekl/pkg/models"
 )
 
-func CollectPackagesBasedOnSource(source string) ([]models.PackageFact, error) {
+func CollectPackagesBasedOnSource(source string) ([]models.Package, error) {
 	switch source {
 	case "dpkg":
 		pkgs, err := dpkg.GetInstalledPackagesList()
