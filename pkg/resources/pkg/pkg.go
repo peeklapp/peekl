@@ -77,7 +77,7 @@ func (p *PackageResource) FilterPackagesStatus(installed []models.Package) []mod
 	return filteredPackages
 }
 
-func (p *PackageResource) Process(context *models.Context) (models.ResourceResult, error) {
+func (p *PackageResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 	p.ProcessPackageList()
 

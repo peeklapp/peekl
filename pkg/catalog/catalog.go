@@ -8,6 +8,8 @@ import (
 	"github.com/redat00/peekl/pkg/resources/file"
 	"github.com/redat00/peekl/pkg/resources/group"
 	"github.com/redat00/peekl/pkg/resources/pkg"
+	"github.com/redat00/peekl/pkg/resources/systemd_service"
+	"github.com/redat00/peekl/pkg/resources/template"
 	"github.com/redat00/peekl/pkg/resources/user"
 	"github.com/sirupsen/logrus"
 )
@@ -19,8 +21,10 @@ import (
 type Catalog struct {
 	resources []models.LoadedResource
 	facts     *models.Facts
+	context   *models.CatalogContext
 }
 
+// Run the catalog
 func (c *Catalog) Process() error {
 	var created int
 	var deleted int
@@ -28,8 +32,8 @@ func (c *Catalog) Process() error {
 	var failed int
 	var unchanged int
 
-	var context models.Context
-	context.Facts = c.facts
+	var resContext models.ResourceContext
+	resContext.Facts = c.facts
 
 	logrus.Info(
 		fmt.Sprintf(
@@ -39,7 +43,7 @@ func (c *Catalog) Process() error {
 	)
 
 	for _, res := range c.resources {
-		result, err := res.Process(&context)
+		result, err := res.Process(&resContext)
 		if err != nil {
 			return err
 		}
@@ -71,49 +75,60 @@ func (c *Catalog) Process() error {
 	return nil
 }
 
+// Validate that the catalog is valid
 func (c *Catalog) Validate() error {
 	return nil
 }
 
-func loadResources(resources []models.Resource) ([]models.LoadedResource, error) {
-	var loadedResources []models.LoadedResource
-
+func (c *Catalog) loadResources(resources []models.Resource) error {
 	for _, res := range resources {
 		switch res.Type {
 		case "builtin.user":
 			userRes, err := user.NewUserResource(&res)
 			if err != nil {
-				return loadedResources, err
+				return err
 			}
-			loadedResources = append(loadedResources, userRes)
+			c.resources = append(c.resources, userRes)
 		case "builtin.group":
 			groupRes, err := group.NewGroupResource(&res)
 			if err != nil {
-				return loadedResources, err
+				return err
 			}
-			loadedResources = append(loadedResources, groupRes)
+			c.resources = append(c.resources, groupRes)
 		case "builtin.file":
 			fileRes, err := file.NewFileResource(&res)
 			if err != nil {
-				return loadedResources, err
+				return err
 			}
-			loadedResources = append(loadedResources, fileRes)
+			c.resources = append(c.resources, fileRes)
 		case "builtin.directory":
 			directoryRes, err := directory.NewDirectoryResource(&res)
 			if err != nil {
-				return loadedResources, err
+				return err
 			}
-			loadedResources = append(loadedResources, directoryRes)
+			c.resources = append(c.resources, directoryRes)
 		case "builtin.pkg":
 			pkgRes, err := pkg.NewPackageResource(&res)
 			if err != nil {
-				return loadedResources, err
+				return err
 			}
-			loadedResources = append(loadedResources, pkgRes)
+			c.resources = append(c.resources, pkgRes)
+		case "builtin.template":
+			// Create template resource
+			templRes, err := template.NewTemplateResource(&res, c.context.GlobalTemplateDirectory)
+			if err != nil {
+				return err
+			}
+			c.resources = append(c.resources, templRes)
+		case "builtin.systemd_service":
+			servRes, err := systemdservice.NewSystemdServiceResource(&res)
+			if err != nil {
+				return err
+			}
+			c.resources = append(c.resources, servRes)
 		}
 	}
-
-	return loadedResources, nil
+	return nil
 }
 
 func createResourceRequireIndexMap(resources []models.Resource) map[string]int {
@@ -179,9 +194,10 @@ func sortResources(resources []models.Resource) ([]models.Resource, error) {
 	return sortedResources, nil
 }
 
-func NewCatalog(rawResources []models.Resource, facts *models.Facts) (*Catalog, error) {
+func NewCatalog(rawResources []models.Resource, facts *models.Facts, context models.CatalogContext) (*Catalog, error) {
 	var catalog Catalog
 	catalog.facts = facts
+	catalog.context = &context
 
 	// Sort catalog
 	sortedResources, err := sortResources(rawResources)
@@ -190,11 +206,10 @@ func NewCatalog(rawResources []models.Resource, facts *models.Facts) (*Catalog, 
 	}
 
 	// Load resources
-	loadedResources, err := loadResources(sortedResources)
+	err = catalog.loadResources(sortedResources)
 	if err != nil {
 		return &catalog, err
 	}
-	catalog.resources = loadedResources
 
 	return &catalog, nil
 }

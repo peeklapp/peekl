@@ -29,7 +29,8 @@ func GetInstalledPackagesList() ([]models.Package, error) {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		})
+		}).Debug("Could not run command to list installed packages using dpkg")
+		return pkgs, executionOutput.ErrorDetails
 	}
 
 	splittedOutput := strings.SplitSeq(executionOutput.Stdout, "\n")

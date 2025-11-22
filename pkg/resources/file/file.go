@@ -16,13 +16,11 @@ import (
 )
 
 type FileData struct {
-	Path        string      `mapstructure:"path"`
-	Owner       string      `mapstructure:"owner"`
-	Group       string      `mapstructure:"group"`
-	Content     string      `mapstructure:"content"`
-	Mode        fs.FileMode `mapstructure:"mode"`
-	Directory   bool        `mapstructure:"directory"`
-	ForceDelete bool        `mapstructure:"force_delete"`
+	Path    string      `mapstructure:"path"`
+	Owner   string      `mapstructure:"owner"`
+	Group   string      `mapstructure:"group"`
+	Content string      `mapstructure:"content"`
+	Mode    fs.FileMode `mapstructure:"mode"`
 }
 
 type FileResource struct {
@@ -41,18 +39,13 @@ func (f *FileResource) changePermissionsIfNeeded() (bool, error) {
 		return didSomething, err
 	}
 
-	updatedMode := f.Data.Mode
-	if f.Data.Directory {
-		updatedMode = f.Data.Mode | os.ModeDir
-	}
-
 	// Update file permission if needed
-	if stat.Mode() != updatedMode {
+	if stat.Mode() != f.Data.Mode {
 		logrus.Info(
 			fmt.Sprintf(
 				"Mode for file (%s) should be (%s) but is (%s)",
 				f.Data.Path,
-				updatedMode,
+				f.Data.Mode,
 				stat.Mode(),
 			),
 		)
@@ -63,7 +56,7 @@ func (f *FileResource) changePermissionsIfNeeded() (bool, error) {
 				"Mode for file (%s) has been updated from (%s) to (%s)",
 				f.Data.Path,
 				stat.Mode(),
-				updatedMode,
+				f.Data.Mode,
 			),
 		)
 	}
@@ -189,14 +182,6 @@ func (f *FileResource) exist() bool {
 }
 
 func (f *FileResource) create() error {
-	if f.Data.Directory {
-		err := os.Mkdir(f.Data.Path, f.Data.Mode)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
 	file, err := os.Create(f.Data.Path)
 	if err != nil {
 		return err
@@ -224,15 +209,11 @@ func (f *FileResource) create() error {
 }
 
 func (f *FileResource) delete() error {
-	if f.Data.ForceDelete {
-		err := os.RemoveAll(f.Data.Path)
-		return err
-	}
 	err := os.Remove(f.Data.Path)
 	return err
 }
 
-func (f *FileResource) Process(context *models.Context) (models.ResourceResult, error) {
+func (f *FileResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
 	if !f.exist() && f.Present {
@@ -269,12 +250,10 @@ func (f *FileResource) Process(context *models.Context) (models.ResourceResult, 
 
 		// Check content of the file
 		var contentHasChanged bool
-		if !f.Data.Directory {
-			contentHasChanged, err = f.changeContentIfNeeded()
-			if err != nil {
-				result.Failed = true
-				return result, err
-			}
+		contentHasChanged, err = f.changeContentIfNeeded()
+		if err != nil {
+			result.Failed = true
+			return result, err
 		}
 
 		// Check permissions of the file
@@ -308,10 +287,9 @@ func NewFileResource(resource *models.Resource) (*FileResource, error) {
 
 	// Define defaults value
 	defaults := map[string]any{
-		"owner":        "root",
-		"group":        "root",
-		"mode":         0755,
-		"force_delete": false,
+		"owner": "root",
+		"group": "root",
+		"mode":  0755,
 	}
 
 	// Define data struct

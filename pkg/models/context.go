@@ -1,5 +1,9 @@
 package models
 
-type Context struct {
+type ResourceContext struct {
 	Facts *Facts
+}
+
+type CatalogContext struct {
+	GlobalTemplateDirectory string
 }

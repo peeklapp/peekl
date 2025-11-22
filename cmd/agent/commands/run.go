@@ -15,6 +15,7 @@ import (
 func init() {
 	runCmd.Flags().StringP("environment", "e", "production", "Environment to use")
 	runCmd.Flags().StringP("file", "f", "", "File to use (will not try to fetch from the server)")
+	runCmd.Flags().StringP("templates", "t", "templates/", "Folder in which to find local templates")
 	rootCmd.AddCommand(runCmd)
 }
 
@@ -47,7 +48,7 @@ var runCmd = &cobra.Command{
 		var resources []models.Resource
 
 		if file != "" {
-			logrus.Debug("Local file provided, reading resources from file")
+			logrus.Debug("Local file provided, loading catalog from file")
 			f, err := os.ReadFile(file)
 			if err != nil {
 				logrus.Fatal(err)
@@ -58,10 +59,16 @@ var runCmd = &cobra.Command{
 				logrus.Fatal(err)
 			}
 		} else {
-			logrus.Debug("No local file provided, contacting server to get ressources")
+			logrus.Debug("No local file provided, contacting server to get catalog")
 		}
 
-		catalog, err := catalog.NewCatalog(resources, facts)
+		var catalogContext models.CatalogContext
+		catalogContext.GlobalTemplateDirectory, err = cmd.Flags().GetString("templates")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		catalog, err := catalog.NewCatalog(resources, facts, catalogContext)
 		if err != nil {
 			logrus.Fatal(err)
 		}

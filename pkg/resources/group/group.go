@@ -90,7 +90,7 @@ func (g *GroupResource) delete() error {
 	return nil
 }
 
-func (g *GroupResource) Process(context *models.Context) (models.ResourceResult, error) {
+func (g *GroupResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
 	exist := g.exist()

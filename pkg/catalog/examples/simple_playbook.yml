@@ -41,4 +41,16 @@
     names: 
       - cowsay
 
+- title: generate csv installed packages
+  type: builtin.template
+  present: true
+  data:
+    path: /tmp/renaud_test_template
+    name: installed_packages
 
+- title: manage service nginx
+  type: builtin.systemd_service
+  present: true
+  data:
+    name: nginx
+    state: reloaded

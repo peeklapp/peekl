@@ -291,7 +291,7 @@ func (u *UserResource) delete() error {
 	return nil
 }
 
-func (u *UserResource) Process(context *models.Context) (models.ResourceResult, error) {
+func (u *UserResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
 	// Handle user creation of deletion if needed

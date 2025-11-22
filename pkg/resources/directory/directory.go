@@ -151,7 +151,7 @@ func (d *DirectoryResource) delete() error {
 	return err
 }
 
-func (d *DirectoryResource) Process(context *models.Context) (models.ResourceResult, error) {
+func (d *DirectoryResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
 	if !d.exist() && d.Present {
