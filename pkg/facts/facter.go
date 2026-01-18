@@ -30,6 +30,10 @@ func (f *Facter) collectPackage() ([]models.Package, error) {
 	return packages, nil
 }
 
+func (f *Facter) collectHostnme() (string, error) {
+	return collectors.GetHostname()
+}
+
 func (f *Facter) Collect() (*models.Facts, error) {
 	var facts models.Facts
 
@@ -42,11 +46,19 @@ func (f *Facter) Collect() (*models.Facts, error) {
 	facts.Os.Distro = distro
 	facts.Os.Arch = runtime.GOARCH
 
+	// Collect list of packages
 	pkgs, err := f.collectPackage()
 	if err != nil {
 		return &facts, err
 	}
 	facts.Packages = pkgs
+
+	// Collect hostname
+	hostname, err := f.collectHostnme()
+	if err != nil {
+		return &facts, err
+	}
+	facts.Hostname = hostname
 
 	return &facts, nil
 }

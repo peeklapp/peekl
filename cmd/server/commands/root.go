@@ -8,8 +8,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "agent",
-	Short: "agent is the agent of the configuration management suite.",
+	Use:   "server",
+	Short: "server is the server that all the agents will connect to",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			cmd.Help()
@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().Bool("verbose", false, "enable verbose output")
-	rootCmd.PersistentFlags().StringP("config", "c", "/etc/peekl/agent/config.yml", "Path to the configuration file for the agent")
+	rootCmd.PersistentFlags().StringP("config", "c", "/etc/peekl/server/config.yml", "Path to the configuration file for the server")
 }
 
 func Execute() {

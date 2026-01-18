@@ -11,6 +11,7 @@ type PackageFact struct {
 }
 
 type Facts struct {
+	Hostname string    `json:"hostname"`
 	Os       OsFacts   `json:"os"`
 	Packages []Package `json:"packages"`
 }

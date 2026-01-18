@@ -1,0 +1,18 @@
+listen:
+  port: 9040
+  host: "127.0.0.1"
+
+certificates:
+  main_directory: "testing/ssl"
+  ca_directory: "testing/ssl/ca"
+  pending_directory: "testing/ssl/pending"
+  server_directory: "testing/ssl/server"
+  signed_directory: "testing/ssl/signed"
+  database_path: "testing/ssl/certs.db"
+
+code:
+  directory: "/etc/peekl/code"
+
+logging:
+  format: "string"
+  debug: true
