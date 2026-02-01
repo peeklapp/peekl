@@ -112,7 +112,7 @@ var runCmd = &cobra.Command{
 					runAgent(client)
 					deleteLockFile()
 				} else {
-					logrus.Error("Could not run agent, it's lock. (/tmp/.peekl_run exist)")
+					logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
 				}
 				logrus.Info(fmt.Sprintf("Next run in %d seconds.", configStruct.Daemon.LoopTime))
 				time.Sleep(time.Duration(configStruct.Daemon.LoopTime) * time.Second)
@@ -123,7 +123,7 @@ var runCmd = &cobra.Command{
 				runAgent(client)
 				deleteLockFile()
 			} else {
-				logrus.Error("Could not run agent, it's lock. (/tmp/.peekl_run exist)")
+				logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
 			}
 		}
 	},
