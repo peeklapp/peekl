@@ -26,7 +26,6 @@ var runCmd = &cobra.Command{
 		}
 
 		// TODO: IMPLEMENT CHECK IF BOOTSTRAP WAS DONE, DO IT IF NOT
-
 		// Load configuration
 		configStruct, err := config.NewServerConfiguration(configPath)
 		if err != nil {
