@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/redat00/peekl/pkg/certs"
@@ -42,18 +43,43 @@ var bootstrapCmd = &cobra.Command{
 			logrus.Fatal(err)
 		}
 
-		// Create default directories for certificates
-		_, err = os.Stat(configStruct.Certificates.CaDirectory)
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				os.MkdirAll(configStruct.Certificates.CaDirectory, 0700)
-			}
-		} else {
+		_, err = os.Stat(configStruct.Certificates.ServerCertificateFilePath)
+		if err == nil {
 			logrus.Fatal(
-				fmt.Errorf(
-					"The directory for certificates apparently already exist, you should make sure to not overwrite a pre-existing bootstrap of Peekl",
-				),
+				fmt.Errorf("The server was apparently already bootstrapped. Make sure to not override any existing certificates."),
 			)
+		}
+
+		// Make sure any directory that should exist, exist
+		dirs := []string{
+			configStruct.Certificates.CaCertificateFilePath,
+			configStruct.Certificates.CaCertificateKeyPath,
+			configStruct.Certificates.ServerCertificateFilePath,
+			configStruct.Certificates.ServerCertificateKeyPath,
+			configStruct.Certificates.DatabasePath,
+		}
+		for _, dir := range dirs {
+			basePath := filepath.Dir(dir)
+			if _, err := os.Stat(basePath); errors.Is(err, os.ErrNotExist) {
+				err := os.MkdirAll(basePath, 0750)
+				if err != nil {
+					logrus.Fatal(err)
+				}
+			}
+		}
+
+		// Those are straight directories, and not files
+		otherDirs := []string{
+			configStruct.Certificates.PendingDirectory,
+			configStruct.Certificates.SignedDirectory,
+		}
+		for _, dir := range otherDirs {
+			if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
+				err := os.MkdirAll(dir, 0750)
+				if err != nil {
+					logrus.Fatal(err)
+				}
+			}
 		}
 
 		// Create certificate authority
@@ -61,19 +87,13 @@ var bootstrapCmd = &cobra.Command{
 			NotBefore: time.Now(),
 			NotAfter:  time.Now().AddDate(10, 0, 0),
 		}
-		err = certs.CreateCertificateAuthority(configStruct.Certificates.CaDirectory, caParams)
+		err = certs.CreateCertificateAuthority(
+			caParams,
+			configStruct.Certificates.CaCertificateFilePath,
+			configStruct.Certificates.CaCertificateKeyPath,
+		)
 		if err != nil {
 			logrus.Fatal(err)
-		}
-
-		// Create server certificate
-		_, err = os.Stat(configStruct.Certificates.ServerDirectory)
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				os.MkdirAll(configStruct.Certificates.ServerDirectory, 0700)
-			} else {
-				logrus.Fatal(err)
-			}
 		}
 
 		dnsNames, err := cmd.Flags().GetStringArray("names")
@@ -81,7 +101,13 @@ var bootstrapCmd = &cobra.Command{
 			logrus.Fatal(err)
 		}
 
-		err = certs.CreateCertificate(configStruct.Certificates.CaDirectory, configStruct.Certificates.ServerDirectory, "server", dnsNames)
+		err = certs.CreateCertificate(
+			dnsNames,
+			configStruct.Certificates.CaCertificateFilePath,
+			configStruct.Certificates.CaCertificateKeyPath,
+			configStruct.Certificates.ServerCertificateFilePath,
+			configStruct.Certificates.ServerCertificateKeyPath,
+		)
 		if err != nil {
 			logrus.Fatal(err)
 		}

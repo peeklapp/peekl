@@ -4,6 +4,35 @@
         "contact": {}
     },
     "paths": {
+        "/v1/catalogs/catalog": {
+            "get": {
+                "description": "Endpoint use by agent to retrieve the catalog that they need to execute",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "catalogs"
+                ],
+                "summary": "Retrieve catalog to execute",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.GetCatalog"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/certificates/retrieve": {
             "post": {
                 "description": "retrieve a node signed certificate",
@@ -112,6 +141,90 @@
         }
     },
     "definitions": {
+        "models.IncludedResources": {
+            "type": "object",
+            "properties": {
+                "loaded_resources": {
+                    "type": "array",
+                    "items": {}
+                },
+                "resources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Resource"
+                    }
+                },
+                "when": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Resource": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "present": {
+                    "type": "boolean"
+                },
+                "require": {
+                    "$ref": "#/definitions/models.ResourceRequire"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "when": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ResourceRequire": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Role": {
+            "type": "object",
+            "properties": {
+                "included_resources": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/models.IncludedResources"
+                    }
+                },
+                "loaded_resources": {
+                    "type": "array",
+                    "items": {}
+                },
+                "name": {
+                    "type": "string"
+                },
+                "resources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Resource"
+                    }
+                },
+                "templates": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "variables": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
         "requests.RetrieveSignedCertificate": {
             "type": "object",
             "required": [
@@ -150,6 +263,33 @@
                 },
                 "error": {
                     "type": "string"
+                }
+            }
+        },
+        "responses.GetCatalog": {
+            "type": "object",
+            "properties": {
+                "resources": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Resource"
+                    }
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Role"
+                    }
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "variables": {
+                    "type": "object",
+                    "additionalProperties": {}
                 }
             }
         },

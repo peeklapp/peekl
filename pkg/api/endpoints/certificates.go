@@ -26,7 +26,7 @@ func GetRootCA(ctx *fiber.Ctx) error {
 	conf, _ := ctx.Locals("config").(*config.ServerConfig)
 
 	// Get local CA file
-	res, err := os.ReadFile(fmt.Sprintf("%s/ca.pem", conf.Certificates.CaDirectory))
+	res, err := os.ReadFile(conf.Certificates.CaCertificateFilePath)
 	if err != nil {
 		ctx.Status(500).JSON(responses.ErrorResponse{
 			Error:   "Internal Server Error",
@@ -154,7 +154,7 @@ func PostRetrieveSignedCertificate(ctx *fiber.Ctx) error {
 	// Send back the signed certificate
 	signedCert, err := os.ReadFile(
 		fmt.Sprintf(
-			"%s/%s.crt",
+			"%s/%s.pem",
 			conf.Certificates.SignedDirectory,
 			input.NodeName,
 		),

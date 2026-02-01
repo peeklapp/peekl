@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/redat00/peekl/pkg/certs"
@@ -14,15 +15,16 @@ import (
 )
 
 func init() {
+	// List commands
+	caListPendingCmd.Flags().Bool("json", false, "Show output as JSON")
+	caListSignedCmd.Flags().Bool("json", false, "Show output as JSON")
+	caListCmd.AddCommand(caListPendingCmd)
+	caListCmd.AddCommand(caListSignedCmd)
+
 	// Main command
-	caCmd.AddCommand(caListPendingCmd)
+	caCmd.AddCommand(caListCmd)
 	caCmd.AddCommand(caSignPendingCmd)
 	caCmd.AddCommand(caRevokeCertCmd)
-
-	// List commands
-	caListPendingCmd.Flags().Bool("pending", false, "Only list the pending certificates")
-	caListPendingCmd.Flags().Bool("signed", false, "Only list the signed certificates")
-	caListPendingCmd.Flags().Bool("json", false, "Show output as JSON")
 
 	// Sign command
 	caSignPendingCmd.Flags().StringP("certname", "", "", "Name of the pending certificate to sign")
@@ -44,9 +46,20 @@ var caCmd = &cobra.Command{
 	},
 }
 
-var caListPendingCmd = &cobra.Command{
+var caListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List certificates",
+	Short: "List certificates in the CA",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+	},
+}
+
+var caListPendingCmd = &cobra.Command{
+	Use:   "pending",
+	Short: "List pending certificates",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Get verbosity
 		verbose, err := cmd.Flags().GetBool("verbose")
@@ -55,19 +68,6 @@ var caListPendingCmd = &cobra.Command{
 		}
 		if verbose {
 			logrus.SetLevel(logrus.DebugLevel)
-		}
-
-		// Handle listing
-		onlyPending, err := cmd.Flags().GetBool("pending")
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		onlySigned, err := cmd.Flags().GetBool("signed")
-		if err != nil {
-			logrus.Fatal(err)
-		}
-		if onlyPending && onlySigned {
-			logrus.Fatal("If you want to list all certificates, simply remove flags.")
 		}
 
 		// Output mode
@@ -91,36 +91,86 @@ var caListPendingCmd = &cobra.Command{
 			logrus.Fatal(err)
 		}
 
-		if onlyPending {
-			// Get from database
-			pendings, err := certsDbEngine.ListPendingCertificates()
+		// Get from database
+		pendings, err := certsDbEngine.ListPendingCertificates()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		// Output as JSON if asked to
+		if jsonOutput {
+			jsonData, err := json.Marshal(pendings)
 			if err != nil {
 				logrus.Fatal(err)
 			}
-
-			// Output as JSON if asked to
-			if jsonOutput {
-				jsonData, err := json.Marshal(pendings)
-				if err != nil {
-					logrus.Fatal(err)
-				}
-				fmt.Println(string(jsonData))
-			} else {
-				table := tablewriter.NewWriter(os.Stdout)
-				table.Header([]string{"Name", "Submission Date"})
-				for _, p := range pendings {
-					table.Append([]string{p.NodeName, p.SubmittedAt.String()})
-				}
-				table.Render()
-			}
-		} else if onlySigned {
-			fmt.Println(configStruct.Certificates.SignedDirectory)
-			fmt.Println("only listing signed certificates")
+			fmt.Println(string(jsonData))
 		} else {
-			fmt.Println(configStruct.Certificates.SignedDirectory)
-			fmt.Println(configStruct.Certificates.PendingDirectory)
-			fmt.Println("listing all certificates")
+			table := tablewriter.NewWriter(os.Stdout)
+			table.Header([]string{"Name", "Submission Date"})
+			for _, p := range pendings {
+				table.Append([]string{p.NodeName, p.SubmittedAt.String()})
+			}
+			table.Render()
 		}
+	},
+}
+
+var caListSignedCmd = &cobra.Command{
+	Use:   "signed",
+	Short: "List signed certificates",
+	Run: func(cmd *cobra.Command, args []string) {
+		// Get verbosity
+		verbose, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
+		}
+
+		// Output mode
+		jsonOutput, err := cmd.Flags().GetBool("json")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		// Load configuration
+		configPath, err := cmd.Flags().GetString("config")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		configStruct, err := config.NewServerConfiguration(configPath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		certsDbEngine, err := certs.NewCertsDatabaseEngine(configStruct.Certificates.DatabasePath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		// Get from database
+		signeds, err := certsDbEngine.ListSignedCertificates()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		// Output as JSON if asked to
+		if jsonOutput {
+			jsonData, err := json.Marshal(signeds)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			fmt.Println(string(jsonData))
+		} else {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.Header([]string{"Name", "Signature Date"})
+			for _, p := range signeds {
+				table.Append([]string{p.NodeName, p.SignedAt.String()})
+			}
+			table.Render()
+		}
+
 	},
 }
 
@@ -171,10 +221,10 @@ var caSignPendingCmd = &cobra.Command{
 		}
 
 		err = certs.SignCertificateSigningRequest(
-			configStruct.Certificates.CaDirectory,
-			configStruct.Certificates.PendingDirectory,
-			configStruct.Certificates.SignedDirectory,
-			certname,
+			filepath.Join(configStruct.Certificates.PendingDirectory, fmt.Sprintf("%s.csr", certname)),
+			filepath.Join(configStruct.Certificates.SignedDirectory, fmt.Sprintf("%s.pem", certname)),
+			configStruct.Certificates.CaCertificateFilePath,
+			configStruct.Certificates.CaCertificateKeyPath,
 		)
 		if err != nil {
 			logrus.Fatal(err)

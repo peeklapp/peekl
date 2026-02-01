@@ -2,39 +2,70 @@ package api
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/swagger"
 	_ "github.com/redat00/peekl/docs"
 	"github.com/redat00/peekl/pkg/api/endpoints"
+	"github.com/redat00/peekl/pkg/api/middlewares/mtls"
 	"github.com/redat00/peekl/pkg/certs"
 	"github.com/redat00/peekl/pkg/config"
 )
 
 func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDatabaseEngine) (*fiber.App, error) {
-	app := fiber.New()
+	// Create app instance
+	app := fiber.New(
+		fiber.Config{
+			DisableStartupMessage: true,
+		},
+	)
 
-	// Swagger
-	app.Get("/swagger/*", swagger.HandlerDefault) // default
+	loggerMiddleware := logger.New()
+	app.Use(loggerMiddleware)
 
-	// Attach configuration object to every request
-	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("config", conf)
-		return c.Next()
-	})
+	// Set up swagger
+	app.Get("/swagger/*", swagger.HandlerDefault)
+
+	// Create mTLS middleware
+	mtlsMiddleware, err := mtls.New(conf.Certificates.CaCertificateFilePath)
+	if err != nil {
+		return nil, err
+	}
 
 	// Create v1 group
 	v1 := app.Group("v1")
 
 	// Certificates group
-	certGroup := v1.Group("certificates")
+	certificatesGroup := v1.Group("certificates")
 
-	// Attach certsDatabaseEngine object to every request
-	certGroup.Use(func(c *fiber.Ctx) error {
+	// -- Certificates group needs access to certificate database engine
+	certificatesGroup.Use(func(c *fiber.Ctx) error {
 		c.Locals("certsDatabaseEngine", certsDatabaseEngine)
 		return c.Next()
 	})
-	certGroup.Get("/root", endpoints.GetRootCA)
-	certGroup.Post("/submit", endpoints.PostSubmitCertificateRequest)
-	certGroup.Post("/retrieve", endpoints.PostRetrieveSignedCertificate)
+
+	// -- Certificates group needs access to server configuration
+	certificatesGroup.Use(func(c *fiber.Ctx) error {
+		c.Locals("config", conf)
+		return c.Next()
+	})
+
+	// -- Certificates group endpoints
+	certificatesGroup.Get("/root", endpoints.GetRootCA)
+	certificatesGroup.Post("/submit", endpoints.PostSubmitCertificateRequest)
+	certificatesGroup.Post("/retrieve", endpoints.PostRetrieveSignedCertificate)
+
+	// Catalogs group
+	catalogsGroup := v1.Group("catalogs")
+
+	// -- Catalogs group needs access to server configuration
+	catalogsGroup.Use(func(c *fiber.Ctx) error {
+		c.Locals("config", conf)
+		return c.Next()
+	})
+
+	// -- Catalogs group endpoints
+	catalogsGroup.Use(mtlsMiddleware)
+	catalogsGroup.Get("/catalog", endpoints.GetCatalog)
 
 	return app, nil
 }

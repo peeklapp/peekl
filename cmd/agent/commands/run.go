@@ -1,22 +1,74 @@
 package commands
 
 import (
+	"errors"
+	"fmt"
 	"os"
+	"time"
 
-	"github.com/goccy/go-yaml"
 	"github.com/redat00/peekl/pkg/catalog"
 	"github.com/redat00/peekl/pkg/facts"
 	"github.com/redat00/peekl/pkg/models"
+
+	"github.com/redat00/peekl/pkg/api/client"
+	"github.com/redat00/peekl/pkg/config"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 func init() {
+	runCmd.Flags().BoolP("daemon", "d", false, "Whether to run as daemon or not")
 	runCmd.Flags().StringP("environment", "e", "production", "Environment to use")
 	runCmd.Flags().StringP("file", "f", "", "File to use (will not try to fetch from the server)")
 	runCmd.Flags().StringP("templates", "t", "templates/", "Folder in which to find local templates")
 	rootCmd.AddCommand(runCmd)
+}
+
+func isLocked() bool {
+	if _, err := os.Stat("/tmp/.peekl_run"); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return true
+}
+
+func createLockfile() {
+	os.Create("/tmp/.peekl_run")
+}
+
+func deleteLockFile() {
+	os.Remove("/tmp/.peekl_run")
+}
+
+func runAgent(client *client.Client) {
+	// Create rawCatalog
+	var rawCatalog models.RawCatalog
+
+	// Collect facts
+	var err error
+	facter := facts.NewFacter()
+	rawCatalog.Facts, err = facter.Collect()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
+	rawCatalog.GlobalResources, rawCatalog.Roles, rawCatalog.Tags, rawCatalog.Variables, err = client.GetCatalog()
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	catalog, err := catalog.NewCatalog(rawCatalog)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	err = catalog.Process()
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
 }
 
 var runCmd = &cobra.Command{
@@ -28,54 +80,51 @@ var runCmd = &cobra.Command{
 		if err != nil {
 			logrus.Fatal(err)
 		}
-
 		if verbose {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
 
-		file, err := cmd.Flags().GetString("file")
+		// Get configuration
+		configPath, err := cmd.Flags().GetString("config")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		configStruct, err := config.NewAgentConfiguration(configPath)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 
-		// Collect facts
-		facter := facts.NewFacter()
-		facts, err := facter.Collect()
+		client, err := client.NewApiClient(*configStruct, false, nil)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 
-		var resources []models.Resource
+		// Get if should be run as daemon
+		daemon, err := cmd.Flags().GetBool("daemon")
+		if err != nil {
+			logrus.Fatal(err)
+		}
 
-		if file != "" {
-			logrus.Debug("Local file provided, loading catalog from file")
-			f, err := os.ReadFile(file)
-			if err != nil {
-				logrus.Fatal(err)
-			}
-
-			err = yaml.Unmarshal(f, &resources)
-			if err != nil {
-				logrus.Fatal(err)
+		if daemon {
+			for {
+				if !isLocked() {
+					createLockfile()
+					runAgent(client)
+					deleteLockFile()
+				} else {
+					logrus.Error("Could not run agent, it's lock. (/tmp/.peekl_run exist)")
+				}
+				logrus.Info(fmt.Sprintf("Next run in %d seconds.", configStruct.Daemon.LoopTime))
+				time.Sleep(time.Duration(configStruct.Daemon.LoopTime) * time.Second)
 			}
 		} else {
-			logrus.Debug("No local file provided, contacting server to get catalog")
-		}
-
-		var catalogContext models.CatalogContext
-		catalogContext.GlobalTemplateDirectory, err = cmd.Flags().GetString("templates")
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
-		catalog, err := catalog.NewCatalog(resources, facts, catalogContext)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
-		err = catalog.Process()
-		if err != nil {
-			logrus.Fatal(err)
+			if !isLocked() {
+				createLockfile()
+				runAgent(client)
+				deleteLockFile()
+			} else {
+				logrus.Error("Could not run agent, it's lock. (/tmp/.peekl_run exist)")
+			}
 		}
 	},
 }

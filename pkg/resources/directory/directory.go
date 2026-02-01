@@ -22,10 +22,11 @@ type DirectoryData struct {
 }
 
 type DirectoryResource struct {
-	Title   string
-	Type    string
-	Present bool
-	Data    DirectoryData
+	Title         string
+	Type          string
+	Present       bool
+	WhenCondition string
+	Data          DirectoryData
 }
 
 func (d *DirectoryResource) changePermissionsIfNeeded() (bool, error) {
@@ -212,6 +213,10 @@ func (d *DirectoryResource) String() string {
 	return fmt.Sprintf("%s/%s", d.Type, d.Title)
 }
 
+func (d *DirectoryResource) When() string {
+	return d.WhenCondition
+}
+
 func NewDirectoryResource(resource *models.Resource) (*DirectoryResource, error) {
 	var directoryResource DirectoryResource
 
@@ -241,6 +246,7 @@ func NewDirectoryResource(resource *models.Resource) (*DirectoryResource, error)
 	directoryResource.Title = resource.Title
 	directoryResource.Type = resource.Type
 	directoryResource.Present = resource.Present
+	directoryResource.WhenCondition = resource.When
 	directoryResource.Data = directoryData
 
 	return &directoryResource, nil

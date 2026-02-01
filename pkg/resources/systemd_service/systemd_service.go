@@ -25,10 +25,11 @@ type SystemdServiceData struct {
 }
 
 type SystemdServiceResource struct {
-	Title   string
-	Type    string
-	Present bool
-	Data    SystemdServiceData
+	Title         string
+	Type          string
+	Present       bool
+	WhenCondition string
+	Data          SystemdServiceData
 }
 
 func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string) (bool, error) {
@@ -297,6 +298,10 @@ func (s *SystemdServiceResource) String() string {
 	return fmt.Sprintf("%s/%s", s.Type, s.Title)
 }
 
+func (s *SystemdServiceResource) When() string {
+	return s.WhenCondition
+}
+
 func NewSystemdServiceResource(resource *models.Resource) (*SystemdServiceResource, error) {
 	var systemdServiceResource SystemdServiceResource
 
@@ -319,11 +324,10 @@ func NewSystemdServiceResource(resource *models.Resource) (*SystemdServiceResour
 		return &systemdServiceResource, err
 	}
 
-	fmt.Println(systemdServiceData)
-
 	systemdServiceResource.Title = resource.Title
 	systemdServiceResource.Type = resource.Type
 	systemdServiceResource.Present = resource.Present
+	systemdServiceResource.WhenCondition = resource.When
 	systemdServiceResource.Data = systemdServiceData
 
 	return &systemdServiceResource, nil

@@ -3,6 +3,7 @@ package catalog
 import (
 	"fmt"
 
+	"github.com/expr-lang/expr"
 	"github.com/redat00/peekl/pkg/models"
 	"github.com/redat00/peekl/pkg/resources/directory"
 	"github.com/redat00/peekl/pkg/resources/file"
@@ -18,10 +19,54 @@ import (
 // for a given node. It's the list of users you want to create,
 // the files you want to create... etc.
 
+func processResourceResult(
+	res *models.ResourceResult, created, deleted, updated, failed, unchanged int) (int, int, int, int, int) {
+	if res.Created {
+		created = created + 1
+	} else if res.Deleted {
+		deleted = deleted + 1
+	} else if res.Updated {
+		updated = updated + 1
+	} else if res.Failed {
+		failed = failed + 1
+	} else {
+		unchanged = unchanged + 1
+	}
+	return created, deleted, updated, failed, unchanged
+}
+
+func shouldNotSkipResource(res models.LoadedResource, resContext *models.ResourceContext) (bool, error) {
+	// If no when is specified, then we always run
+	if res.When() == "" {
+		return true, nil
+	}
+
+	// Create env for when request with facts and vars
+	env := map[string]any{"facts": resContext.Facts, "vars": resContext.Variables, "tags": resContext.Tags}
+
+	// Compile the when request, and then execute it
+	compiledWhen, err := expr.Compile(res.When(), expr.Env(env))
+	if err != nil {
+		return false, err
+	}
+	output, err := expr.Run(compiledWhen, env)
+	if err != nil {
+		return false, err
+	}
+
+	// Check if output is bool, if it is return it, else return error
+	if b, ok := output.(bool); ok {
+		return b, nil
+	}
+	return false, fmt.Errorf("'when' condition for res '%s' did not return a boolean !", res.String())
+}
+
 type Catalog struct {
 	resources []models.LoadedResource
+	variables map[string]any
 	facts     *models.Facts
-	context   *models.CatalogContext
+	tags      []string
+	roles     []models.Role
 }
 
 // Run the catalog
@@ -31,44 +76,117 @@ func (c *Catalog) Process() error {
 	var updated int
 	var failed int
 	var unchanged int
+	var skipped int
 
 	var resContext models.ResourceContext
 	resContext.Facts = c.facts
+	resContext.Variables = c.variables
+	resContext.Tags = c.tags
 
 	logrus.Info(
 		fmt.Sprintf(
-			"Starting process of catalog with %d resources to process",
+			"Starting process of catalog with %d global resources and %d roles.",
 			len(c.resources),
+			len(c.roles),
 		),
 	)
 
+	// Handle global resources
 	for _, res := range c.resources {
+		logrus.Info(fmt.Sprintf("Processing resource %s", res.String()))
+		skip, err := shouldNotSkipResource(res, &resContext)
+		if err != nil {
+			return err
+		}
+		if !skip {
+			logrus.Debug(fmt.Sprintf("Resource %s has been skipped", res.String()))
+			skipped = skipped + 1
+			continue
+		}
+
 		result, err := res.Process(&resContext)
 		if err != nil {
 			return err
 		}
-
-		if result.Created {
-			created = created + 1
-		} else if result.Deleted {
-			deleted = deleted + 1
-		} else if result.Updated {
-			updated = updated + 1
-		} else if result.Failed {
-			failed = failed + 1
-		} else {
-			unchanged = unchanged + 1
-		}
-	}
-
-	logrus.Info(
-		fmt.Sprintf(
-			"Finished process of catalog with the following result : %d created / %d deleted / %d updated / %d failed / %d unchanged",
+		created, deleted, updated, failed, unchanged = processResourceResult(
+			&result,
 			created,
 			deleted,
 			updated,
 			failed,
 			unchanged,
+		)
+	}
+
+	// Handle roles
+	for _, role := range c.roles {
+		// Handle main
+		logrus.Info(fmt.Sprintf("Starting process of role %s", role.Name))
+		for _, res := range role.LoadedResources {
+			logrus.Info(fmt.Sprintf("Processing resource %s", res.String()))
+			skip, err := shouldNotSkipResource(res, &resContext)
+			if err != nil {
+				return err
+			}
+			if !skip {
+				logrus.Debug(fmt.Sprintf("Resource %s has been skipped", res.String()))
+				skipped = skipped + 1
+				continue
+			}
+
+			result, err := res.Process(&resContext)
+			if err != nil {
+				return err
+			}
+			created, deleted, updated, failed, unchanged = processResourceResult(
+				&result,
+				created,
+				deleted,
+				updated,
+				failed,
+				unchanged,
+			)
+		}
+
+		// Handle included
+		for _, included := range role.IncludedResources {
+			for _, res := range included.LoadedResources {
+				logrus.Info(fmt.Sprintf("Processing resource %s", res.String()))
+				skip, err := shouldNotSkipResource(res, &resContext)
+				if err != nil {
+					return err
+				}
+				if !skip {
+					logrus.Debug(fmt.Sprintf("Resource %s has been skipped", res.String()))
+					skipped = skipped + 1
+					continue
+				}
+
+				result, err := res.Process(&resContext)
+				if err != nil {
+					return err
+				}
+				created, deleted, updated, failed, unchanged = processResourceResult(
+					&result,
+					created,
+					deleted,
+					updated,
+					failed,
+					unchanged,
+				)
+			}
+		}
+	}
+
+	logrus.Info(
+		fmt.Sprintf(
+			"Finished process of catalog with the following result : %d created / %d deleted / %d updated / %d failed / %d unchanged / %d skipped",
+			created,
+			deleted,
+			updated,
+			failed,
+			unchanged,
+			skipped,
 		),
 	)
 
@@ -80,55 +198,85 @@ func (c *Catalog) Validate() error {
 	return nil
 }
 
-func (c *Catalog) loadResources(resources []models.Resource) error {
+func (c *Catalog) loadRoles(roles []models.Role) error {
+	for _, role := range roles {
+		// Handle main resources
+		sortedMainResources, err := sortResources(role.Resources)
+		if err != nil {
+			return err
+		}
+		loadedMainResources, err := c.loadResources(sortedMainResources, nil)
+		if err != nil {
+			return err
+		}
+		role.LoadedResources = loadedMainResources
+
+		// Handle each included
+		for key, include := range role.IncludedResources {
+			sortedIncludedResources, err := sortResources(include.Resources)
+			if err != nil {
+				return err
+			}
+			loadedIncludedResources, err := c.loadResources(sortedIncludedResources, &models.RoleContext{Templates: role.Templates})
+			include.LoadedResources = loadedIncludedResources
+			role.IncludedResources[key] = include
+		}
+		c.roles = append(c.roles, role)
+	}
+
+	return nil
+}
+
+func (c *Catalog) loadResources(resources []models.Resource, roleContext *models.RoleContext) ([]models.LoadedResource, error) {
+	var loadedResources []models.LoadedResource
 	for _, res := range resources {
 		switch res.Type {
 		case "builtin.user":
 			userRes, err := user.NewUserResource(&res)
 			if err != nil {
-				return err
+				return loadedResources, err
 			}
-			c.resources = append(c.resources, userRes)
+			loadedResources = append(loadedResources, userRes)
 		case "builtin.group":
 			groupRes, err := group.NewGroupResource(&res)
 			if err != nil {
-				return err
+				return loadedResources, err
 			}
-			c.resources = append(c.resources, groupRes)
+			loadedResources = append(loadedResources, groupRes)
 		case "builtin.file":
 			fileRes, err := file.NewFileResource(&res)
 			if err != nil {
-				return err
+				return loadedResources, err
 			}
-			c.resources = append(c.resources, fileRes)
+			loadedResources = append(loadedResources, fileRes)
 		case "builtin.directory":
 			directoryRes, err := directory.NewDirectoryResource(&res)
 			if err != nil {
-				return err
+				return loadedResources, err
 			}
-			c.resources = append(c.resources, directoryRes)
+			loadedResources = append(loadedResources, directoryRes)
 		case "builtin.pkg":
 			pkgRes, err := pkg.NewPackageResource(&res)
 			if err != nil {
-				return err
+				return loadedResources, err
 			}
-			c.resources = append(c.resources, pkgRes)
+			loadedResources = append(loadedResources, pkgRes)
 		case "builtin.template":
 			// Create template resource
-			templRes, err := template.NewTemplateResource(&res, c.context.GlobalTemplateDirectory)
+			templRes, err := template.NewTemplateResource(&res, roleContext.Templates)
 			if err != nil {
-				return err
+				return loadedResources, err
 			}
-			c.resources = append(c.resources, templRes)
+			loadedResources = append(loadedResources, templRes)
 		case "builtin.systemd_service":
 			servRes, err := systemdservice.NewSystemdServiceResource(&res)
 			if err != nil {
-				return err
+				return loadedResources, err
 			}
-			c.resources = append(c.resources, servRes)
+			loadedResources = append(loadedResources, servRes)
 		}
 	}
-	return nil
+	return loadedResources, nil
 }
 
 func createResourceRequireIndexMap(resources []models.Resource) map[string]int {
@@ -194,22 +342,25 @@ func sortResources(resources []models.Resource) ([]models.Resource, error) {
 	return sortedResources, nil
 }
 
-func NewCatalog(rawResources []models.Resource, facts *models.Facts, context models.CatalogContext) (*Catalog, error) {
+func NewCatalog(rawCatalog models.RawCatalog) (*Catalog, error) {
 	var catalog Catalog
-	catalog.facts = facts
-	catalog.context = &context
 
-	// Sort catalog
-	sortedResources, err := sortResources(rawResources)
+	// Add facts and catalog context
+	catalog.variables = rawCatalog.Variables
+	catalog.facts = rawCatalog.Facts
+
+	// Handle global resources
+	sortedGlobalResources, err := sortResources(rawCatalog.GlobalResources)
 	if err != nil {
 		return &catalog, err
 	}
 
-	// Load resources
-	err = catalog.loadResources(sortedResources)
-	if err != nil {
-		return &catalog, err
-	}
+	// Load global resources
+	globalLoadedResources, err := catalog.loadResources(sortedGlobalResources, nil)
+	catalog.resources = globalLoadedResources
+
+	// Handle roles
+	catalog.loadRoles(rawCatalog.Roles)
 
 	return &catalog, nil
 }

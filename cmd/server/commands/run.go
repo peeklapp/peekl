@@ -1,9 +1,8 @@
 package commands
 
 import (
-	"errors"
+	"crypto/tls"
 	"fmt"
-	"os"
 
 	"github.com/redat00/peekl/pkg/api"
 	"github.com/redat00/peekl/pkg/certs"
@@ -26,26 +25,12 @@ var runCmd = &cobra.Command{
 			logrus.Fatal(err)
 		}
 
+		// TODO: IMPLEMENT CHECK IF BOOTSTRAP WAS DONE, DO IT IF NOT
+
 		// Load configuration
 		configStruct, err := config.NewServerConfiguration(configPath)
 		if err != nil {
 			logrus.Fatal(err)
-		}
-
-		// Create directories if they don't exist
-		dirs := []string{
-			configStruct.Certificates.MainDirectory,
-			configStruct.Certificates.CaDirectory,
-			configStruct.Certificates.PendingDirectory,
-			configStruct.Certificates.SignedDirectory,
-		}
-		for _, dir := range dirs {
-			if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
-				err := os.MkdirAll(dir, 0750)
-				if err != nil {
-					logrus.Fatal(err)
-				}
-			}
 		}
 
 		certsDbEngine, err := certs.NewCertsDatabaseEngine(configStruct.Certificates.DatabasePath)
@@ -59,14 +44,27 @@ var runCmd = &cobra.Command{
 			logrus.Fatal(err)
 		}
 
-		// Start server
-		err = engine.ListenTLS(
+		// Load certificate for server
+		cert, err := tls.LoadX509KeyPair(configStruct.Certificates.ServerCertificateFilePath, configStruct.Certificates.ServerCertificateKeyPath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		// Create TLS Listener
+		tlsListener, err := tls.Listen(
+			"tcp",
 			fmt.Sprintf("%s:%d", configStruct.Listen.Host, configStruct.Listen.Port),
-			fmt.Sprintf("%s/server.crt", configStruct.Certificates.ServerDirectory),
-			fmt.Sprintf("%s/server.key", configStruct.Certificates.ServerDirectory),
+			&tls.Config{
+				Certificates: []tls.Certificate{cert},
+				ClientAuth:   tls.RequestClientCert,
+				MinVersion:   tls.VersionTLS12,
+			},
 		)
 		if err != nil {
 			logrus.Fatal(err)
 		}
+
+		// Start server
+		engine.Listener(tlsListener)
 	},
 }

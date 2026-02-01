@@ -7,14 +7,12 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	//"math/big"
 	"os"
-	"path/filepath"
 
 	"github.com/redat00/peekl/pkg/models"
 )
 
-func CreateCertificateAuthority(caFolder string, params models.CertificateAuthorityParameters) error {
+func CreateCertificateAuthority(params models.CertificateAuthorityParameters, outCertFilePath string, outKeyFilePath string) error {
 	ca := x509.Certificate{
 		Subject: pkix.Name{
 			Organization:  []string{"Peekl"},
@@ -31,37 +29,40 @@ func CreateCertificateAuthority(caFolder string, params models.CertificateAuthor
 		BasicConstraintsValid: true,
 	}
 
+	// Create private key
 	curve := elliptic.P384()
 	caKey, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
 		return err
 	}
 
-	marshalledPrivKey, err := x509.MarshalECPrivateKey(caKey)
-	if err != nil {
-		return err
-	}
-
+	// Create certificate
 	caBytes, err := x509.CreateCertificate(rand.Reader, &ca, &ca, &caKey.PublicKey, caKey)
 	if err != nil {
 		return err
 	}
 
-	caPem := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: caBytes,
-	})
+	// Save private key
+	marshalledPrivKey, err := x509.MarshalPKCS8PrivateKey(caKey)
+	if err != nil {
+		return err
+	}
+	caPrivKeyOut, err := os.Create(outKeyFilePath)
+	if err != nil {
+		return err
+	}
+	if err := pem.Encode(caPrivKeyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: marshalledPrivKey}); err != nil {
+		return err
+	}
 
-	caPrivKeyPem := pem.EncodeToMemory(&pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: marshalledPrivKey,
-	})
-
-	caPath := filepath.Join(caFolder, "ca.pem")
-	keyPath := filepath.Join(caFolder, "ca.key")
-
-	err = os.WriteFile(caPath, caPem, 0600)
-	err = os.WriteFile(keyPath, caPrivKeyPem, 0600)
+	// Save certificate
+	caCertFileOut, err := os.Create(outCertFilePath)
+	if err != nil {
+		return err
+	}
+	if err := pem.Encode(caCertFileOut, &pem.Block{Type: "CERTIFICATE", Bytes: caBytes}); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -24,10 +24,11 @@ type FileData struct {
 }
 
 type FileResource struct {
-	Title   string
-	Type    string
-	Present bool
-	Data    FileData
+	Title         string
+	Type          string
+	Present       bool
+	WhenCondition string
+	Data          FileData
 }
 
 func (f *FileResource) changePermissionsIfNeeded() (bool, error) {
@@ -282,6 +283,10 @@ func (f *FileResource) String() string {
 	return fmt.Sprintf("%s/%s", f.Type, f.Title)
 }
 
+func (f *FileResource) When() string {
+	return f.WhenCondition
+}
+
 func NewFileResource(resource *models.Resource) (*FileResource, error) {
 	var fileResource FileResource
 
@@ -310,6 +315,7 @@ func NewFileResource(resource *models.Resource) (*FileResource, error) {
 	fileResource.Title = resource.Title
 	fileResource.Type = resource.Type
 	fileResource.Present = resource.Present
+	fileResource.WhenCondition = resource.When
 	fileResource.Data = fileData
 
 	return &fileResource, nil

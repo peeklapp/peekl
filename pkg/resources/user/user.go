@@ -22,10 +22,11 @@ type UserData struct {
 }
 
 type UserResource struct {
-	Title   string
-	Type    string
-	Present bool
-	Data    UserData
+	Title         string
+	Type          string
+	Present       bool
+	WhenCondition string
+	Data          UserData
 }
 
 func (u *UserResource) exist() bool {
@@ -351,6 +352,10 @@ func (u *UserResource) String() string {
 	return fmt.Sprintf("%s/%s", u.Type, u.Title)
 }
 
+func (u *UserResource) When() string {
+	return u.WhenCondition
+}
+
 func NewUserResource(resource *models.Resource) (*UserResource, error) {
 	var userResource UserResource
 
@@ -377,6 +382,7 @@ func NewUserResource(resource *models.Resource) (*UserResource, error) {
 	userResource.Title = resource.Title
 	userResource.Type = resource.Type
 	userResource.Present = resource.Present
+	userResource.WhenCondition = resource.When
 	userResource.Data = userData
 
 	return &userResource, nil

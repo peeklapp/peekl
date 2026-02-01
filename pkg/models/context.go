@@ -1,9 +1,11 @@
 package models
 
 type ResourceContext struct {
-	Facts *Facts
+	Facts     *Facts
+	Tags      []string
+	Variables map[string]any
 }
 
-type CatalogContext struct {
-	GlobalTemplateDirectory string
+type RoleContext struct {
+	Templates map[string]string
 }

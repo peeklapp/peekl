@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"syscall"
 	"text/template"
 
@@ -32,10 +31,11 @@ type TemplateData struct {
 }
 
 type TemplateResource struct {
-	Title   string
-	Type    string
-	Present bool
-	Data    TemplateData
+	Title         string
+	Type          string
+	Present       bool
+	WhenCondition string
+	Data          TemplateData
 }
 
 func (t *TemplateResource) changePermissionsIfNeeded() (bool, error) {
@@ -152,7 +152,7 @@ func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext) (string
 
 	// Build actual template result from variables and template
 	var templateBytesResult bytes.Buffer
-	err = t.Data.loadedTemplate.ExecuteTemplate(&templateBytesResult, fmt.Sprintf("%s.tmpl", t.Data.Name), variables)
+	err = t.Data.loadedTemplate.ExecuteTemplate(&templateBytesResult, fmt.Sprintf("%s", t.Data.Name), variables)
 	if err != nil {
 		return "", err
 	}
@@ -319,20 +319,11 @@ func (t *TemplateResource) String() string {
 	return fmt.Sprintf("%s/%s", t.Type, t.Title)
 }
 
-func (t *TemplateResource) loadRawTemplate() error {
-	// TODO: WHEN WE'RE WORKING WITH THE SERVER, ADD ABILITY TO GET TEMPLATE FROM SERVER
-
-	completeFilePath := filepath.Join(t.Data.rawTemplateDir, fmt.Sprintf("%s.tmpl", t.Data.Name))
-	loadedTemplate, err := template.ParseFiles(completeFilePath)
-	if err != nil {
-		return err
-	}
-	t.Data.loadedTemplate = *loadedTemplate
-
-	return nil
+func (t *TemplateResource) When() string {
+	return t.WhenCondition
 }
 
-func NewTemplateResource(resource *models.Resource, templateDir string) (*TemplateResource, error) {
+func NewTemplateResource(resource *models.Resource, templates map[string]string) (*TemplateResource, error) {
 	var templateResource TemplateResource
 
 	defaults := map[string]any{
@@ -359,14 +350,16 @@ func NewTemplateResource(resource *models.Resource, templateDir string) (*Templa
 	templateResource.Title = resource.Title
 	templateResource.Type = resource.Type
 	templateResource.Present = resource.Present
+	templateResource.WhenCondition = resource.When
 	templateResource.Data = templateData
 
 	// Load raw template
-	templateResource.Data.rawTemplateDir = templateDir
-	err = templateResource.loadRawTemplate()
+	currTemp := templates[templateData.Name]
+	rawTemplate, err := template.New(templateResource.Data.Name).Parse(currTemp)
 	if err != nil {
 		return &templateResource, err
 	}
+	templateResource.Data.loadedTemplate = *rawTemplate
 
 	// In the case that we didn't have any variables
 	if templateResource.Data.Variables == nil {

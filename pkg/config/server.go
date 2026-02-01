@@ -15,12 +15,13 @@ type ListenConfig struct {
 }
 
 type CertificatesConfig struct {
-	MainDirectory    string `mapstructure:"main_directory" yaml:"main_directory"`
-	CaDirectory      string `mapstructure:"ca_directory" yaml:"ca_directory"`
-	PendingDirectory string `mapstructure:"pending_directory" yaml:"pending_directory"`
-	ServerDirectory  string `mapstructure:"server_directory" yaml:"server_directory"`
-	SignedDirectory  string `mapstructure:"signed_directory" yaml:"signed_directory"`
-	DatabasePath     string `mapstructure:"database_path" yaml:"database_path"`
+	CaCertificateFilePath     string `mapstructure:"ca_certificate_file_path" yaml:"ca_certificate_file_path"`
+	CaCertificateKeyPath      string `mapstructure:"ca_certificate_key_path" yaml:"ca_certificate_key_path"`
+	ServerCertificateFilePath string `mapstructure:"server_certificate_file_path" yaml:"server_certificate_file_path"`
+	ServerCertificateKeyPath  string `mapstructure:"server_certificate_key_path" yaml:"server_certificate_key_path"`
+	PendingDirectory          string `mapstructure:"pending_directory" yaml:"pending_directory"`
+	SignedDirectory           string `mapstructure:"signed_directory" yaml:"signed_directory"`
+	DatabasePath              string `mapstructure:"database_path" yaml:"database_path"`
 }
 
 type CodeConfig struct {
@@ -49,12 +50,13 @@ func NewServerConfiguration(configFilePath string) (*ServerConfig, error) {
 			"host": "127.0.0.1",
 		},
 		"certificates": map[string]any{
-			"main_directory":    "/etc/peekl/ssl",
-			"ca_directory":      "/etc/peekl/ssl/ca",
-			"pending_directory": "/etc/peekl/ssl/pending",
-			"server_directory":  "/etc/peekl/ssl/server",
-			"signed_directory":  "/etc/peekl/ssl/signed",
-			"database_path":     "/etc/peekl/ssl/certs.db",
+			"ca_certificate_file_path":     "/etc/peekl/ca/ca.pem",
+			"ca_certificate_key_path":      "/etc/peekl/ca/ca.key",
+			"server_certificate_file_path": "/etc/peekl/server/server.pem",
+			"server_certificate_key_path":  "/etc/peekl/server/server.key",
+			"pending_directory":            "/etc/peekl/ssl/pending",
+			"signed_directory":             "/etc/peekl/ssl/signed",
+			"database_path":                "/etc/peekl/ssl/certs.db",
 		},
 		"code": map[string]any{
 			"directory": "/etc/peekl/code",
@@ -73,7 +75,7 @@ func NewServerConfiguration(configFilePath string) (*ServerConfig, error) {
 
 	// Check if file exist
 	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
-		logrus.Error("No configuration file found at provided path, using default values")
+		logrus.Warn("No configuration file found at provided path, using default values")
 		return &config, nil
 	}
 

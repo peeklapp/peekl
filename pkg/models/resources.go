@@ -11,6 +11,7 @@ type Resource struct {
 	Data    any             `yaml:"data" json:"data"`
 	Present bool            `yaml:"present" json:"present"`
 	Require ResourceRequire `yaml:"require" json:"require"`
+	When    string          `yaml:"when" json:"when"`
 }
 
 type ResourceResult struct {
@@ -22,5 +23,6 @@ type ResourceResult struct {
 
 type LoadedResource interface {
 	Process(*ResourceContext) (ResourceResult, error)
+	When() string
 	String() string
 }

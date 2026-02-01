@@ -3,6 +3,7 @@ module github.com/redat00/peekl
 go 1.25.3
 
 require (
+	github.com/expr-lang/expr v1.17.7
 	github.com/goccy/go-yaml v1.18.0
 	github.com/gofiber/fiber/v2 v2.52.10
 	github.com/gofiber/swagger v1.1.1

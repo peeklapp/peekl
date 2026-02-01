@@ -16,10 +16,11 @@ type GroupData struct {
 }
 
 type GroupResource struct {
-	Title   string
-	Type    string
-	Present bool
-	Data    GroupData
+	Title         string
+	Type          string
+	Present       bool
+	WhenCondition string
+	Data          GroupData
 }
 
 func (g *GroupResource) exist() bool {
@@ -128,12 +129,17 @@ func (g *GroupResource) String() string {
 	return fmt.Sprintf("%s/%s", g.Type, g.Title)
 }
 
+func (g *GroupResource) When() string {
+	return g.WhenCondition
+}
+
 func NewGroupResource(resource *models.Resource) (*GroupResource, error) {
 	var groupResource GroupResource
 
 	groupResource.Title = resource.Title
 	groupResource.Type = resource.Type
 	groupResource.Present = resource.Present
+	groupResource.WhenCondition = resource.When
 
 	err := mapstructure.Decode(resource.Data, &groupResource.Data)
 	if err != nil {

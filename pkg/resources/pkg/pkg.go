@@ -34,10 +34,11 @@ type PackageData struct {
 }
 
 type PackageResource struct {
-	Title   string
-	Type    string
-	Present bool
-	Data    PackageData
+	Title         string
+	Type          string
+	Present       bool
+	WhenCondition string
+	Data          PackageData
 }
 
 func (p *PackageResource) ProcessPackageList() {
@@ -180,6 +181,10 @@ func (p *PackageResource) String() string {
 	return fmt.Sprintf("%s/%s", p.Type, p.Title)
 }
 
+func (p *PackageResource) When() string {
+	return p.WhenCondition
+}
+
 func NewPackageResource(resource *models.Resource) (*PackageResource, error) {
 	var packageResource PackageResource
 
@@ -209,6 +214,7 @@ func NewPackageResource(resource *models.Resource) (*PackageResource, error) {
 	packageResource.Title = resource.Title
 	packageResource.Type = resource.Type
 	packageResource.Present = resource.Present
+	packageResource.WhenCondition = resource.When
 	packageResource.Data = packageData
 
 	return &packageResource, nil

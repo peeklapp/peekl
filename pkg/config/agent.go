@@ -14,8 +14,15 @@ type AgentServerConfig struct {
 	Host string `mapstructure:"host" yaml:"host"`
 }
 
-type AgentCertificatesConfig struct {
-	Directory string `mapstructure:"directory" yaml:"directory"`
+type AgentCertificateConfig struct {
+	CaFilePath          string `mapstructure:"ca_file_path" yaml:"ca_file_path"`
+	CsrFilePath         string `mapstructure:"csr_file_path" yaml:"csr_file_path"`
+	CertificateFilePath string `mapstructure:"certificate_file_path" yaml:"certificate_file_path"`
+	CertificateKeyPath  string `mapstructure:"certificate_key_path" yaml:"certificate_key_path"`
+}
+
+type AgentDaemonConfig struct {
+	LoopTime int `mapstructure:"loop_time" yaml:"loop_time"`
 }
 
 type AgentLoggingConfig struct {
@@ -24,9 +31,10 @@ type AgentLoggingConfig struct {
 }
 
 type AgentConfig struct {
-	Listen       AgentServerConfig       `mapstructure:"server" yaml:"server"`
-	Certificates AgentCertificatesConfig `mapstructure:"certificates" yaml:"certificates"`
-	Logging      AgentLoggingConfig      `mapstructure:"logging" yaml:"logging"`
+	Server       AgentServerConfig      `mapstructure:"server" yaml:"server"`
+	Certificates AgentCertificateConfig `mapstructure:"certificates" yaml:"certificates"`
+	Daemon       AgentDaemonConfig      `mapstructure:"daemon" yaml:"daemon"`
+	Logging      AgentLoggingConfig     `mapstructure:"logging" yaml:"logging"`
 }
 
 func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
@@ -36,10 +44,16 @@ func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
 	defaults := map[string]any{
 		"server": map[string]any{
 			"port": 9040,
-			"host": "127.0.0.1",
+			"host": "peekl",
 		},
 		"certificates": map[string]any{
-			"directory": "/etc/peekl/ssl/agent",
+			"ca_file_path":          "/etc/peekl/ssl/ca/ca.pem",
+			"csr_file_path":         "/etc/peekl/ssl/agent/agent.csr",
+			"certificate_file_path": "/etc/peekl/ssl/agent/agent.pem",
+			"certificate_key_path":  "/etc/peekl/ssl/agent/agent.key",
+		},
+		"daemon": map[string]any{
+			"loop_time": 1800,
 		},
 		"logging": map[string]any{
 			"format": "string",
@@ -55,7 +69,7 @@ func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
 
 	// Check if file exist
 	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
-		logrus.Error("No configuration file found at provided path, using default values")
+		logrus.Warn("No configuration file found at provided path, using default values")
 		return &config, nil
 	}
 

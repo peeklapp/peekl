@@ -1,4 +1,60 @@
 definitions:
+  models.IncludedResources:
+    properties:
+      loaded_resources:
+        items: {}
+        type: array
+      resources:
+        items:
+          $ref: '#/definitions/models.Resource'
+        type: array
+      when:
+        type: string
+    type: object
+  models.Resource:
+    properties:
+      data: {}
+      present:
+        type: boolean
+      require:
+        $ref: '#/definitions/models.ResourceRequire'
+      title:
+        type: string
+      type:
+        type: string
+      when:
+        type: string
+    type: object
+  models.ResourceRequire:
+    properties:
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  models.Role:
+    properties:
+      included_resources:
+        additionalProperties:
+          $ref: '#/definitions/models.IncludedResources'
+        type: object
+      loaded_resources:
+        items: {}
+        type: array
+      name:
+        type: string
+      resources:
+        items:
+          $ref: '#/definitions/models.Resource'
+        type: array
+      templates:
+        additionalProperties:
+          type: string
+        type: object
+      variables:
+        additionalProperties: {}
+        type: object
+    type: object
   requests.RetrieveSignedCertificate:
     properties:
       csr:
@@ -26,6 +82,24 @@ definitions:
       error:
         type: string
     type: object
+  responses.GetCatalog:
+    properties:
+      resources:
+        items:
+          $ref: '#/definitions/models.Resource'
+        type: array
+      roles:
+        items:
+          $ref: '#/definitions/models.Role'
+        type: array
+      tags:
+        items:
+          type: string
+        type: array
+      variables:
+        additionalProperties: {}
+        type: object
+    type: object
   responses.GetRootCA:
     properties:
       certificate:
@@ -44,6 +118,26 @@ definitions:
 info:
   contact: {}
 paths:
+  /v1/catalogs/catalog:
+    get:
+      consumes:
+      - application/json
+      description: Endpoint use by agent to retrieve the catalog that they need to
+        execute
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.GetCatalog'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Retrieve catalog to execute
+      tags:
+      - catalogs
   /v1/certificates/retrieve:
     post:
       consumes:

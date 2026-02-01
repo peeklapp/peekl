@@ -103,9 +103,9 @@ func (c SignedCertificateNotFound) Error() string {
 }
 
 type SignedCertificate struct {
-	NodeName     string `json:"node_name"`
-	CsrSignature string `json:"csr_signature"`
-	SignedAt     string `json:"signed_at"`
+	NodeName     string    `json:"node_name"`
+	CsrSignature string    `json:"csr_signature"`
+	SignedAt     time.Time `json:"signed_at"`
 }
 
 func (c *CertsDatabaseEngine) InsertSignedCertificate(nodeName string, csrSignature string) error {
@@ -131,6 +131,27 @@ func (c *CertsDatabaseEngine) GetSignedCertificate(nodeName string) (SignedCerti
 		}
 	}
 	return signedCert, nil
+}
+
+func (c *CertsDatabaseEngine) ListSignedCertificates() ([]SignedCertificate, error) {
+	var signedCerts []SignedCertificate
+
+	rows, err := c.DB.Query("SELECT node_name, signed_at FROM signed_certs")
+	if err != nil {
+		return signedCerts, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var s SignedCertificate
+		err := rows.Scan(&s.NodeName, &s.SignedAt)
+		if err != nil {
+			return signedCerts, err
+		}
+		signedCerts = append(signedCerts, s)
+	}
+
+	return signedCerts, nil
 }
 
 func NewCertsDatabaseEngine(databasePath string) (*CertsDatabaseEngine, error) {
