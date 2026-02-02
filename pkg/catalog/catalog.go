@@ -19,22 +19,6 @@ import (
 // for a given node. It's the list of users you want to create,
 // the files you want to create... etc.
 
-func processResourceResult(
-	res *models.ResourceResult, created, deleted, updated, failed, unchanged int) (int, int, int, int, int) {
-	if res.Created {
-		created = created + 1
-	} else if res.Deleted {
-		deleted = deleted + 1
-	} else if res.Updated {
-		updated = updated + 1
-	} else if res.Failed {
-		failed = failed + 1
-	} else {
-		unchanged = unchanged + 1
-	}
-	return created, deleted, updated, failed, unchanged
-}
-
 func shouldNotSkipResource(res models.LoadedResource, resContext *models.ResourceContext) (bool, error) {
 	// If no when is specified, then we always run
 	if res.When() == "" {
@@ -61,6 +45,44 @@ func shouldNotSkipResource(res models.LoadedResource, resContext *models.Resourc
 	return false, fmt.Errorf("'when' condition for res '%s' did not return a boolean !", res.String())
 }
 
+func processResources(resources []models.LoadedResource, resContext *models.ResourceContext, catalogResult *CatalogResult) error {
+	for _, res := range resources {
+		logrus.Info(fmt.Sprintf("Processing resource %s", res.String()))
+
+		// Process 'when' condition of resource
+		skip, err := shouldNotSkipResource(res, resContext)
+		if err != nil {
+			return err
+		}
+		if !skip {
+			logrus.Debug(fmt.Sprintf("Resource %s has been skipped", res.String()))
+			catalogResult.Skipped = catalogResult.Skipped + 1
+			continue
+		}
+
+		// Process resource
+		result, err := res.Process(resContext)
+		if err != nil {
+			return err
+		}
+
+		// Process resource result
+		if result.Created {
+			catalogResult.Created = catalogResult.Created + 1
+		} else if result.Deleted {
+			catalogResult.Deleted = catalogResult.Deleted + 1
+		} else if result.Updated {
+			catalogResult.Updated = catalogResult.Updated + 1
+		} else if result.Failed {
+			catalogResult.Failed = catalogResult.Failed + 1
+		} else {
+			catalogResult.Unchanged = catalogResult.Unchanged + 1
+		}
+	}
+
+	return nil
+}
+
 type Catalog struct {
 	resources []models.LoadedResource
 	variables map[string]any
@@ -69,14 +91,18 @@ type Catalog struct {
 	roles     []models.Role
 }
 
+type CatalogResult struct {
+	Created   int
+	Deleted   int
+	Updated   int
+	Failed    int
+	Unchanged int
+	Skipped   int
+}
+
 // Run the catalog
 func (c *Catalog) Process() error {
-	var created int
-	var deleted int
-	var updated int
-	var failed int
-	var unchanged int
-	var skipped int
+	var catalogResult CatalogResult
 
 	var resContext models.ResourceContext
 	resContext.Facts = c.facts
@@ -92,88 +118,25 @@ func (c *Catalog) Process() error {
 	)
 
 	// Handle global resources
-	for _, res := range c.resources {
-		logrus.Info(fmt.Sprintf("Processing resource %s", res.String()))
-		skip, err := shouldNotSkipResource(res, &resContext)
-		if err != nil {
-			return err
-		}
-		if !skip {
-			logrus.Debug(fmt.Sprintf("Resource %s has been skipped", res.String()))
-			skipped = skipped + 1
-			continue
-		}
-
-		result, err := res.Process(&resContext)
-		if err != nil {
-			return err
-		}
-		created, deleted, updated, failed, unchanged = processResourceResult(
-			&result,
-			created,
-			deleted,
-			updated,
-			failed,
-			unchanged,
-		)
+	err := processResources(c.resources, &resContext, &catalogResult)
+	if err != nil {
+		return err
 	}
 
 	// Handle roles
 	for _, role := range c.roles {
 		// Handle main
 		logrus.Info(fmt.Sprintf("Starting process of role %s", role.Name))
-		for _, res := range role.LoadedResources {
-			logrus.Info(fmt.Sprintf("Processing resource %s", res.String()))
-			skip, err := shouldNotSkipResource(res, &resContext)
-			if err != nil {
-				return err
-			}
-			if !skip {
-				logrus.Debug(fmt.Sprintf("Resource %s has been skipped", res.String()))
-				skipped = skipped + 1
-				continue
-			}
-
-			result, err := res.Process(&resContext)
-			if err != nil {
-				return err
-			}
-			created, deleted, updated, failed, unchanged = processResourceResult(
-				&result,
-				created,
-				deleted,
-				updated,
-				failed,
-				unchanged,
-			)
+		err := processResources(role.LoadedResources, &resContext, &catalogResult)
+		if err != nil {
+			return err
 		}
 
 		// Handle included
 		for _, included := range role.IncludedResources {
-			for _, res := range included.LoadedResources {
-				logrus.Info(fmt.Sprintf("Processing resource %s", res.String()))
-				skip, err := shouldNotSkipResource(res, &resContext)
-				if err != nil {
-					return err
-				}
-				if !skip {
-					logrus.Debug(fmt.Sprintf("Resource %s has been skipped", res.String()))
-					skipped = skipped + 1
-					continue
-				}
-
-				result, err := res.Process(&resContext)
-				if err != nil {
-					return err
-				}
-				created, deleted, updated, failed, unchanged = processResourceResult(
-					&result,
-					created,
-					deleted,
-					updated,
-					failed,
-					unchanged,
-				)
+			err := processResources(included.LoadedResources, &resContext, &catalogResult)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -181,12 +144,12 @@ func (c *Catalog) Process() error {
 	logrus.Info(
 		fmt.Sprintf(
 			"Finished process of catalog with the following result : %d created / %d deleted / %d updated / %d failed / %d unchanged / %d skipped",
-			created,
-			deleted,
-			updated,
-			failed,
-			unchanged,
-			skipped,
+			catalogResult.Created,
+			catalogResult.Deleted,
+			catalogResult.Updated,
+			catalogResult.Failed,
+			catalogResult.Unchanged,
+			catalogResult.Skipped,
 		),
 	)
 
