@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"syscall"
 	"text/template"
@@ -145,9 +146,12 @@ func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext) (string
 		return "", err
 	}
 
-	// Build variables for template
-	// In the future we may want to add more variables here (such as from ctx)
-	variables := t.Data.Variables
+	// Create variables for template
+	// 1. First get global variables, from context
+	// 2. Copy variables, and override at the same time, with resource scoped variables
+	// 3. Set facts in variables
+	variables := ctx.Variables
+	maps.Copy(variables, t.Data.Variables)
 	variables["facts"] = factsMap
 
 	// Build actual template result from variables and template
