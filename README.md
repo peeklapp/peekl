@@ -1,7 +1,6 @@
 # peekl
 
-A simple but powerful configuration management tool. Think Puppet or Ansible, but with a more modern approach !
+> [!CAUTION]
+> This project is still under active development. Expect breaking changes at any time. Use on your servers at your own risk.
 
-## Status of the project
-
-Peekl is a project under active development. It's mainly built has a fun project, and is not really meant for anything else.
+Peekl is a simple yet powerful configuration management tool ! It's a more modern and highly opinionated solution at how tools such as Ansible and Puppet works.
