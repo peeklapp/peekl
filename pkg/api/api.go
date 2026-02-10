@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/swagger"
 	_ "github.com/redat00/peekl/docs"
 	"github.com/redat00/peekl/pkg/api/endpoints"
@@ -13,11 +13,7 @@ import (
 
 func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDatabaseEngine) (*fiber.App, error) {
 	// Create app instance
-	app := fiber.New(
-		fiber.Config{
-			DisableStartupMessage: true,
-		},
-	)
+	app := fiber.New()
 
 	loggerMiddleware := logger.New()
 	app.Use(loggerMiddleware)
@@ -38,13 +34,13 @@ func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDat
 	certificatesGroup := v1.Group("certificates")
 
 	// -- Certificates group needs access to certificate database engine
-	certificatesGroup.Use(func(c *fiber.Ctx) error {
+	certificatesGroup.Use(func(c fiber.Ctx) error {
 		c.Locals("certsDatabaseEngine", certsDatabaseEngine)
 		return c.Next()
 	})
 
 	// -- Certificates group needs access to server configuration
-	certificatesGroup.Use(func(c *fiber.Ctx) error {
+	certificatesGroup.Use(func(c fiber.Ctx) error {
 		c.Locals("config", conf)
 		return c.Next()
 	})
@@ -58,7 +54,7 @@ func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDat
 	catalogsGroup := v1.Group("catalogs")
 
 	// -- Catalogs group needs access to server configuration
-	catalogsGroup.Use(func(c *fiber.Ctx) error {
+	catalogsGroup.Use(func(c fiber.Ctx) error {
 		c.Locals("config", conf)
 		return c.Next()
 	})

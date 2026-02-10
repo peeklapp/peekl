@@ -19,8 +19,8 @@ type FileData struct {
 	Path    string      `mapstructure:"path"`
 	Owner   string      `mapstructure:"owner"`
 	Group   string      `mapstructure:"group"`
-	Content string      `mapstructure:"content"`
 	Mode    fs.FileMode `mapstructure:"mode"`
+	Content string      `mapstructure:"content"`
 }
 
 type FileResource struct {

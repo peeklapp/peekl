@@ -29,8 +29,9 @@ type CodeConfig struct {
 }
 
 type LoggingConfig struct {
-	Format string `mapstructure:"format" yaml:"format"`
-	Debug  bool   `mapstructure:"debug" yaml:"debug"`
+	Format  string `mapstructure:"format" yaml:"format"`
+	Debug   bool   `mapstructure:"debug" yaml:"debug"`
+	LogPath string `mapstructure:"log_path" yaml:"log_path"`
 }
 
 type ServerConfig struct {
@@ -62,8 +63,9 @@ func NewServerConfiguration(configFilePath string) (*ServerConfig, error) {
 			"directory": "/etc/peekl/code",
 		},
 		"logging": map[string]any{
-			"format": "string",
-			"debug":  false,
+			"format":   "string",
+			"debug":    false,
+			"log_path": "/var/log/peekl/peekl.log",
 		},
 	}
 

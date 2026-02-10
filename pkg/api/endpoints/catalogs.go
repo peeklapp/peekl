@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"maps"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/redat00/peekl/pkg/api/responses"
 	"github.com/redat00/peekl/pkg/config"
 	"github.com/redat00/peekl/pkg/inventory"
@@ -22,9 +22,9 @@ import (
 // @Success     200 {object} responses.GetCatalog
 // @Failure     404 {object} responses.ErrorResponse
 // @Router      /v1/catalogs/catalog [get]
-func GetCatalog(ctx *fiber.Ctx) error {
+func GetCatalog(ctx fiber.Ctx) error {
 	// Get node name
-	nodeName := ctx.Context().TLSConnectionState().PeerCertificates[0].Subject.CommonName
+	nodeName := ctx.RequestCtx().TLSConnectionState().PeerCertificates[0].Subject.CommonName
 
 	// Get configuration
 	conf, _ := ctx.Locals("config").(*config.ServerConfig)

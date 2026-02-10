@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/redat00/peekl/pkg/api/requests"
 	"github.com/redat00/peekl/pkg/api/responses"
 	"github.com/redat00/peekl/pkg/certs"
@@ -21,7 +21,7 @@ import (
 // @Produce     json
 // @Success     200 {object} responses.GetRootCA
 // @Router      /v1/certificates/root [get]
-func GetRootCA(ctx *fiber.Ctx) error {
+func GetRootCA(ctx fiber.Ctx) error {
 	// Get configuration from context
 	conf, _ := ctx.Locals("config").(*config.ServerConfig)
 
@@ -52,9 +52,9 @@ func GetRootCA(ctx *fiber.Ctx) error {
 // @Success     201 {object} responses.MessageResponse
 // @Failure     400 {object} responses.ErrorResponse
 // @Router      /v1/certificates/submit [post]
-func PostSubmitCertificateRequest(ctx *fiber.Ctx) error {
+func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 	var input requests.SubmitCertificateRequest
-	if err := ctx.BodyParser(&input); err != nil {
+	if err := ctx.Bind().Body(&input); err != nil {
 		ctx.Status(400).JSON(responses.ErrorResponse{
 			Error:   "Body invalid",
 			Details: err.Error(),
@@ -103,9 +103,9 @@ func PostSubmitCertificateRequest(ctx *fiber.Ctx) error {
 // @Failure     400 {object} responses.ErrorResponse
 // @Failure     404 {object} responses.ErrorResponse
 // @Router      /v1/certificates/retrieve [post]
-func PostRetrieveSignedCertificate(ctx *fiber.Ctx) error {
+func PostRetrieveSignedCertificate(ctx fiber.Ctx) error {
 	var input requests.RetrieveSignedCertificate
-	if err := ctx.BodyParser(&input); err != nil {
+	if err := ctx.Bind().Body(&input); err != nil {
 		ctx.Status(400).JSON(responses.ErrorResponse{
 			Error:   "Body invalid",
 			Details: err.Error(),

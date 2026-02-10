@@ -3,7 +3,7 @@ package mtls
 import (
 	"crypto/x509"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/redat00/peekl/pkg/api/responses"
 	"github.com/redat00/peekl/pkg/certs"
 )
@@ -29,8 +29,8 @@ func New(caPath string) (fiber.Handler, error) {
 	}
 
 	// Return actual handle
-	return func(ctx *fiber.Ctx) error {
-		peerCertificates := ctx.Context().TLSConnectionState().PeerCertificates
+	return func(ctx fiber.Ctx) error {
+		peerCertificates := ctx.RequestCtx().TLSConnectionState().PeerCertificates
 
 		// Check if any certificate has been provided
 		if len(peerCertificates) == 0 {
