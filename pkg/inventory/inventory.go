@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/goccy/go-yaml"
-	"github.com/redat00/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/models"
 )
 
 // Inventory

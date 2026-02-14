@@ -6,8 +6,9 @@ import (
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/utils"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/resources"
+	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,11 +26,8 @@ type SystemdServiceData struct {
 }
 
 type SystemdServiceResource struct {
-	Title         string
-	Type          string
-	Present       bool
-	WhenCondition string
-	Data          SystemdServiceData
+	resources.CommonFieldResource
+	Data SystemdServiceData
 }
 
 func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string) (bool, error) {
@@ -104,26 +102,33 @@ func (s *SystemdServiceResource) getServiceDetails() (map[string]string, error) 
 	return parsed, nil
 }
 
-func (s *SystemdServiceResource) doActionOnService(action string) error {
+func (s *SystemdServiceResource) validateState(action string) error {
 	switch action {
 	case "enable":
-		break
+		return nil
 	case "disable":
-		break
+		return nil
 	case "mask":
-		break
+		return nil
 	case "unmask":
-		break
+		return nil
 	case "start":
-		break
+		return nil
 	case "restart":
-		break
+		return nil
 	case "stop":
-		break
+		return nil
 	case "reload":
-		break
+		return nil
 	default:
 		return fmt.Errorf("unknown action %s", action)
+	}
+}
+
+func (s *SystemdServiceResource) doActionOnService(action string) error {
+	err := s.validateState(action)
+	if err != nil {
+		return err
 	}
 
 	command := "systemctl"
@@ -295,14 +300,61 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 }
 
 func (s *SystemdServiceResource) String() string {
-	return fmt.Sprintf("%s/%s", s.Type, s.Title)
+	return fmt.Sprintf("%s / '%s'", s.Type, s.Title)
 }
 
 func (s *SystemdServiceResource) When() string {
 	return s.WhenCondition
 }
 
-func NewSystemdServiceResource(resource *models.Resource) (*SystemdServiceResource, error) {
+func (s *SystemdServiceResource) Register() string {
+	return s.RegisterVariable
+}
+
+func (s *SystemdServiceResource) Validate() error {
+	validationErrors := []models.ValidationError{}
+
+	fieldsThatCannotBeEmpty := [][]string{
+		{s.Data.Name, "name"},
+		{s.Data.State, "state"},
+	}
+	for _, fieldToCheck := range fieldsThatCannotBeEmpty {
+		if fieldToCheck[0] == "" {
+			validationErrors = append(
+				validationErrors,
+				models.ValidationError{
+					FieldName:    fieldToCheck[1],
+					ViolatedRule: "Field cannot be empty",
+				},
+			)
+		}
+	}
+
+	if s.Data.State != "" {
+		err := s.validateState(s.Data.State)
+		if err != nil {
+			validationErrors = append(
+				validationErrors,
+				models.ValidationError{
+					FieldName:    "state",
+					ViolatedRule: fmt.Sprintf("'%s' is not a valid state", s.Data.State),
+				},
+			)
+		}
+	}
+
+	if len(validationErrors) > 0 {
+		return models.ResourceValidationError{
+			Type:             s.Type,
+			Title:            s.Title,
+			ValidationErrors: validationErrors,
+		}
+	}
+
+	return nil
+}
+
+func NewSystemdServiceResource(resource *models.Resource, dataField any) (*SystemdServiceResource, error) {
 	var systemdServiceResource SystemdServiceResource
 
 	defaults := map[string]any{
@@ -319,15 +371,16 @@ func NewSystemdServiceResource(resource *models.Resource) (*SystemdServiceResour
 	}
 
 	// Then we override with the actual values
-	err = mapstructure.Decode(resource.Data, &systemdServiceData)
+	err = mapstructure.Decode(dataField, &systemdServiceData)
 	if err != nil {
 		return &systemdServiceResource, err
 	}
 
 	systemdServiceResource.Title = resource.Title
 	systemdServiceResource.Type = resource.Type
-	systemdServiceResource.Present = resource.Present
+	systemdServiceResource.Present = *resource.Present
 	systemdServiceResource.WhenCondition = resource.When
+	systemdServiceResource.RegisterVariable = resource.Register
 	systemdServiceResource.Data = systemdServiceData
 
 	return &systemdServiceResource, nil

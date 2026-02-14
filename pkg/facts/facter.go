@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"runtime"
 
-	//"github.com/redat00/peekl/facts/internal/collectors"
-	"github.com/redat00/peekl/pkg/facts/collectors"
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/utils"
+	"github.com/peeklapp/peekl/pkg/facts/collectors"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/utils"
 )
 
 type Facter struct {

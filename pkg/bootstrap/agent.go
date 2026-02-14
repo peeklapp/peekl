@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/redat00/peekl/pkg/api/client"
-	"github.com/redat00/peekl/pkg/certs"
-	"github.com/redat00/peekl/pkg/config"
-	"github.com/redat00/peekl/pkg/facts/collectors"
+	"github.com/peeklapp/peekl/pkg/api/client"
+	"github.com/peeklapp/peekl/pkg/certs"
+	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/facts/collectors"
 	"github.com/sirupsen/logrus"
 )
 

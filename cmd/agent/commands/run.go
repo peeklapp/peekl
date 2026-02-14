@@ -6,12 +6,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/redat00/peekl/pkg/catalog"
-	"github.com/redat00/peekl/pkg/facts"
-	"github.com/redat00/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/catalog"
+	"github.com/peeklapp/peekl/pkg/facts"
+	"github.com/peeklapp/peekl/pkg/models"
 
-	"github.com/redat00/peekl/pkg/api/client"
-	"github.com/redat00/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/api/client"
+	"github.com/peeklapp/peekl/pkg/config"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -64,10 +64,20 @@ func runAgent(client *client.Client) {
 		return
 	}
 
-	err = catalog.Process()
+	valid, err := catalog.Validate()
 	if err != nil {
 		logrus.Error(err)
-		return
+	}
+
+	if valid {
+		logrus.Info("Catalog is valid, running")
+		err = catalog.Process()
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+	} else {
+		logrus.Error("Catalog is not valid. Not running.")
 	}
 }
 

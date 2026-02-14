@@ -1,4 +1,4 @@
-module github.com/redat00/peekl
+module github.com/peeklapp/peekl
 
 go 1.25.3
 

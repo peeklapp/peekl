@@ -6,11 +6,11 @@ import (
 	"maps"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/redat00/peekl/pkg/api/responses"
-	"github.com/redat00/peekl/pkg/config"
-	"github.com/redat00/peekl/pkg/inventory"
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/roles"
+	"github.com/peeklapp/peekl/pkg/api/responses"
+	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/inventory"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/roles"
 )
 
 // GetCatalog   godoc

@@ -6,8 +6,9 @@ import (
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/utils"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/resources"
+	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,11 +17,8 @@ type GroupData struct {
 }
 
 type GroupResource struct {
-	Title         string
-	Type          string
-	Present       bool
-	WhenCondition string
-	Data          GroupData
+	resources.CommonFieldResource
+	Data GroupData
 }
 
 func (g *GroupResource) exist() bool {
@@ -126,22 +124,53 @@ func (g *GroupResource) Process(context *models.ResourceContext) (models.Resourc
 }
 
 func (g *GroupResource) String() string {
-	return fmt.Sprintf("%s/%s", g.Type, g.Title)
+	return fmt.Sprintf("%s / '%s'", g.Type, g.Title)
 }
 
 func (g *GroupResource) When() string {
 	return g.WhenCondition
 }
 
-func NewGroupResource(resource *models.Resource) (*GroupResource, error) {
+func (g *GroupResource) Register() string {
+	return g.RegisterVariable
+}
+
+func (g *GroupResource) Validate() error {
+	validationErrors := []models.ValidationError{}
+
+	// Check if the provided name is not empty
+	if g.Data.Name == "" {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "name",
+				ViolatedRule: "Field cannot be empty",
+			},
+		)
+	}
+
+	// If any validation error, return error
+	if len(validationErrors) > 0 {
+		return models.ResourceValidationError{
+			Type:             g.Type,
+			Title:            g.Title,
+			ValidationErrors: validationErrors,
+		}
+	}
+
+	return nil
+}
+
+func NewGroupResource(resource *models.Resource, dataField any) (*GroupResource, error) {
 	var groupResource GroupResource
 
 	groupResource.Title = resource.Title
 	groupResource.Type = resource.Type
-	groupResource.Present = resource.Present
+	groupResource.Present = *resource.Present
 	groupResource.WhenCondition = resource.When
+	groupResource.RegisterVariable = resource.Register
 
-	err := mapstructure.Decode(resource.Data, &groupResource.Data)
+	err := mapstructure.Decode(dataField, &groupResource.Data)
 	if err != nil {
 		return &groupResource, err
 	}

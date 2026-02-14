@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/redat00/peekl/pkg/certs"
-	"github.com/redat00/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/certs"
+	"github.com/peeklapp/peekl/pkg/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

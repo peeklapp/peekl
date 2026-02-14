@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/redat00/peekl/pkg/certs"
-	"github.com/redat00/peekl/pkg/config"
-	"github.com/redat00/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/certs"
+	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/models"
 )
 
 func BootstrapServer(serverConfig *config.ServerConfig, dnsNames []string) error {

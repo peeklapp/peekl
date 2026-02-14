@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/redat00/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/resources"
 	"github.com/sirupsen/logrus"
 )
 
@@ -34,11 +35,8 @@ type PackageData struct {
 }
 
 type PackageResource struct {
-	Title         string
-	Type          string
-	Present       bool
-	WhenCondition string
-	Data          PackageData
+	resources.CommonFieldResource
+	Data PackageData
 }
 
 func (p *PackageResource) ProcessPackageList() {
@@ -178,14 +176,52 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 }
 
 func (p *PackageResource) String() string {
-	return fmt.Sprintf("%s/%s", p.Type, p.Title)
+	return fmt.Sprintf("%s / '%s'", p.Type, p.Title)
 }
 
 func (p *PackageResource) When() string {
 	return p.WhenCondition
 }
 
-func NewPackageResource(resource *models.Resource) (*PackageResource, error) {
+func (p *PackageResource) Register() string {
+	return p.RegisterVariable
+}
+
+func (p *PackageResource) Validate() error {
+	validationErrors := []models.ValidationError{}
+
+	if len(p.Data.Names) == 0 {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "names",
+				ViolatedRule: "Missing packages in list",
+			},
+		)
+	}
+
+	if p.Data.Provider == "" {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "provider",
+				ViolatedRule: "Field cannot be empty",
+			},
+		)
+	}
+
+	if len(validationErrors) > 0 {
+		return models.ResourceValidationError{
+			Type:             p.Type,
+			Title:            p.Title,
+			ValidationErrors: validationErrors,
+		}
+	}
+
+	return nil
+}
+
+func NewPackageResource(resource *models.Resource, dataField any) (*PackageResource, error) {
 	var packageResource PackageResource
 
 	defaults := map[string]any{
@@ -199,7 +235,7 @@ func NewPackageResource(resource *models.Resource) (*PackageResource, error) {
 		return &packageResource, err
 	}
 
-	err = mapstructure.Decode(resource.Data, &packageData)
+	err = mapstructure.Decode(dataField, &packageData)
 	if err != nil {
 		return &packageResource, err
 	}
@@ -213,8 +249,9 @@ func NewPackageResource(resource *models.Resource) (*PackageResource, error) {
 
 	packageResource.Title = resource.Title
 	packageResource.Type = resource.Type
-	packageResource.Present = resource.Present
+	packageResource.Present = *resource.Present
 	packageResource.WhenCondition = resource.When
+	packageResource.RegisterVariable = resource.Register
 	packageResource.Data = packageData
 
 	return &packageResource, nil

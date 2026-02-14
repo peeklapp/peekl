@@ -8,8 +8,9 @@ import (
 	"syscall"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/utils"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/resources"
+	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,11 +23,8 @@ type DirectoryData struct {
 }
 
 type DirectoryResource struct {
-	Title         string
-	Type          string
-	Present       bool
-	WhenCondition string
-	Data          DirectoryData
+	resources.CommonFieldResource
+	Data DirectoryData
 }
 
 func (d *DirectoryResource) changePermissionsIfNeeded() (bool, error) {
@@ -210,14 +208,50 @@ func (d *DirectoryResource) Process(context *models.ResourceContext) (models.Res
 }
 
 func (d *DirectoryResource) String() string {
-	return fmt.Sprintf("%s/%s", d.Type, d.Title)
+	return fmt.Sprintf("%s / '%s'", d.Type, d.Title)
 }
 
 func (d *DirectoryResource) When() string {
 	return d.WhenCondition
 }
 
-func NewDirectoryResource(resource *models.Resource) (*DirectoryResource, error) {
+func (d *DirectoryResource) Register() string {
+	return d.RegisterVariable
+}
+
+func (d *DirectoryResource) Validate() error {
+	validationErrors := []models.ValidationError{}
+
+	fieldsThatCannotBeEmpty := [][]string{
+		{d.Data.Path, "path"},
+		{d.Data.Owner, "owner"},
+		{d.Data.Group, "group"},
+	}
+	for _, fieldToCheck := range fieldsThatCannotBeEmpty {
+		if fieldToCheck[0] == "" {
+			validationErrors = append(
+				validationErrors,
+				models.ValidationError{
+					FieldName:    fieldToCheck[1],
+					ViolatedRule: "Field cannot be empty",
+				},
+			)
+		}
+	}
+
+	// If any validation error, return error
+	if len(validationErrors) > 0 {
+		return models.ResourceValidationError{
+			Type:             d.Type,
+			Title:            d.Title,
+			ValidationErrors: validationErrors,
+		}
+	}
+
+	return nil
+}
+
+func NewDirectoryResource(resource *models.Resource, dataField any) (*DirectoryResource, error) {
 	var directoryResource DirectoryResource
 
 	// Define defaults value
@@ -238,15 +272,16 @@ func NewDirectoryResource(resource *models.Resource) (*DirectoryResource, error)
 	}
 
 	// Then we override with actual values
-	err = mapstructure.Decode(resource.Data, &directoryData)
+	err = mapstructure.Decode(dataField, &directoryData)
 	if err != nil {
 		return &directoryResource, err
 	}
 
 	directoryResource.Title = resource.Title
 	directoryResource.Type = resource.Type
-	directoryResource.Present = resource.Present
+	directoryResource.Present = *resource.Present
 	directoryResource.WhenCondition = resource.When
+	directoryResource.RegisterVariable = resource.Register
 	directoryResource.Data = directoryData
 
 	return &directoryResource, nil

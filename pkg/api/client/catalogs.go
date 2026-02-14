@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/redat00/peekl/pkg/api/responses"
-	"github.com/redat00/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/api/responses"
+	"github.com/peeklapp/peekl/pkg/models"
 )
 
 func (c *Client) GetCatalog() ([]models.Resource, []models.Role, []string, map[string]any, error) {

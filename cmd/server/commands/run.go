@@ -4,9 +4,9 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/redat00/peekl/pkg/api"
-	"github.com/redat00/peekl/pkg/certs"
-	"github.com/redat00/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/api"
+	"github.com/peeklapp/peekl/pkg/certs"
+	"github.com/peeklapp/peekl/pkg/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

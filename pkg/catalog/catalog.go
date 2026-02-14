@@ -1,17 +1,19 @@
 package catalog
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/expr-lang/expr"
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/resources/directory"
-	"github.com/redat00/peekl/pkg/resources/file"
-	"github.com/redat00/peekl/pkg/resources/group"
-	"github.com/redat00/peekl/pkg/resources/pkg"
-	"github.com/redat00/peekl/pkg/resources/systemd_service"
-	"github.com/redat00/peekl/pkg/resources/template"
-	"github.com/redat00/peekl/pkg/resources/user"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/resources/debug"
+	"github.com/peeklapp/peekl/pkg/resources/directory"
+	"github.com/peeklapp/peekl/pkg/resources/file"
+	"github.com/peeklapp/peekl/pkg/resources/group"
+	"github.com/peeklapp/peekl/pkg/resources/pkg"
+	"github.com/peeklapp/peekl/pkg/resources/systemd_service"
+	"github.com/peeklapp/peekl/pkg/resources/template"
+	"github.com/peeklapp/peekl/pkg/resources/user"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,7 +49,7 @@ func shouldNotSkipResource(res models.LoadedResource, resContext *models.Resourc
 
 func processResources(resources []models.LoadedResource, resContext *models.ResourceContext, catalogResult *CatalogResult) error {
 	for _, res := range resources {
-		logrus.Info(fmt.Sprintf("Processing resource %s", res.String()))
+		logrus.Info(fmt.Sprintf("Processing resource [%s]", res.String()))
 
 		// Process 'when' condition of resource
 		skip, err := shouldNotSkipResource(res, resContext)
@@ -66,17 +68,35 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 			return err
 		}
 
+		// Process 'register' field of resource
+		registerField := res.Register()
+
 		// Process resource result
 		if result.Created {
 			catalogResult.Created = catalogResult.Created + 1
+			if registerField != "" {
+				resContext.Variables[registerField] = "created"
+			}
 		} else if result.Deleted {
 			catalogResult.Deleted = catalogResult.Deleted + 1
+			if registerField != "" {
+				resContext.Variables[registerField] = "deleted"
+			}
 		} else if result.Updated {
 			catalogResult.Updated = catalogResult.Updated + 1
+			if registerField != "" {
+				resContext.Variables[registerField] = "updated"
+			}
 		} else if result.Failed {
 			catalogResult.Failed = catalogResult.Failed + 1
+			if registerField != "" {
+				resContext.Variables[registerField] = "failed"
+			}
 		} else {
 			catalogResult.Unchanged = catalogResult.Unchanged + 1
+			if registerField != "" {
+				resContext.Variables[registerField] = "unchanged"
+			}
 		}
 	}
 
@@ -126,7 +146,7 @@ func (c *Catalog) Process() error {
 	// Handle roles
 	for _, role := range c.roles {
 		// Handle main
-		logrus.Info(fmt.Sprintf("Starting process of role %s", role.Name))
+		logrus.Info(fmt.Sprintf("Processing role [%s]", role.Name))
 		err := processResources(role.LoadedResources, &resContext, &catalogResult)
 		if err != nil {
 			return err
@@ -157,18 +177,44 @@ func (c *Catalog) Process() error {
 }
 
 // Validate that the catalog is valid
-func (c *Catalog) Validate() error {
-	return nil
+func (c *Catalog) Validate() (bool, error) {
+	valid := true
+
+	// Validate global catalog resources
+	for _, res := range c.resources {
+		err := res.Validate()
+		if err != nil {
+			if errors.As(err, &models.ResourceValidationError{}) {
+				valid = false
+				logrus.Error(err)
+			} else {
+				return false, err
+			}
+		}
+	}
+
+	// Validates roles
+	for _, role := range c.roles {
+		for _, res := range role.LoadedResources {
+			err := res.Validate()
+			if err != nil {
+				if errors.As(err, &models.ResourceValidationError{}) {
+					valid = false
+					logrus.Error(err)
+				} else {
+					return false, err
+				}
+			}
+		}
+	}
+
+	return valid, nil
 }
 
 func (c *Catalog) loadRoles(roles []models.Role) error {
 	for _, role := range roles {
 		// Handle main resources
-		sortedMainResources, err := sortResources(role.Resources)
-		if err != nil {
-			return err
-		}
-		loadedMainResources, err := c.loadResources(sortedMainResources, nil)
+		loadedMainResources, err := c.loadResources(role.Resources, &models.RoleContext{Templates: role.Templates})
 		if err != nil {
 			return err
 		}
@@ -176,11 +222,10 @@ func (c *Catalog) loadRoles(roles []models.Role) error {
 
 		// Handle each included
 		for key, include := range role.IncludedResources {
-			sortedIncludedResources, err := sortResources(include.Resources)
+			loadedIncludedResources, err := c.loadResources(include.Resources, &models.RoleContext{Templates: role.Templates})
 			if err != nil {
 				return err
 			}
-			loadedIncludedResources, err := c.loadResources(sortedIncludedResources, &models.RoleContext{Templates: role.Templates})
 			include.LoadedResources = loadedIncludedResources
 			role.IncludedResources[key] = include
 		}
@@ -190,119 +235,85 @@ func (c *Catalog) loadRoles(roles []models.Role) error {
 	return nil
 }
 
+func (c *Catalog) loadSingleResource(resource models.Resource, dataField map[string]any, roleContext *models.RoleContext) (models.LoadedResource, error) {
+	if resource.Present == nil {
+		defaultPresentValue := true
+		resource.Present = &defaultPresentValue
+	}
+
+	switch resource.Type {
+	case "builtin.user":
+		loadedUser, err := user.NewUserResource(&resource, dataField)
+		if err != nil {
+			return nil, err
+		}
+		return loadedUser, nil
+	case "builtin.group":
+		loadedGroup, err := group.NewGroupResource(&resource, dataField)
+		if err != nil {
+			return nil, err
+		}
+		return loadedGroup, nil
+	case "builtin.file":
+		loadedFile, err := file.NewFileResource(&resource, dataField)
+		if err != nil {
+			return nil, err
+		}
+		return loadedFile, nil
+	case "builtin.directory":
+		loadedDirectory, err := directory.NewDirectoryResource(&resource, dataField)
+		if err != nil {
+			return nil, err
+		}
+		return loadedDirectory, nil
+	case "builtin.pkg":
+		loadedPkg, err := pkg.NewPackageResource(&resource, dataField)
+		if err != nil {
+			return nil, err
+		}
+		return loadedPkg, nil
+	case "builtin.template":
+		loadedTemplate, err := template.NewTemplateResource(&resource, dataField, roleContext.Templates)
+		if err != nil {
+			return nil, err
+		}
+		return loadedTemplate, nil
+	case "builtin.systemd_service":
+		loadedSystemdService, err := systemdservice.NewSystemdServiceResource(&resource, dataField)
+		if err != nil {
+			return nil, err
+		}
+		return loadedSystemdService, nil
+	case "builtin.debug":
+		loadedDebug, err := debug.NewDebugResource(&resource, dataField)
+		if err != nil {
+			return nil, err
+		}
+		return loadedDebug, nil
+	}
+	return nil, fmt.Errorf("Unknown resource type : %s", resource.Type)
+}
+
 func (c *Catalog) loadResources(resources []models.Resource, roleContext *models.RoleContext) ([]models.LoadedResource, error) {
 	var loadedResources []models.LoadedResource
 	for _, res := range resources {
-		switch res.Type {
-		case "builtin.user":
-			userRes, err := user.NewUserResource(&res)
+		if len(res.With) > 0 {
+			for dataFieldId := range res.With {
+				loadedRes, err := c.loadSingleResource(res, res.With[dataFieldId], roleContext)
+				if err != nil {
+					return loadedResources, err
+				}
+				loadedResources = append(loadedResources, loadedRes)
+			}
+		} else {
+			loadedRes, err := c.loadSingleResource(res, res.Data, roleContext)
 			if err != nil {
 				return loadedResources, err
 			}
-			loadedResources = append(loadedResources, userRes)
-		case "builtin.group":
-			groupRes, err := group.NewGroupResource(&res)
-			if err != nil {
-				return loadedResources, err
-			}
-			loadedResources = append(loadedResources, groupRes)
-		case "builtin.file":
-			fileRes, err := file.NewFileResource(&res)
-			if err != nil {
-				return loadedResources, err
-			}
-			loadedResources = append(loadedResources, fileRes)
-		case "builtin.directory":
-			directoryRes, err := directory.NewDirectoryResource(&res)
-			if err != nil {
-				return loadedResources, err
-			}
-			loadedResources = append(loadedResources, directoryRes)
-		case "builtin.pkg":
-			pkgRes, err := pkg.NewPackageResource(&res)
-			if err != nil {
-				return loadedResources, err
-			}
-			loadedResources = append(loadedResources, pkgRes)
-		case "builtin.template":
-			// Create template resource
-			templRes, err := template.NewTemplateResource(&res, roleContext.Templates)
-			if err != nil {
-				return loadedResources, err
-			}
-			loadedResources = append(loadedResources, templRes)
-		case "builtin.systemd_service":
-			servRes, err := systemdservice.NewSystemdServiceResource(&res)
-			if err != nil {
-				return loadedResources, err
-			}
-			loadedResources = append(loadedResources, servRes)
+			loadedResources = append(loadedResources, loadedRes)
 		}
 	}
 	return loadedResources, nil
-}
-
-func createResourceRequireIndexMap(resources []models.Resource) map[string]int {
-	indexMap := make(map[string]int, len(resources))
-	for i, res := range resources {
-		key := fmt.Sprintf("%s:%s", res.Title, res.Type)
-		indexMap[key] = i
-	}
-	return indexMap
-}
-
-func sortResources(resources []models.Resource) ([]models.Resource, error) {
-	var sortedResources []models.Resource
-
-	indexMap := createResourceRequireIndexMap(resources)
-	visited := make([]int, len(resources))
-
-	var visit func(i int) error
-	visit = func(i int) error {
-		// See if the resource has already been visited
-		switch visited[i] {
-		case 2:
-			return nil
-		case 1:
-			return fmt.Errorf("Dependency cycle")
-		}
-
-		visited[i] = 1
-		reqKey := fmt.Sprintf("%s:%s", resources[i].Require.Title, resources[i].Require.Type)
-
-		reqIdx, ok := indexMap[reqKey]
-		if !ok && (resources[i].Require.Title != "" || resources[i].Require.Type != "") {
-			return fmt.Errorf(
-				"%s",
-				fmt.Sprintf(
-					"Resource %s/%s requires an unknown resource : %s/%s",
-					resources[i].Type,
-					resources[i].Title,
-					resources[i].Require.Type,
-					resources[i].Require.Title,
-				),
-			)
-		}
-
-		if resources[i].Require.Title != "" || resources[i].Require.Type != "" {
-			if err := visit(reqIdx); err != nil {
-				return err
-			}
-		}
-		visited[i] = 2
-		sortedResources = append(sortedResources, resources[i])
-		return nil
-	}
-
-	for i := range resources {
-		if visited[i] == 0 {
-			if err := visit(i); err != nil {
-				return sortedResources, err
-			}
-		}
-	}
-
-	return sortedResources, nil
 }
 
 func NewCatalog(rawCatalog models.RawCatalog) (*Catalog, error) {
@@ -312,14 +323,11 @@ func NewCatalog(rawCatalog models.RawCatalog) (*Catalog, error) {
 	catalog.variables = rawCatalog.Variables
 	catalog.facts = rawCatalog.Facts
 
-	// Handle global resources
-	sortedGlobalResources, err := sortResources(rawCatalog.GlobalResources)
+	// Load global resources
+	globalLoadedResources, err := catalog.loadResources(rawCatalog.GlobalResources, nil)
 	if err != nil {
 		return &catalog, err
 	}
-
-	// Load global resources
-	globalLoadedResources, err := catalog.loadResources(sortedGlobalResources, nil)
 	catalog.resources = globalLoadedResources
 
 	// Handle roles

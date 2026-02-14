@@ -14,8 +14,9 @@ import (
 	"text/template"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/utils"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/resources"
+	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,11 +33,8 @@ type TemplateData struct {
 }
 
 type TemplateResource struct {
-	Title         string
-	Type          string
-	Present       bool
-	WhenCondition string
-	Data          TemplateData
+	resources.CommonFieldResource
+	Data TemplateData
 }
 
 func (t *TemplateResource) changePermissionsIfNeeded() (bool, error) {
@@ -320,14 +318,50 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 }
 
 func (t *TemplateResource) String() string {
-	return fmt.Sprintf("%s/%s", t.Type, t.Title)
+	return fmt.Sprintf("%s / '%s'", t.Type, t.Title)
 }
 
 func (t *TemplateResource) When() string {
 	return t.WhenCondition
 }
 
-func NewTemplateResource(resource *models.Resource, templates map[string]string) (*TemplateResource, error) {
+func (t *TemplateResource) Register() string {
+	return t.RegisterVariable
+}
+
+func (t *TemplateResource) Validate() error {
+	validationErrors := []models.ValidationError{}
+
+	fieldsThatCannotBeEmpty := [][]string{
+		{t.Data.Name, "name"},
+		{t.Data.Path, "path"},
+		{t.Data.Owner, "owner"},
+		{t.Data.Group, "group"},
+	}
+	for _, fieldToCheck := range fieldsThatCannotBeEmpty {
+		if fieldToCheck[0] == "" {
+			validationErrors = append(
+				validationErrors,
+				models.ValidationError{
+					FieldName:    fieldToCheck[1],
+					ViolatedRule: "Field cannot be empty",
+				},
+			)
+		}
+	}
+
+	if len(validationErrors) > 1 {
+		return models.ResourceValidationError{
+			Type:             t.Type,
+			Title:            t.Title,
+			ValidationErrors: validationErrors,
+		}
+	}
+
+	return nil
+}
+
+func NewTemplateResource(resource *models.Resource, dataField map[string]any, templates map[string]string) (*TemplateResource, error) {
 	var templateResource TemplateResource
 
 	defaults := map[string]any{
@@ -346,15 +380,16 @@ func NewTemplateResource(resource *models.Resource, templates map[string]string)
 	}
 
 	// Then we override with actual values
-	err = mapstructure.Decode(resource.Data, &templateData)
+	err = mapstructure.Decode(dataField, &templateData)
 	if err != nil {
 		return &templateResource, err
 	}
 
 	templateResource.Title = resource.Title
 	templateResource.Type = resource.Type
-	templateResource.Present = resource.Present
+	templateResource.Present = *resource.Present
 	templateResource.WhenCondition = resource.When
+	templateResource.RegisterVariable = resource.Register
 	templateResource.Data = templateData
 
 	// Load raw template

@@ -3,8 +3,8 @@ package collectors
 import (
 	"fmt"
 
-	"github.com/redat00/peekl/pkg/facts/collectors/dpkg"
-	"github.com/redat00/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/facts/collectors/dpkg"
+	"github.com/peeklapp/peekl/pkg/models"
 )
 
 func CollectPackagesBasedOnSource(source string) ([]models.Package, error) {

@@ -164,9 +164,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/models.Resource"
                     }
-                },
-                "when": {
-                    "type": "string"
                 }
             }
         },

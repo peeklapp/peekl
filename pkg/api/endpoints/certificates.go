@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/redat00/peekl/pkg/api/requests"
-	"github.com/redat00/peekl/pkg/api/responses"
-	"github.com/redat00/peekl/pkg/certs"
-	"github.com/redat00/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/api/requests"
+	"github.com/peeklapp/peekl/pkg/api/responses"
+	"github.com/peeklapp/peekl/pkg/certs"
+	"github.com/peeklapp/peekl/pkg/config"
 )
 
 // This file contains all the API routes related to certificates

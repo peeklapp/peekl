@@ -1,6 +1,6 @@
 package responses
 
-import "github.com/redat00/peekl/pkg/models"
+import "github.com/peeklapp/peekl/pkg/models"
 
 type GetCatalog struct {
 	GlobalResource []models.Resource `json:"resources"`

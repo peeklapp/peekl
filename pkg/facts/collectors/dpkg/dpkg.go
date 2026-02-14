@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/utils"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 

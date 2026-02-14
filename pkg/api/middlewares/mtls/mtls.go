@@ -4,8 +4,8 @@ import (
 	"crypto/x509"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/redat00/peekl/pkg/api/responses"
-	"github.com/redat00/peekl/pkg/certs"
+	"github.com/peeklapp/peekl/pkg/api/responses"
+	"github.com/peeklapp/peekl/pkg/certs"
 )
 
 type MtlsMiddlewareConfig struct {

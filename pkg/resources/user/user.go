@@ -7,8 +7,9 @@ import (
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/utils"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/resources"
+	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,11 +23,8 @@ type UserData struct {
 }
 
 type UserResource struct {
-	Title         string
-	Type          string
-	Present       bool
-	WhenCondition string
-	Data          UserData
+	resources.CommonFieldResource
+	Data UserData
 }
 
 func (u *UserResource) exist() bool {
@@ -349,14 +347,44 @@ func (u *UserResource) Process(context *models.ResourceContext) (models.Resource
 }
 
 func (u *UserResource) String() string {
-	return fmt.Sprintf("%s/%s", u.Type, u.Title)
+	return fmt.Sprintf("%s / '%s'", u.Type, u.Title)
 }
 
 func (u *UserResource) When() string {
 	return u.WhenCondition
 }
 
-func NewUserResource(resource *models.Resource) (*UserResource, error) {
+func (u *UserResource) Register() string {
+	return u.RegisterVariable
+}
+
+func (u *UserResource) Validate() error {
+	validationErrors := []models.ValidationError{}
+
+	// Check if the provided username is not empty
+	if u.Data.Username == "" {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "username",
+				ViolatedRule: "Field cannot be empty",
+			},
+		)
+	}
+
+	// If any validation error, return error
+	if len(validationErrors) > 0 {
+		return models.ResourceValidationError{
+			Type:             u.Type,
+			Title:            u.Title,
+			ValidationErrors: validationErrors,
+		}
+	}
+
+	return nil
+}
+
+func NewUserResource(resource *models.Resource, dataField any) (*UserResource, error) {
 	var userResource UserResource
 
 	defaults := map[string]any{
@@ -374,15 +402,16 @@ func NewUserResource(resource *models.Resource) (*UserResource, error) {
 	}
 
 	// Then we override with actual values
-	err = mapstructure.Decode(resource.Data, &userData)
+	err = mapstructure.Decode(dataField, &userData)
 	if err != nil {
 		return &userResource, err
 	}
 
 	userResource.Title = resource.Title
 	userResource.Type = resource.Type
-	userResource.Present = resource.Present
+	userResource.Present = *resource.Present
 	userResource.WhenCondition = resource.When
+	userResource.RegisterVariable = resource.Register
 	userResource.Data = userData
 
 	return &userResource, nil

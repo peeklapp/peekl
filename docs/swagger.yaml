@@ -8,8 +8,6 @@ definitions:
         items:
           $ref: '#/definitions/models.Resource'
         type: array
-      when:
-        type: string
     type: object
   models.Resource:
     properties:

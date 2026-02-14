@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/redat00/peekl/pkg/bootstrap"
-	"github.com/redat00/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/bootstrap"
+	"github.com/peeklapp/peekl/pkg/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

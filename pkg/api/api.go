@@ -3,12 +3,11 @@ package api
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
-	"github.com/gofiber/swagger"
-	_ "github.com/redat00/peekl/docs"
-	"github.com/redat00/peekl/pkg/api/endpoints"
-	"github.com/redat00/peekl/pkg/api/middlewares/mtls"
-	"github.com/redat00/peekl/pkg/certs"
-	"github.com/redat00/peekl/pkg/config"
+	_ "github.com/peeklapp/peekl/docs"
+	"github.com/peeklapp/peekl/pkg/api/endpoints"
+	"github.com/peeklapp/peekl/pkg/api/middlewares/mtls"
+	"github.com/peeklapp/peekl/pkg/certs"
+	"github.com/peeklapp/peekl/pkg/config"
 )
 
 func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDatabaseEngine) (*fiber.App, error) {
@@ -17,9 +16,6 @@ func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDat
 
 	loggerMiddleware := logger.New()
 	app.Use(loggerMiddleware)
-
-	// Set up swagger
-	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	// Create mTLS middleware
 	mtlsMiddleware, err := mtls.New(conf.Certificates.CaCertificateFilePath)

@@ -9,7 +9,7 @@ import (
 	"encoding/pem"
 	"os"
 
-	"github.com/redat00/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/models"
 )
 
 func CreateCertificateAuthority(params models.CertificateAuthorityParameters, outCertFilePath string, outKeyFilePath string) error {

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/redat00/peekl/pkg/api/requests"
-	"github.com/redat00/peekl/pkg/api/responses"
+	"github.com/peeklapp/peekl/pkg/api/requests"
+	"github.com/peeklapp/peekl/pkg/api/responses"
 )
 
 func (c *Client) GetRootCA() (string, error) {

@@ -10,8 +10,9 @@ import (
 	"syscall"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/redat00/peekl/pkg/models"
-	"github.com/redat00/peekl/pkg/utils"
+	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/resources"
+	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,11 +25,8 @@ type FileData struct {
 }
 
 type FileResource struct {
-	Title         string
-	Type          string
-	Present       bool
-	WhenCondition string
-	Data          FileData
+	resources.CommonFieldResource
+	Data FileData
 }
 
 func (f *FileResource) changePermissionsIfNeeded() (bool, error) {
@@ -280,14 +278,49 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 }
 
 func (f *FileResource) String() string {
-	return fmt.Sprintf("%s/%s", f.Type, f.Title)
+	return fmt.Sprintf("%s / '%s'", f.Type, f.Title)
 }
 
 func (f *FileResource) When() string {
 	return f.WhenCondition
 }
 
-func NewFileResource(resource *models.Resource) (*FileResource, error) {
+func (f *FileResource) Register() string {
+	return f.RegisterVariable
+}
+
+func (f *FileResource) Validate() error {
+	validationErrors := []models.ValidationError{}
+
+	fieldsThatCannotBeEmpty := [][]string{
+		{f.Data.Path, "path"},
+		{f.Data.Owner, "owner"},
+		{f.Data.Group, "group"},
+	}
+	for _, fieldToCheck := range fieldsThatCannotBeEmpty {
+		if fieldToCheck[0] == "" {
+			validationErrors = append(
+				validationErrors,
+				models.ValidationError{
+					FieldName:    fieldToCheck[1],
+					ViolatedRule: "Field cannot be empty",
+				},
+			)
+		}
+	}
+
+	if len(validationErrors) > 0 {
+		return models.ResourceValidationError{
+			Type:             f.Type,
+			Title:            f.Title,
+			ValidationErrors: validationErrors,
+		}
+	}
+
+	return nil
+}
+
+func NewFileResource(resource *models.Resource, dataField any) (*FileResource, error) {
 	var fileResource FileResource
 
 	// Define defaults value
@@ -307,15 +340,16 @@ func NewFileResource(resource *models.Resource) (*FileResource, error) {
 	}
 
 	// Then we override with actual values
-	err = mapstructure.Decode(resource.Data, &fileData)
+	err = mapstructure.Decode(dataField, &fileData)
 	if err != nil {
 		return &fileResource, err
 	}
 
 	fileResource.Title = resource.Title
 	fileResource.Type = resource.Type
-	fileResource.Present = resource.Present
+	fileResource.Present = *resource.Present
 	fileResource.WhenCondition = resource.When
+	fileResource.RegisterVariable = resource.Register
 	fileResource.Data = fileData
 
 	return &fileResource, nil

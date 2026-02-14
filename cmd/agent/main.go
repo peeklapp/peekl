@@ -1,6 +1,6 @@
 package main
 
-import "github.com/redat00/peekl/cmd/agent/commands"
+import "github.com/peeklapp/peekl/cmd/agent/commands"
 
 func main() {
 	commands.Execute()

@@ -10,8 +10,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/redat00/peekl/pkg/api/responses"
-	"github.com/redat00/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/api/responses"
+	"github.com/peeklapp/peekl/pkg/config"
 )
 
 type Client struct {
