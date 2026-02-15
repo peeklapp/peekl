@@ -102,33 +102,26 @@ func (s *SystemdServiceResource) getServiceDetails() (map[string]string, error) 
 	return parsed, nil
 }
 
-func (s *SystemdServiceResource) validateState(action string) error {
+func (s *SystemdServiceResource) doActionOnService(action string) error {
 	switch action {
 	case "enable":
-		return nil
+		break
 	case "disable":
-		return nil
+		break
 	case "mask":
-		return nil
+		break
 	case "unmask":
-		return nil
+		break
 	case "start":
-		return nil
+		break
 	case "restart":
-		return nil
+		break
 	case "stop":
-		return nil
+		break
 	case "reload":
-		return nil
+		break
 	default:
 		return fmt.Errorf("unknown action %s", action)
-	}
-}
-
-func (s *SystemdServiceResource) doActionOnService(action string) error {
-	err := s.validateState(action)
-	if err != nil {
-		return err
 	}
 
 	command := "systemctl"
@@ -254,10 +247,6 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		logrus.Info(
 			fmt.Sprintf("Service (%s.service) reloaded", s.Data.Name),
 		)
-	default:
-		err := fmt.Errorf("Unknown status for systemd service : %s", s.Data.State)
-		result.Failed = true
-		return result, err
 	}
 
 	// Check if service is enabled, enable if it needs to
@@ -331,8 +320,16 @@ func (s *SystemdServiceResource) Validate() error {
 	}
 
 	if s.Data.State != "" {
-		err := s.validateState(s.Data.State)
-		if err != nil {
+		switch s.Data.State {
+		case "running":
+			break
+		case "stopped":
+			break
+		case "restarted":
+			break
+		case "reloaded":
+			break
+		default:
 			validationErrors = append(
 				validationErrors,
 				models.ValidationError{
@@ -354,7 +351,7 @@ func (s *SystemdServiceResource) Validate() error {
 	return nil
 }
 
-func NewSystemdServiceResource(resource *models.Resource, dataField any) (*SystemdServiceResource, error) {
+func NewSystemdServiceResource(resource *models.Resource, dataField map[string]any) (*SystemdServiceResource, error) {
 	var systemdServiceResource SystemdServiceResource
 
 	defaults := map[string]any{

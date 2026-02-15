@@ -3,7 +3,6 @@ package template
 import (
 	"bytes"
 	"crypto/md5"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +13,7 @@ import (
 	"text/template"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/peeklapp/peekl/pkg/facts"
 	"github.com/peeklapp/peekl/pkg/models"
 	"github.com/peeklapp/peekl/pkg/resources"
 	"github.com/peeklapp/peekl/pkg/utils"
@@ -134,15 +134,7 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 
 func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext) (string, error) {
 	// Build facts map
-	jsonFacts, err := json.Marshal(ctx.Facts)
-	if err != nil {
-		return "", err
-	}
-	var factsMap map[string]any
-	err = json.Unmarshal(jsonFacts, &factsMap)
-	if err != nil {
-		return "", err
-	}
+	factsMap := facts.FactsToMap(*ctx.Facts)
 
 	// Create variables for template
 	// 1. First get global variables, from context
@@ -154,7 +146,7 @@ func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext) (string
 
 	// Build actual template result from variables and template
 	var templateBytesResult bytes.Buffer
-	err = t.Data.loadedTemplate.ExecuteTemplate(&templateBytesResult, fmt.Sprintf("%s", t.Data.Name), variables)
+	err := t.Data.loadedTemplate.ExecuteTemplate(&templateBytesResult, fmt.Sprintf("%s", t.Data.Name), variables)
 	if err != nil {
 		return "", err
 	}

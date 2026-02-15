@@ -14,13 +14,6 @@ import (
 
 // This file contains all the API routes related to certificates
 
-// GetRootCA godoc
-// @Summary     Used to get the root CA from the server
-// @Description get root ca from server
-// @Tags        certificates
-// @Produce     json
-// @Success     200 {object} responses.GetRootCA
-// @Router      /v1/certificates/root [get]
 func GetRootCA(ctx fiber.Ctx) error {
 	// Get configuration from context
 	conf, _ := ctx.Locals("config").(*config.ServerConfig)
@@ -42,16 +35,6 @@ func GetRootCA(ctx fiber.Ctx) error {
 	return nil
 }
 
-// SubmitCertificate godoc
-// @Summary     Used to submit a certificate
-// @Description submit an unsigned certificate
-// @Tags        certificates
-// @Accept      json
-// @Produce     json
-// @Param       data body requests.SubmitCertificateRequest true "Name of the node, along the CSR"
-// @Success     201 {object} responses.MessageResponse
-// @Failure     400 {object} responses.ErrorResponse
-// @Router      /v1/certificates/submit [post]
 func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 	var input requests.SubmitCertificateRequest
 	if err := ctx.Bind().Body(&input); err != nil {
@@ -92,17 +75,6 @@ func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 	return nil
 }
 
-// GetSignedCertificate godoc
-// @Summary     Retrieve a certificate once it has been signed
-// @Description retrieve a node signed certificate
-// @Tags        certificates
-// @Accept      json
-// @Produce     json
-// @Param       data body requests.RetrieveSignedCertificate true "Name of the node, along the CSR"
-// @Success     200 {object} responses.RetrieveSignedCertificate
-// @Failure     400 {object} responses.ErrorResponse
-// @Failure     404 {object} responses.ErrorResponse
-// @Router      /v1/certificates/retrieve [post]
 func PostRetrieveSignedCertificate(ctx fiber.Ctx) error {
 	var input requests.RetrieveSignedCertificate
 	if err := ctx.Bind().Body(&input); err != nil {

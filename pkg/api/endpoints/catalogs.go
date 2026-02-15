@@ -13,15 +13,6 @@ import (
 	"github.com/peeklapp/peekl/pkg/roles"
 )
 
-// GetCatalog   godoc
-// @Summary     Retrieve catalog to execute
-// @Description Endpoint use by agent to retrieve the catalog that they need to execute
-// @Tags        catalogs
-// @Accept      json
-// @Produce     json
-// @Success     200 {object} responses.GetCatalog
-// @Failure     404 {object} responses.ErrorResponse
-// @Router      /v1/catalogs/catalog [get]
 func GetCatalog(ctx fiber.Ctx) error {
 	// Get node name
 	nodeName := ctx.RequestCtx().TLSConnectionState().PeerCertificates[0].Subject.CommonName

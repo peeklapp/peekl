@@ -6,6 +6,7 @@ import (
 
 	"github.com/expr-lang/expr"
 	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/resources/command"
 	"github.com/peeklapp/peekl/pkg/resources/debug"
 	"github.com/peeklapp/peekl/pkg/resources/directory"
 	"github.com/peeklapp/peekl/pkg/resources/file"
@@ -62,10 +63,15 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 			continue
 		}
 
+		// Output log for indication of resource finished being processed
+		finishedOutputLog := fmt.Sprintf("Finished processing of resource [%s]. Result: ", res.String())
+
 		// Process resource
 		result, err := res.Process(resContext)
 		if err != nil {
-			return err
+			logrus.Error(finishedOutputLog + "Failed")
+			logrus.Error(err)
+			return nil
 		}
 
 		// Process 'register' field of resource
@@ -74,30 +80,36 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 		// Process resource result
 		if result.Created {
 			catalogResult.Created = catalogResult.Created + 1
+			finishedOutputLog = finishedOutputLog + "Created"
 			if registerField != "" {
 				resContext.Variables[registerField] = "created"
 			}
 		} else if result.Deleted {
 			catalogResult.Deleted = catalogResult.Deleted + 1
+			finishedOutputLog = finishedOutputLog + "Deleted"
 			if registerField != "" {
 				resContext.Variables[registerField] = "deleted"
 			}
 		} else if result.Updated {
 			catalogResult.Updated = catalogResult.Updated + 1
+			finishedOutputLog = finishedOutputLog + "Updated"
 			if registerField != "" {
 				resContext.Variables[registerField] = "updated"
 			}
 		} else if result.Failed {
 			catalogResult.Failed = catalogResult.Failed + 1
+			finishedOutputLog = finishedOutputLog + "Failed"
 			if registerField != "" {
 				resContext.Variables[registerField] = "failed"
 			}
 		} else {
 			catalogResult.Unchanged = catalogResult.Unchanged + 1
+			finishedOutputLog = finishedOutputLog + "Unchanged"
 			if registerField != "" {
 				resContext.Variables[registerField] = "unchanged"
 			}
 		}
+		logrus.Info(finishedOutputLog)
 	}
 
 	return nil
@@ -137,26 +149,35 @@ func (c *Catalog) Process() error {
 		),
 	)
 
+	// Failed resource
+	var failedResource bool
+
 	// Handle global resources
 	err := processResources(c.resources, &resContext, &catalogResult)
 	if err != nil {
-		return err
+		failedResource = true
 	}
 
 	// Handle roles
-	for _, role := range c.roles {
-		// Handle main
-		logrus.Info(fmt.Sprintf("Processing role [%s]", role.Name))
-		err := processResources(role.LoadedResources, &resContext, &catalogResult)
-		if err != nil {
-			return err
-		}
+	if !failedResource {
+		for _, role := range c.roles {
+			logrus.Info(fmt.Sprintf("Processing role [%s]", role.Name))
 
-		// Handle included
-		for _, included := range role.IncludedResources {
-			err := processResources(included.LoadedResources, &resContext, &catalogResult)
+			// Handle main
+			err := processResources(role.LoadedResources, &resContext, &catalogResult)
 			if err != nil {
-				return err
+				failedResource = true
+			}
+
+			if !failedResource {
+				// Handle included
+				for _, included := range role.IncludedResources {
+					err := processResources(included.LoadedResources, &resContext, &catalogResult)
+					if err != nil {
+						failedResource = true
+					}
+				}
+				logrus.Info(fmt.Sprintf("Finished processing role [%s]", role.Name))
 			}
 		}
 	}
@@ -290,6 +311,12 @@ func (c *Catalog) loadSingleResource(resource models.Resource, dataField map[str
 			return nil, err
 		}
 		return loadedDebug, nil
+	case "builtin.command":
+		loadedCommand, err := command.NewCommandResource(&resource, dataField)
+		if err != nil {
+			return nil, err
+		}
+		return loadedCommand, nil
 	}
 	return nil, fmt.Errorf("Unknown resource type : %s", resource.Type)
 }

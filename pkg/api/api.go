@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
-	_ "github.com/peeklapp/peekl/docs"
 	"github.com/peeklapp/peekl/pkg/api/endpoints"
 	"github.com/peeklapp/peekl/pkg/api/middlewares/mtls"
 	"github.com/peeklapp/peekl/pkg/certs"

@@ -2,11 +2,11 @@ package debug
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"text/template"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/peeklapp/peekl/pkg/facts"
 	"github.com/peeklapp/peekl/pkg/models"
 	"github.com/peeklapp/peekl/pkg/resources"
 	"github.com/sirupsen/logrus"
@@ -24,18 +24,7 @@ type DebugResource struct {
 func (d *DebugResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
-	jsonFacts, err := json.Marshal(context.Facts)
-	if err != nil {
-		result.Failed = true
-		return result, err
-	}
-	var factsMap map[string]any
-	err = json.Unmarshal(jsonFacts, &factsMap)
-	if err != nil {
-		result.Failed = true
-		return result, err
-	}
-
+	factsMap := facts.FactsToMap(*context.Facts)
 	variables := context.Variables
 	variables["facts"] = factsMap
 
