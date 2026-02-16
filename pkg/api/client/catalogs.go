@@ -4,15 +4,17 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/peeklapp/peekl/pkg/api/requests"
 	"github.com/peeklapp/peekl/pkg/api/responses"
 	"github.com/peeklapp/peekl/pkg/models"
 )
 
-func (c *Client) GetCatalog() ([]models.Resource, []models.Role, []string, map[string]any, error) {
+func (c *Client) GetCatalog(environment string) ([]models.Resource, []models.Role, []string, map[string]any, error) {
 	endpoint := "/v1/catalogs/catalog"
+	body := requests.RetrieveCatalog{Environment: environment}
 	var resp responses.GetCatalog
 
-	err := c.get(endpoint, &resp)
+	err := c.post(endpoint, body, &resp)
 	if err != nil {
 		if errors.As(err, &HttpError{}) {
 			detailedError, _ := err.(HttpError)

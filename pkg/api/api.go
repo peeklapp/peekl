@@ -56,7 +56,7 @@ func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDat
 
 	// -- Catalogs group endpoints
 	catalogsGroup.Use(mtlsMiddleware)
-	catalogsGroup.Get("/catalog", endpoints.GetCatalog)
+	catalogsGroup.Post("/catalog", endpoints.PostRetrieveCatalog)
 
 	return app, nil
 }

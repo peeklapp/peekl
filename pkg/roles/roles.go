@@ -11,14 +11,6 @@ import (
 	"github.com/peeklapp/peekl/pkg/models"
 )
 
-type RoleNotFoundError struct {
-	roleName string
-}
-
-func (e RoleNotFoundError) Error() string {
-	return fmt.Sprintf("The role %s could not be found in the roles folder.", e.roleName)
-}
-
 func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 	var role models.Role
 
@@ -35,7 +27,7 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 	rolePath := filepath.Join(codePath, "roles", roleName)
 	if _, err := os.Stat(rolePath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return &role, RoleNotFoundError{roleName: roleName}
+			return &role, models.RoleNotFoundError{RoleName: roleName}
 		} else {
 			return &role, err
 		}

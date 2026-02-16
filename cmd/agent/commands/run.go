@@ -40,7 +40,7 @@ func deleteLockFile() {
 	os.Remove("/tmp/.peekl_run")
 }
 
-func runAgent(client *client.Client) {
+func runAgent(client *client.Client, environment string) {
 	// Create rawCatalog
 	var rawCatalog models.RawCatalog
 
@@ -52,7 +52,7 @@ func runAgent(client *client.Client) {
 		logrus.Fatal(err)
 	}
 
-	rawCatalog.GlobalResources, rawCatalog.Roles, rawCatalog.Tags, rawCatalog.Variables, err = client.GetCatalog()
+	rawCatalog.GlobalResources, rawCatalog.Roles, rawCatalog.Tags, rawCatalog.Variables, err = client.GetCatalog(environment)
 	if err != nil {
 		logrus.Error(err)
 		return
@@ -119,7 +119,7 @@ var runCmd = &cobra.Command{
 			for {
 				if !isLocked() {
 					createLockfile()
-					runAgent(client)
+					runAgent(client, configStruct.Environment)
 					deleteLockFile()
 				} else {
 					logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
@@ -130,7 +130,7 @@ var runCmd = &cobra.Command{
 		} else {
 			if !isLocked() {
 				createLockfile()
-				runAgent(client)
+				runAgent(client, configStruct.Environment)
 				deleteLockFile()
 			} else {
 				logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")

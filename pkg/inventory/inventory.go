@@ -37,14 +37,6 @@ import (
 //        nginx/
 //        ...
 
-type NodeNotFoundError struct {
-	NodeName string
-}
-
-func (e NodeNotFoundError) Error() string {
-	return fmt.Sprintf("The node %s could not be found in the inventory.", e.NodeName)
-}
-
 // Load an host from inventory
 func LoadNodeFromInventory(codePath string, nodeName string) (*models.NodeInventory, error) {
 	var node models.NodeInventory
@@ -60,7 +52,7 @@ func LoadNodeFromInventory(codePath string, nodeName string) (*models.NodeInvent
 	f, err := os.ReadFile(nodeFile)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return &node, NodeNotFoundError{NodeName: nodeName}
+			return &node, models.NodeNotFoundError{NodeName: nodeName}
 		} else {
 			return &node, err
 		}
@@ -73,14 +65,6 @@ func LoadNodeFromInventory(codePath string, nodeName string) (*models.NodeInvent
 	}
 
 	return &node, nil
-}
-
-type GroupNotFoundError struct {
-	GroupName string
-}
-
-func (e GroupNotFoundError) Error() string {
-	return fmt.Sprintf("The group %s could not be found in the inventory.", e.GroupName)
 }
 
 func LoadGroupFromInventory(codePath string, groupName string) (*models.GroupInventory, error) {
@@ -97,7 +81,7 @@ func LoadGroupFromInventory(codePath string, groupName string) (*models.GroupInv
 	f, err := os.ReadFile(groupFile)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return &group, GroupNotFoundError{GroupName: groupName}
+			return &group, models.GroupNotFoundError{GroupName: groupName}
 		} else {
 			return &group, err
 		}

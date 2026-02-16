@@ -35,6 +35,7 @@ type AgentConfig struct {
 	Certificates AgentCertificateConfig `mapstructure:"certificates" yaml:"certificates"`
 	Daemon       AgentDaemonConfig      `mapstructure:"daemon" yaml:"daemon"`
 	Logging      AgentLoggingConfig     `mapstructure:"logging" yaml:"logging"`
+	Environment  string                 `mapstructure:"environment" yaml:"environment"`
 }
 
 func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
@@ -59,6 +60,7 @@ func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
 			"format": "string",
 			"debug":  false,
 		},
+		"environment": "production",
 	}
 
 	// Make default struct with default values
