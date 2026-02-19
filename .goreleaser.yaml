@@ -1,0 +1,98 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+
+# The lines below are called `modelines`. See `:help modeline`
+# Feel free to remove those if you don't want/need to use them.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: agent
+    binary: peekl-agent
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/agent/main.go
+    ldflags:
+      - -s -w
+      - -X github.com/peeklapp/peekl/cmd/agent/commands.version={{.Version}}
+      - -X github.com/peeklapp/peekl/cmd/agent/commands.commit={{.Commit}}
+      - -X github.com/peeklapp/peekl/cmd/agent/commands.date={{.CommitDate}}
+ 
+  - id: server
+    binary: peekl-server
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/server/main.go
+    ldflags:
+      - -s -w
+      - -X github.com/peeklapp/peekl/cmd/server/commands.version={{.Version}}
+      - -X github.com/peeklapp/peekl/cmd/server/commands.commit={{.Commit}}
+      - -X github.com/peeklapp/peekl/cmd/server/commands.date={{.CommitDate}}
+
+nfpms:
+  - id: agent
+    package_name: peekl-agent
+    ids: ["agent"]
+    vendor: Your Organization
+    homepage: https://example.com/binary1
+    maintainer: Your Name <your.email@example.com>
+    description: Description for binary1
+    license: MIT
+    formats:
+      - deb
+    bindir: /usr/bin
+    contents:
+      - src: configs/peekl-agent/peekl-agent.service
+        dst: /etc/systemd/system/peekl-agent.service
+    scripts:
+      postinstall: scripts/peekl-agent/postinstall.sh
+
+  - id: server
+    package_name: peekl-server
+    ids: ["server"]
+    vendor: Your Organization
+    homepage: https://example.com/binary2
+    maintainer: Your Name <your.email@example.com>
+    description: Description for binary2
+    license: MIT
+    formats:
+      - deb
+    bindir: /usr/bin
+    contents:
+      - src: configs/peekl-server/peekl-server.service
+        dst: /etc/systemd/system/peekl-server.service
+    scripts:
+      postinstall: scripts/peekl-server/postinstall.sh
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  footer: >-
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
