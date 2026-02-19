@@ -80,7 +80,12 @@ nfpms:
     scripts:
       postinstall: scripts/peekl-server/postinstall.sh
 
+archives:
+  - id: peekl
+    files: []
+
 changelog:
+  use: github
   sort: asc
   filters:
     exclude:
