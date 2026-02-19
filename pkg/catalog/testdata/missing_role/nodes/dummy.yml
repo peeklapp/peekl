@@ -1,0 +1,6 @@
+name: "dummy"
+roles:
+  - "test"
+resources: []
+groups: []
+tags: []

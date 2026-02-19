@@ -2,3 +2,5 @@ templates/
 testing/
 output/
 examples/*.yml
+coverage.out
+.DS_Store

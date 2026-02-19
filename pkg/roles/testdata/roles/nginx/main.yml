@@ -1,0 +1,9 @@
+resources:
+  - title: "install_package_nginx"
+    type: "builtin.pkg"
+    data:
+      names:
+        - "nginx"
+
+includes:
+  - name: "testing"

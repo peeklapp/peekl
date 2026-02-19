@@ -1,0 +1,6 @@
+name: "dummy"
+roles: []
+resources: []
+groups:
+  - "web"
+tags: []

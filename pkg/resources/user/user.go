@@ -232,7 +232,7 @@ func (u *UserResource) updateShellIfNeeded() (bool, error) {
 }
 
 func (u *UserResource) create() error {
-	command := "adduser"
+	command := "useradd"
 	args := []string{u.Data.Username}
 
 	// Whether or not to create home directory
@@ -259,7 +259,7 @@ func (u *UserResource) create() error {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to create user")
+		}).Info("Could not execute command to create user")
 		return executionOutput.ErrorDetails
 	}
 	return nil
