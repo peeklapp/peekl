@@ -1,0 +1,14 @@
+[Unit]
+Description=Peekl Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/bin/peekl-agent run -d
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

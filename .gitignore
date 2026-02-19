@@ -4,3 +4,5 @@ output/
 examples/*.yml
 coverage.out
 .DS_Store
+# Added by goreleaser init:
+dist/
