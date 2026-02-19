@@ -1,0 +1,11 @@
+name: "web"
+roles:
+  - "nginx"
+resources:
+  - title: "install_package_cowsay"
+    type: "builtin.pkg"
+    data:
+      names:
+        - "cowsay"
+tags:
+  - "tag_from_group"

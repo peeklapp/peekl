@@ -1,0 +1,13 @@
+name: "dummy"
+roles:
+  - "test"
+resources:
+  - title: "install_package_htop"
+    type: "builtin.pkg"
+    data:
+      names:
+        - "htop"
+groups:
+  - "web"
+tags:
+  - "tag_from_node"

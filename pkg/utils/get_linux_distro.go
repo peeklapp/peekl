@@ -6,9 +6,13 @@ import (
 	"strings"
 )
 
-func GetLinuxOS() (string, error) {
+func GetLinuxOS(filePath string) (string, error) {
+	if filePath == "" {
+		filePath = "/proc/version"
+	}
+
 	// Get raw data from `/proc/version` file
-	data, err := os.ReadFile("/proc/version")
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return "", err
 	}
@@ -24,5 +28,5 @@ func GetLinuxOS() (string, error) {
 	}
 
 	// If we're here, we did not find anything
-	return "", fmt.Errorf("could not determine the os from the `/proc/version` file")
+	return "", fmt.Errorf("could not determine the os from the `%s` file", filePath)
 }

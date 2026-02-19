@@ -37,7 +37,7 @@ func (f *Facter) Collect() (*models.Facts, error) {
 	var facts models.Facts
 
 	// First we need to determine the OS
-	distro, err := utils.GetLinuxOS()
+	distro, err := utils.GetLinuxOS("")
 	if err != nil {
 		return &facts, err
 	}
