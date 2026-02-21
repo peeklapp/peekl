@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/peeklapp/peekl/pkg/bootstrap"
 	"github.com/peeklapp/peekl/pkg/catalog"
 	"github.com/peeklapp/peekl/pkg/facts"
 	"github.com/peeklapp/peekl/pkg/models"
@@ -85,7 +86,6 @@ var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the agent",
 	Run: func(cmd *cobra.Command, args []string) {
-		// Set log level to debug
 		verbose, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
 			logrus.Fatal(err)
@@ -94,17 +94,44 @@ var runCmd = &cobra.Command{
 			logrus.SetLevel(logrus.DebugLevel)
 		}
 
-		// Get configuration
 		configPath, err := cmd.Flags().GetString("config")
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		configStruct, err := config.NewAgentConfiguration(configPath)
+		agentConfig, err := config.NewAgentConfiguration(configPath)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 
-		client, err := client.NewApiClient(*configStruct, false, nil)
+		state := bootstrap.GetAgentBootstrapState(agentConfig)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		switch state {
+		case bootstrap.BootstrapNone:
+			err = bootstrap.BootstrapAgent(agentConfig)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			success, err := bootstrap.TryFetchCertificateFromServer(agentConfig)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			if !success {
+				logrus.Fatal("Was not able to fectch certificate from server.")
+			}
+		case bootstrap.BootstrapPendingCert:
+			success, err := bootstrap.TryFetchCertificateFromServer(agentConfig)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			if !success {
+				logrus.Fatal("Was not able to fectch certificate from server.")
+			}
+		}
+
+		apiClient, err := client.NewApiClient(*agentConfig, false, nil)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -119,18 +146,18 @@ var runCmd = &cobra.Command{
 			for {
 				if !isLocked() {
 					createLockfile()
-					runAgent(client, configStruct.Environment)
+					runAgent(apiClient, agentConfig.Environment)
 					deleteLockFile()
 				} else {
 					logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
 				}
-				logrus.Info(fmt.Sprintf("Next run in %d seconds.", configStruct.Daemon.LoopTime))
-				time.Sleep(time.Duration(configStruct.Daemon.LoopTime) * time.Second)
+				logrus.Info(fmt.Sprintf("Next run in %d seconds.", agentConfig.Daemon.LoopTime))
+				time.Sleep(time.Duration(agentConfig.Daemon.LoopTime) * time.Second)
 			}
 		} else {
 			if !isLocked() {
 				createLockfile()
-				runAgent(client, configStruct.Environment)
+				runAgent(apiClient, agentConfig.Environment)
 				deleteLockFile()
 			} else {
 				logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")

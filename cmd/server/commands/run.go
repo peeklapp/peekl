@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/peeklapp/peekl/pkg/api"
+	"github.com/peeklapp/peekl/pkg/bootstrap"
 	"github.com/peeklapp/peekl/pkg/certs"
 	"github.com/peeklapp/peekl/pkg/config"
 	"github.com/sirupsen/logrus"
@@ -19,32 +20,34 @@ var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the server",
 	Run: func(cmd *cobra.Command, args []string) {
-		// Get configuration file path
 		configPath, err := cmd.Flags().GetString("config")
 		if err != nil {
 			logrus.Fatal(err)
 		}
-
-		// TODO: IMPLEMENT CHECK IF BOOTSTRAP WAS DONE, DO IT IF NOT
-		// Load configuration
-		configStruct, err := config.NewServerConfiguration(configPath)
+		serverConfig, err := config.NewServerConfiguration(configPath)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 
-		certsDbEngine, err := certs.NewCertsDatabaseEngine(configStruct.Certificates.DatabasePath)
+		state := bootstrap.GetServerBootstrapState(serverConfig)
+		if state == bootstrap.BootstrapNone {
+			logrus.Debug("Bootstrap of server was not done, doing it right now.")
+			bootstrap.BootstrapServer(serverConfig)
+		}
+
+		certsDbEngine, err := certs.NewCertsDatabaseEngine(serverConfig.Certificates.DatabasePath)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 
 		// API Engine
-		engine, err := api.NewApiEngine(configStruct, certsDbEngine)
+		engine, err := api.NewApiEngine(serverConfig, certsDbEngine)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 
 		// Load certificate for server
-		cert, err := tls.LoadX509KeyPair(configStruct.Certificates.ServerCertificateFilePath, configStruct.Certificates.ServerCertificateKeyPath)
+		cert, err := tls.LoadX509KeyPair(serverConfig.Certificates.ServerCertificateFilePath, serverConfig.Certificates.ServerCertificateKeyPath)
 		if err != nil {
 			logrus.Fatal(err)
 		}
@@ -52,7 +55,7 @@ var runCmd = &cobra.Command{
 		// Create TLS Listener
 		tlsListener, err := tls.Listen(
 			"tcp",
-			fmt.Sprintf("%s:%d", configStruct.Listen.Host, configStruct.Listen.Port),
+			fmt.Sprintf("%s:%d", serverConfig.Listen.Host, serverConfig.Listen.Port),
 			&tls.Config{
 				Certificates: []tls.Certificate{cert},
 				ClientAuth:   tls.RequestClientCert,
