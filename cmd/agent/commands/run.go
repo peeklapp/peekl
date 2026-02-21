@@ -82,6 +82,35 @@ func runAgent(client *client.Client, environment string) {
 	}
 }
 
+func performBootstrap(config *config.AgentConfig) error {
+	state := bootstrap.GetAgentBootstrapState(config)
+
+	switch state {
+	case bootstrap.BootstrapNone:
+		err := bootstrap.BootstrapAgent(config)
+		if err != nil {
+			return err
+		}
+		success, err := bootstrap.TryFetchCertificateFromServer(config)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return fmt.Errorf("Could not fetch certificate from server")
+		}
+	case bootstrap.BootstrapPendingCert:
+		success, err := bootstrap.TryFetchCertificateFromServer(config)
+		if err != nil {
+			return err
+		}
+		if !success {
+			return fmt.Errorf("Could not fetch certificate from server")
+		}
+	}
+
+	return nil
+}
+
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the agent",
@@ -103,39 +132,6 @@ var runCmd = &cobra.Command{
 			logrus.Fatal(err)
 		}
 
-		state := bootstrap.GetAgentBootstrapState(agentConfig)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
-		switch state {
-		case bootstrap.BootstrapNone:
-			err = bootstrap.BootstrapAgent(agentConfig)
-			if err != nil {
-				logrus.Fatal(err)
-			}
-			success, err := bootstrap.TryFetchCertificateFromServer(agentConfig)
-			if err != nil {
-				logrus.Fatal(err)
-			}
-			if !success {
-				logrus.Fatal("Was not able to fectch certificate from server.")
-			}
-		case bootstrap.BootstrapPendingCert:
-			success, err := bootstrap.TryFetchCertificateFromServer(agentConfig)
-			if err != nil {
-				logrus.Fatal(err)
-			}
-			if !success {
-				logrus.Fatal("Was not able to fectch certificate from server.")
-			}
-		}
-
-		apiClient, err := client.NewApiClient(*agentConfig, false, nil)
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
 		// Get if should be run as daemon
 		daemon, err := cmd.Flags().GetBool("daemon")
 		if err != nil {
@@ -143,6 +139,22 @@ var runCmd = &cobra.Command{
 		}
 
 		if daemon {
+			for {
+				err = performBootstrap(agentConfig)
+				if err != nil {
+					logrus.Error(err)
+				} else {
+					break
+				}
+				logrus.Info("Retrying in 60 seconds")
+				time.Sleep(time.Duration(60) * time.Second)
+			}
+
+			apiClient, err := client.NewApiClient(*agentConfig, false, nil)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+
 			for {
 				if !isLocked() {
 					createLockfile()
@@ -155,7 +167,15 @@ var runCmd = &cobra.Command{
 				time.Sleep(time.Duration(agentConfig.Daemon.LoopTime) * time.Second)
 			}
 		} else {
+			err = performBootstrap(agentConfig)
+			if err != nil {
+				logrus.Fatal(err)
+			}
 			if !isLocked() {
+				apiClient, err := client.NewApiClient(*agentConfig, false, nil)
+				if err != nil {
+					logrus.Fatal(err)
+				}
 				createLockfile()
 				runAgent(apiClient, agentConfig.Environment)
 				deleteLockFile()
