@@ -15,13 +15,15 @@ type ListenConfig struct {
 }
 
 type CertificatesConfig struct {
-	CaCertificateFilePath     string `mapstructure:"ca_certificate_file_path" yaml:"ca_certificate_file_path"`
-	CaCertificateKeyPath      string `mapstructure:"ca_certificate_key_path" yaml:"ca_certificate_key_path"`
-	ServerCertificateFilePath string `mapstructure:"server_certificate_file_path" yaml:"server_certificate_file_path"`
-	ServerCertificateKeyPath  string `mapstructure:"server_certificate_key_path" yaml:"server_certificate_key_path"`
-	PendingDirectory          string `mapstructure:"pending_directory" yaml:"pending_directory"`
-	SignedDirectory           string `mapstructure:"signed_directory" yaml:"signed_directory"`
-	DatabasePath              string `mapstructure:"database_path" yaml:"database_path"`
+	CaCertificateFilePath     string   `mapstructure:"ca_certificate_file_path" yaml:"ca_certificate_file_path"`
+	CaCertificateKeyPath      string   `mapstructure:"ca_certificate_key_path" yaml:"ca_certificate_key_path"`
+	ServerCertificateFilePath string   `mapstructure:"server_certificate_file_path" yaml:"server_certificate_file_path"`
+	ServerCertificateKeyPath  string   `mapstructure:"server_certificate_key_path" yaml:"server_certificate_key_path"`
+	PendingDirectory          string   `mapstructure:"pending_directory" yaml:"pending_directory"`
+	SignedDirectory           string   `mapstructure:"signed_directory" yaml:"signed_directory"`
+	DatabasePath              string   `mapstructure:"database_path" yaml:"database_path"`
+	BootstrapDoneFilePath     string   `mapstructure:"bootstrap_done_file_path" yaml:"bootstrap_done_file_path"`
+	BootstrapDnsNames         []string `mapstructure:"bootstrap_dns_names" yaml:"bootstrap_dns_names"`
 }
 
 type CodeConfig struct {
@@ -51,13 +53,15 @@ func NewServerConfiguration(configFilePath string) (*ServerConfig, error) {
 			"host": "127.0.0.1",
 		},
 		"certificates": map[string]any{
-			"ca_certificate_file_path":     "/etc/peekl/ca/ca.pem",
-			"ca_certificate_key_path":      "/etc/peekl/ca/ca.key",
-			"server_certificate_file_path": "/etc/peekl/server/server.pem",
-			"server_certificate_key_path":  "/etc/peekl/server/server.key",
+			"ca_certificate_file_path":     "/etc/peekl/ssl/ca/ca.pem",
+			"ca_certificate_key_path":      "/etc/peekl/ssl/ca/ca.key",
+			"server_certificate_file_path": "/etc/peekl/ssl/server/server.pem",
+			"server_certificate_key_path":  "/etc/peekl/ssl/server/server.key",
 			"pending_directory":            "/etc/peekl/ssl/pending",
 			"signed_directory":             "/etc/peekl/ssl/signed",
 			"database_path":                "/etc/peekl/ssl/certs.db",
+			"bootstrap_done_file_path":     "/etc/peekl/ssl/server/.bootstrap_done",
+			"bootstrap_dns_names":          []string{},
 		},
 		"code": map[string]any{
 			"directory": "/etc/peekl/code",

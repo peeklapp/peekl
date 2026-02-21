@@ -15,10 +15,12 @@ type AgentServerConfig struct {
 }
 
 type AgentCertificateConfig struct {
-	CaFilePath          string `mapstructure:"ca_file_path" yaml:"ca_file_path"`
-	CsrFilePath         string `mapstructure:"csr_file_path" yaml:"csr_file_path"`
-	CertificateFilePath string `mapstructure:"certificate_file_path" yaml:"certificate_file_path"`
-	CertificateKeyPath  string `mapstructure:"certificate_key_path" yaml:"certificate_key_path"`
+	CaFilePath                string `mapstructure:"ca_file_path" yaml:"ca_file_path"`
+	CsrFilePath               string `mapstructure:"csr_file_path" yaml:"csr_file_path"`
+	CertificateFilePath       string `mapstructure:"certificate_file_path" yaml:"certificate_file_path"`
+	CertificateKeyPath        string `mapstructure:"certificate_key_path" yaml:"certificate_key_path"`
+	BootstrapPendingFilePath  string `mapstructure:"bootstrap_pending_file_path" yaml:"bootstrap_pending_file_path"`
+	BootstrapCompleteFilePath string `mapstructure:"bootstrap_complete_file_path" yaml:"bootstrap_complete_file_path"`
 }
 
 type AgentDaemonConfig struct {
@@ -48,10 +50,12 @@ func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
 			"host": "peekl",
 		},
 		"certificates": map[string]any{
-			"ca_file_path":          "/etc/peekl/ssl/ca/ca.pem",
-			"csr_file_path":         "/etc/peekl/ssl/agent/agent.csr",
-			"certificate_file_path": "/etc/peekl/ssl/agent/agent.pem",
-			"certificate_key_path":  "/etc/peekl/ssl/agent/agent.key",
+			"ca_file_path":                 "/etc/peekl/ssl/ca/ca.pem",
+			"csr_file_path":                "/etc/peekl/ssl/agent/agent.csr",
+			"certificate_file_path":        "/etc/peekl/ssl/agent/agent.pem",
+			"certificate_key_path":         "/etc/peekl/ssl/agent/agent.key",
+			"bootstrap_pending_file_path":  "/etc/peekl/ssl/agent/.bootstrap_pending",
+			"bootstrap_complete_file_path": "/etc/peekl/ssl/agent/.bootstrap_complete",
 		},
 		"daemon": map[string]any{
 			"loop_time": 1800,

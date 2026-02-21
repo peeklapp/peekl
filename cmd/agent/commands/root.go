@@ -19,7 +19,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().Bool("verbose", false, "enable verbose output")
-	rootCmd.PersistentFlags().StringP("config", "c", "/etc/peekl/agent/config.yml", "Path to the configuration file for the agent")
+	rootCmd.PersistentFlags().StringP("config", "c", "/etc/peekl/config/agent.yml", "Path to the configuration file for the agent")
 }
 
 func Execute() {

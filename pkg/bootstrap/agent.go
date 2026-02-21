@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"crypto/x509"
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -12,16 +11,20 @@ import (
 	"github.com/peeklapp/peekl/pkg/certs"
 	"github.com/peeklapp/peekl/pkg/config"
 	"github.com/peeklapp/peekl/pkg/facts/collectors"
+	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
 )
 
-func BootstrapAgent(agentConfig *config.AgentConfig) error {
-	// If CSR already exist, then host is already bootstrapped
-	_, err := os.Stat(agentConfig.Certificates.CertificateFilePath)
-	if err == nil {
-		return fmt.Errorf("The agent was apparently already bootstrapped. Make sure to not override any existing certificates.")
+func GetAgentBootstrapState(agentConfig *config.AgentConfig) BootstrapState {
+	if utils.FileExist(agentConfig.Certificates.BootstrapCompleteFilePath) {
+		return BootstrapComplete
+	} else if utils.FileExist(agentConfig.Certificates.BootstrapPendingFilePath) {
+		return BootstrapPendingCert
 	}
+	return BootstrapNone
+}
 
+func BootstrapAgent(agentConfig *config.AgentConfig) error {
 	// Make sure any directory that should exist, exist
 	dirs := []string{
 		agentConfig.Certificates.CsrFilePath,
@@ -60,13 +63,13 @@ func BootstrapAgent(agentConfig *config.AgentConfig) error {
 	}
 
 	// Write CA file locally
-	f, err := os.Create(agentConfig.Certificates.CaFilePath)
+	caFile, err := os.Create(agentConfig.Certificates.CaFilePath)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer caFile.Close()
 
-	_, err = f.Write([]byte(rootCa))
+	_, err = caFile.Write([]byte(rootCa))
 	if err != nil {
 		return err
 	}
@@ -94,39 +97,75 @@ func BootstrapAgent(agentConfig *config.AgentConfig) error {
 		return err
 	}
 
-	// Try to get the certificate from the server every n seconds
-	for i := 0; i < 5; i++ {
-		// Try to get the certificate
-		crt, err := bootstrapApiClient.RetrieveSignedCertificate(hostname, string(csrFile))
+	bootstrapPendingFile, err := os.Create(agentConfig.Certificates.BootstrapPendingFilePath)
+	if err != nil {
+		return err
+	}
+	defer bootstrapPendingFile.Close()
 
-		// Check if we've had an error
+	return nil
+}
+
+func TryFetchCertificateFromServer(agentConfig *config.AgentConfig) (bool, error) {
+	var succes bool
+
+	certPool := x509.NewCertPool()
+	caFile, err := os.ReadFile(agentConfig.Certificates.CaFilePath)
+	if err != nil {
+		return succes, err
+	}
+	certPool.AppendCertsFromPEM(caFile)
+
+	apiClient, err := client.NewApiClient(*agentConfig, true, certPool)
+	if err != nil {
+		return succes, err
+	}
+
+	hostname, err := collectors.GetHostname()
+	if err != nil {
+		return succes, err
+	}
+
+	csrFile, err := os.ReadFile(agentConfig.Certificates.CsrFilePath)
+	if err != nil {
+		return succes, err
+	}
+
+	for i := 0; i < 5; i++ {
+		crt, err := apiClient.RetrieveSignedCertificate(hostname, string(csrFile))
 		if err != nil {
 			if errors.As(err, &client.HttpError{}) {
-				logrus.Error("Certificate not signed yet. You might still have to sign in on the server.")
+				logrus.Error("Certificate not signed yet. You might still have to sign it on the server.")
 			} else {
-				return err
+				return succes, err
 			}
 		}
-
-		// If we've obtain the cert, stop the loop
 		if crt != "" {
-			// Write certificate locally
 			crtFile, err := os.Create(agentConfig.Certificates.CertificateFilePath)
 			if err != nil {
-				return err
+				return succes, err
 			}
 			defer crtFile.Close()
 			_, err = crtFile.Write([]byte(crt))
 			if err != nil {
-				return err
+				return succes, err
 			}
 			break
 		}
-
-		// Sleep for 15 seconds until next retry
 		time.Sleep(15 * time.Second)
 	}
-	logrus.Info("Successfully performed bootstrap against server.")
 
-	return nil
+	if utils.FileExist(agentConfig.Certificates.CertificateFilePath) {
+		logrus.Info("Successfully performed bootstrap against server.")
+
+		bootstrapDoneFile, err := os.Create(agentConfig.Certificates.BootstrapCompleteFilePath)
+		if err != nil {
+			return succes, err
+		}
+		defer bootstrapDoneFile.Close()
+
+		succes = true
+	}
+
+	return succes, nil
 }

@@ -18,6 +18,9 @@ import (
 const SERIAL_NUMBER_LIMIT = 128
 
 func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, outCertFilePath string, outKeyFilePath string) error {
+	// Make sure peekl is in the DNS names
+	dnsNames = append(dnsNames, "peekl")
+
 	// Create cert values
 	certValues := x509.Certificate{
 		SerialNumber: big.NewInt(2019),

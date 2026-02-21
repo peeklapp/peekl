@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -10,13 +9,18 @@ import (
 	"github.com/peeklapp/peekl/pkg/certs"
 	"github.com/peeklapp/peekl/pkg/config"
 	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/utils"
 )
 
-func BootstrapServer(serverConfig *config.ServerConfig, dnsNames []string) error {
-	_, err := os.Stat(serverConfig.Certificates.ServerCertificateFilePath)
-	if err == nil {
-		return fmt.Errorf("The server was apparently already bootstrapped. Make sure to not override any existing certificates.")
+func GetServerBootstrapState(serverConfig *config.ServerConfig) BootstrapState {
+	bootstrapDoneFileExist := utils.FileExist(serverConfig.Certificates.BootstrapDoneFilePath)
+	if bootstrapDoneFileExist {
+		return BootstrapComplete
 	}
+	return BootstrapNone
+}
+
+func BootstrapServer(serverConfig *config.ServerConfig) error {
 	// Make sure any directory that should exist, exist
 	dirs := []string{
 		serverConfig.Certificates.CaCertificateFilePath,
@@ -54,7 +58,7 @@ func BootstrapServer(serverConfig *config.ServerConfig, dnsNames []string) error
 		NotBefore: time.Now(),
 		NotAfter:  time.Now().AddDate(10, 0, 0),
 	}
-	err = certs.CreateCertificateAuthority(
+	err := certs.CreateCertificateAuthority(
 		caParams,
 		serverConfig.Certificates.CaCertificateFilePath,
 		serverConfig.Certificates.CaCertificateKeyPath,
@@ -64,7 +68,7 @@ func BootstrapServer(serverConfig *config.ServerConfig, dnsNames []string) error
 	}
 
 	err = certs.CreateCertificate(
-		dnsNames,
+		serverConfig.Certificates.BootstrapDnsNames,
 		serverConfig.Certificates.CaCertificateFilePath,
 		serverConfig.Certificates.CaCertificateKeyPath,
 		serverConfig.Certificates.ServerCertificateFilePath,
@@ -73,6 +77,12 @@ func BootstrapServer(serverConfig *config.ServerConfig, dnsNames []string) error
 	if err != nil {
 		return err
 	}
+
+	bootstrapDoneFile, err := os.Create(serverConfig.Certificates.BootstrapDoneFilePath)
+	if err != nil {
+		return err
+	}
+	defer bootstrapDoneFile.Close()
 
 	return nil
 }
