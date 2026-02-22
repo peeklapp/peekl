@@ -9,6 +9,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/variables"
 )
 
 func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
@@ -113,31 +114,9 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 		}
 	}
 
-	// Check if variable file exist
-	variableFilePath := filepath.Join(rolePath, "vars.yml")
-	var variableFileExist bool
-	_, err = os.Stat(variableFilePath)
-	if err == nil {
-		variableFileExist = true
-	} else {
-		if errors.Is(err, os.ErrNotExist) {
-			variableFileExist = false
-		} else {
-			return &role, err
-		}
-	}
-
-	// Load variables from file
-	role.Variables = map[string]any{}
-	if variableFileExist {
-		varsFile, err := os.ReadFile(variableFilePath)
-		if err != nil {
-			return &role, err
-		}
-		err = yaml.Unmarshal(varsFile, &role.Variables)
-		if err != nil {
-			return &role, err
-		}
+	role.Variables, err = variables.LoadRoleVariables(codePath, roleName)
+	if err != nil {
+		return &role, err
 	}
 
 	return &role, nil

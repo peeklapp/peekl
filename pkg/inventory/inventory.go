@@ -8,6 +8,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/pkg/variables"
 )
 
 // Inventory
@@ -44,6 +45,7 @@ func LoadNodeFromInventory(codePath string, nodeName string) (*models.NodeInvent
 	// Determine node file path
 	nodeFile := filepath.Join(
 		codePath,
+		"inventory",
 		"nodes",
 		fmt.Sprintf("%s.yml", nodeName),
 	)
@@ -64,6 +66,12 @@ func LoadNodeFromInventory(codePath string, nodeName string) (*models.NodeInvent
 		return &node, err
 	}
 
+	// Load variables
+	node.Variables, err = variables.LoadNodeVariables(codePath, nodeName)
+	if err != nil {
+		return &node, err
+	}
+
 	return &node, nil
 }
 
@@ -73,6 +81,7 @@ func LoadGroupFromInventory(codePath string, groupName string) (*models.GroupInv
 	// Determine group file path
 	groupFile := filepath.Join(
 		codePath,
+		"inventory",
 		"groups",
 		fmt.Sprintf("%s.yml", groupName),
 	)
@@ -89,6 +98,12 @@ func LoadGroupFromInventory(codePath string, groupName string) (*models.GroupInv
 
 	// Load from YAML
 	err = yaml.Unmarshal(f, &group)
+	if err != nil {
+		return &group, err
+	}
+
+	// Load variables
+	group.Variables, err = variables.LoadGroupVariables(codePath, groupName)
 	if err != nil {
 		return &group, err
 	}
