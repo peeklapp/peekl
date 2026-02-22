@@ -9,11 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(collectCmd)
-}
-
-var collectCmd = &cobra.Command{
+var CollectCmd = &cobra.Command{
 	Use:   "collect",
 	Short: "Collect facts about your system",
 	Run: func(cmd *cobra.Command, args []string) {

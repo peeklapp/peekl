@@ -19,11 +19,10 @@ import (
 )
 
 func init() {
-	runCmd.Flags().BoolP("daemon", "d", false, "Whether to run as daemon or not")
-	runCmd.Flags().StringP("environment", "e", "production", "Environment to use")
-	runCmd.Flags().StringP("file", "f", "", "File to use (will not try to fetch from the server)")
-	runCmd.Flags().StringP("templates", "t", "templates/", "Folder in which to find local templates")
-	rootCmd.AddCommand(runCmd)
+	RunCmd.Flags().BoolP("daemon", "d", false, "Whether to run as daemon or not")
+	RunCmd.Flags().StringP("environment", "e", "production", "Environment to use")
+	RunCmd.Flags().StringP("file", "f", "", "File to use (will not try to fetch from the server)")
+	RunCmd.Flags().StringP("templates", "t", "templates/", "Folder in which to find local templates")
 }
 
 func isLocked() bool {
@@ -111,7 +110,7 @@ func performBootstrap(config *config.AgentConfig) error {
 	return nil
 }
 
-var runCmd = &cobra.Command{
+var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the agent",
 	Run: func(cmd *cobra.Command, args []string) {
