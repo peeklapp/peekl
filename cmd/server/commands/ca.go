@@ -22,20 +22,18 @@ func init() {
 	caListCmd.AddCommand(caListSignedCmd)
 
 	// Main command
-	caCmd.AddCommand(caListCmd)
-	caCmd.AddCommand(caSignPendingCmd)
-	caCmd.AddCommand(caRevokeCertCmd)
+	CaCmd.AddCommand(caListCmd)
+	CaCmd.AddCommand(caSignPendingCmd)
+	CaCmd.AddCommand(caRevokeCertCmd)
 
 	// Sign command
 	caSignPendingCmd.Flags().StringP("certname", "", "", "Name of the pending certificate to sign")
 
 	// Revoke command
 	caRevokeCertCmd.Flags().StringP("certname", "", "", "Name of the certificate to revoke.")
-
-	rootCmd.AddCommand(caCmd)
 }
 
-var caCmd = &cobra.Command{
+var CaCmd = &cobra.Command{
 	Use:   "ca",
 	Short: "Manipulate the CA",
 	Run: func(cmd *cobra.Command, args []string) {
