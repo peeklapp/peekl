@@ -351,7 +351,7 @@ func (s *SystemdServiceResource) Validate() error {
 	return nil
 }
 
-func NewSystemdServiceResource(resource *models.Resource, dataField map[string]any) (*SystemdServiceResource, error) {
+func NewSystemdServiceResource(resource *models.Resource, dataField map[string]any, roleContext *models.RoleContext) (*SystemdServiceResource, error) {
 	var systemdServiceResource SystemdServiceResource
 
 	defaults := map[string]any{

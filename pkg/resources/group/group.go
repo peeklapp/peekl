@@ -161,7 +161,7 @@ func (g *GroupResource) Validate() error {
 	return nil
 }
 
-func NewGroupResource(resource *models.Resource, dataField any) (*GroupResource, error) {
+func NewGroupResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*GroupResource, error) {
 	var groupResource GroupResource
 
 	groupResource.Title = resource.Title

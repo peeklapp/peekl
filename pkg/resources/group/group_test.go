@@ -20,7 +20,7 @@ func TestCreateAndDeleteGroup(t *testing.T) {
 		data := map[string]any{
 			"name": "peekl",
 		}
-		groupRes, err := NewGroupResource(&rawRes, data)
+		groupRes, err := NewGroupResource(&rawRes, data, nil)
 		if err != nil {
 			t.Errorf("No error should happen at that stage")
 		}
@@ -52,7 +52,7 @@ func TestCreateAndDeleteGroup(t *testing.T) {
 		data := map[string]any{
 			"name": "peekl",
 		}
-		groupRes, err := NewGroupResource(&rawRes, data)
+		groupRes, err := NewGroupResource(&rawRes, data, nil)
 		if err != nil {
 			t.Errorf("No error should happen at that stage")
 		}

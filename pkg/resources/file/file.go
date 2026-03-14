@@ -17,11 +17,13 @@ import (
 )
 
 type FileData struct {
-	Path    string      `mapstructure:"path"`
-	Owner   string      `mapstructure:"owner"`
-	Group   string      `mapstructure:"group"`
-	Mode    fs.FileMode `mapstructure:"mode"`
-	Content string      `mapstructure:"content"`
+	Path     string      `mapstructure:"path"`
+	Owner    string      `mapstructure:"owner"`
+	Group    string      `mapstructure:"group"`
+	Mode     fs.FileMode `mapstructure:"mode"`
+	Source   string      `mapstructure:"source"`
+	Content  string      `mapstructure:"content"`
+	roleName string
 }
 
 type FileResource struct {
@@ -125,7 +127,7 @@ func (f *FileResource) changeOwnershipIfNeeded() (bool, error) {
 	return didSomething, nil
 }
 
-func (f *FileResource) changeContentIfNeeded() (bool, error) {
+func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 	var didSomething bool
 
 	// First we open the file
@@ -143,7 +145,7 @@ func (f *FileResource) changeContentIfNeeded() (bool, error) {
 
 	// Then we create MD5 object of content
 	contentMD5 := md5.New()
-	io.WriteString(contentMD5, f.Data.Content)
+	io.WriteString(contentMD5, content)
 
 	fileMD5Checksum := fmt.Sprintf("%x", fileMD5.Sum(nil))
 	contentMD5Checksum := fmt.Sprintf("%x", contentMD5.Sum(nil))
@@ -157,7 +159,7 @@ func (f *FileResource) changeContentIfNeeded() (bool, error) {
 				fileMD5Checksum,
 			),
 		)
-		err := os.WriteFile(f.Data.Path, []byte(f.Data.Content), f.Data.Mode)
+		err := os.WriteFile(f.Data.Path, []byte(content), f.Data.Mode)
 		if err != nil {
 			return didSomething, err
 		}
@@ -180,7 +182,7 @@ func (f *FileResource) exist() bool {
 	return true
 }
 
-func (f *FileResource) create() error {
+func (f *FileResource) create(content string) error {
 	file, err := os.Create(f.Data.Path)
 	if err != nil {
 		return err
@@ -188,7 +190,7 @@ func (f *FileResource) create() error {
 	defer file.Close()
 
 	// Write content to file
-	file.Write([]byte(f.Data.Content))
+	file.Write([]byte(content))
 
 	// Change mode of file
 	file.Chmod(f.Data.Mode)
@@ -215,11 +217,23 @@ func (f *FileResource) delete() error {
 func (f *FileResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
+	var fileContent string
+	var err error
+	if f.Data.Source != "" {
+		fileContent, err = context.ApiClient.RetrieveFile(f.Data.Source, context.Environment, f.Data.roleName)
+		if err != nil {
+			result.Failed = true
+			return result, err
+		}
+	} else {
+		fileContent = f.Data.Content
+	}
+
 	if !f.exist() && f.Present {
 		logrus.Info(
 			fmt.Sprintf("File (%s) does not exist, but should", f.Data.Path),
 		)
-		err := f.create()
+		err := f.create(fileContent)
 		if err != nil {
 			result.Failed = true
 			return result, err
@@ -249,7 +263,7 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 
 		// Check content of the file
 		var contentHasChanged bool
-		contentHasChanged, err = f.changeContentIfNeeded()
+		contentHasChanged, err = f.changeContentIfNeeded(fileContent)
 		if err != nil {
 			result.Failed = true
 			return result, err
@@ -309,6 +323,26 @@ func (f *FileResource) Validate() error {
 		}
 	}
 
+	if f.Data.Source != "" && f.Data.Content != "" {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "content / source",
+				ViolatedRule: "content field and source field are mutually exclusive, you cannot use both.",
+			},
+		)
+	}
+
+	if f.Data.Source != "" && f.Data.roleName == "" {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "source",
+				ViolatedRule: "source field cannot be used outside of roles",
+			},
+		)
+	}
+
 	if len(validationErrors) > 0 {
 		return models.ResourceValidationError{
 			Type:             f.Type,
@@ -320,7 +354,7 @@ func (f *FileResource) Validate() error {
 	return nil
 }
 
-func NewFileResource(resource *models.Resource, dataField any) (*FileResource, error) {
+func NewFileResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*FileResource, error) {
 	var fileResource FileResource
 
 	// Define defaults value
@@ -351,6 +385,7 @@ func NewFileResource(resource *models.Resource, dataField any) (*FileResource, e
 	fileResource.WhenCondition = resource.When
 	fileResource.RegisterVariable = resource.Register
 	fileResource.Data = fileData
+	fileResource.Data.roleName = roleContext.RoleName
 
 	return &fileResource, nil
 }

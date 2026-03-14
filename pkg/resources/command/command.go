@@ -136,7 +136,7 @@ func (c *CommandResource) Validate() error {
 	return nil
 }
 
-func NewCommandResource(resource *models.Resource, dataField map[string]any) (*CommandResource, error) {
+func NewCommandResource(resource *models.Resource, dataField map[string]any, roleContext *models.RoleContext) (*CommandResource, error) {
 	var commandResource CommandResource
 
 	// Define defaults

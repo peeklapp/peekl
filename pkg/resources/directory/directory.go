@@ -251,7 +251,7 @@ func (d *DirectoryResource) Validate() error {
 	return nil
 }
 
-func NewDirectoryResource(resource *models.Resource, dataField any) (*DirectoryResource, error) {
+func NewDirectoryResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*DirectoryResource, error) {
 	var directoryResource DirectoryResource
 
 	// Define defaults value

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/goccy/go-yaml"
@@ -12,29 +13,32 @@ import (
 	"github.com/peeklapp/peekl/pkg/variables"
 )
 
-func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
-	var role models.Role
-
-	// Set role name
-	role.Name = roleName
-
-	// Make sure template map is initilized
-	role.Templates = map[string]string{}
-
-	// Make sure to initialize map
-	role.IncludedResources = map[string]models.IncludedResources{}
-
-	// Make sure role exist locally
+func DoesRoleExist(codePath string, roleName string) error {
 	rolePath := filepath.Join(codePath, "roles", roleName)
 	if _, err := os.Stat(rolePath); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return &role, models.RoleNotFoundError{RoleName: roleName}
+			return models.RoleNotFoundError{RoleName: roleName}
 		} else {
-			return &role, err
+			return err
 		}
+	}
+	return nil
+}
+
+func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
+	var role models.Role
+
+	role.Name = roleName
+	role.Templates = map[string]string{}
+	role.IncludedResources = map[string]models.IncludedResources{}
+
+	err := DoesRoleExist(codePath, roleName)
+	if err != nil {
+		return &role, err
 	}
 
 	// Open main.yml file, handle error if it does not exist
+	rolePath := filepath.Join(codePath, "roles", roleName)
 	mainFile, err := os.ReadFile(filepath.Join(rolePath, "main.yml"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -120,4 +124,9 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 	}
 
 	return &role, nil
+}
+
+func RoleNameIsValid(roleName string) bool {
+	r, _ := regexp.Compile("^[A-Za-z0-9_]+$")
+	return r.MatchString(roleName)
 }
