@@ -23,7 +23,7 @@ func TestCommand(t *testing.T) {
 			"command": "echo test > /tmp/testing_file",
 		}
 
-		commandRes, err := NewCommandResource(&rawRes, data)
+		commandRes, err := NewCommandResource(&rawRes, data, nil)
 		if err != nil {
 			t.Errorf("No error should happen at that stage")
 		}
@@ -56,7 +56,7 @@ func TestCommand(t *testing.T) {
 			"creates": "/tmp/testing_file",
 		}
 
-		commandRes, err := NewCommandResource(&rawRes, data)
+		commandRes, err := NewCommandResource(&rawRes, data, nil)
 		if err != nil {
 			t.Errorf("No error should happen at that stage")
 		}

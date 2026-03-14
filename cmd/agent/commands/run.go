@@ -43,6 +43,8 @@ func deleteLockFile() {
 func runAgent(client *client.Client, environment string) {
 	// Create rawCatalog
 	var rawCatalog models.RawCatalog
+	rawCatalog.Environment = environment
+	rawCatalog.ApiClient = client
 
 	// Collect facts
 	var err error

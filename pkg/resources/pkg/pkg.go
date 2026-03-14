@@ -221,7 +221,7 @@ func (p *PackageResource) Validate() error {
 	return nil
 }
 
-func NewPackageResource(resource *models.Resource, dataField any) (*PackageResource, error) {
+func NewPackageResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*PackageResource, error) {
 	var packageResource PackageResource
 
 	defaults := map[string]any{

@@ -47,6 +47,7 @@ func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDat
 
 	// Catalogs group
 	catalogsGroup := v1.Group("catalogs")
+	catalogsGroup.Use(mtlsMiddleware)
 
 	// -- Catalogs group needs access to server configuration
 	catalogsGroup.Use(func(c fiber.Ctx) error {
@@ -55,8 +56,21 @@ func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDat
 	})
 
 	// -- Catalogs group endpoints
-	catalogsGroup.Use(mtlsMiddleware)
 	catalogsGroup.Post("/catalog", endpoints.PostRetrieveCatalog)
+
+	// Data group
+	dataGroup := v1.Group("data")
+	dataGroup.Use(mtlsMiddleware)
+
+	// -- Data group needs access to server configuration
+	dataGroup.Use(func(c fiber.Ctx) error {
+		c.Locals("config", conf)
+		return c.Next()
+	})
+
+	// -- Data group endpoints
+	dataGroup.Post("/file", endpoints.PostRetrieveFile)
+	dataGroup.Post("/template", endpoints.PostRetrieveTemplate)
 
 	return app, nil
 }

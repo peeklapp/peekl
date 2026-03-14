@@ -384,7 +384,7 @@ func (u *UserResource) Validate() error {
 	return nil
 }
 
-func NewUserResource(resource *models.Resource, dataField any) (*UserResource, error) {
+func NewUserResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*UserResource, error) {
 	var userResource UserResource
 
 	defaults := map[string]any{

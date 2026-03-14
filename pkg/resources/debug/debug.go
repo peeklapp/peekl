@@ -93,7 +93,7 @@ func (d *DebugResource) Validate() error {
 	return nil
 }
 
-func NewDebugResource(resource *models.Resource, dataField any) (*DebugResource, error) {
+func NewDebugResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*DebugResource, error) {
 	var debugResource DebugResource
 
 	debugResource.Title = resource.Title

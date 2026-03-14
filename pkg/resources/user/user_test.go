@@ -20,7 +20,7 @@ func TestCreateAndDeleteUser(t *testing.T) {
 		data := map[string]any{
 			"username": "max",
 		}
-		userRes, err := NewUserResource(&rawRes, data)
+		userRes, err := NewUserResource(&rawRes, data, nil)
 		if err != nil {
 			t.Errorf("No error should happen at that stage")
 		}
@@ -54,7 +54,7 @@ func TestCreateAndDeleteUser(t *testing.T) {
 		data := map[string]any{
 			"username": "max",
 		}
-		userRes, err := NewUserResource(&rawRes, data)
+		userRes, err := NewUserResource(&rawRes, data, nil)
 		if err != nil {
 			t.Errorf("No error should happen at that stage")
 		}

@@ -5,12 +5,12 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"maps"
 	"os"
 	"syscall"
-	"text/template"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/peeklapp/peekl/pkg/facts"
@@ -21,15 +21,13 @@ import (
 )
 
 type TemplateData struct {
-	Name           string         `mapstructure:"name"`
-	Path           string         `mapstructure:"path"`
-	Owner          string         `mapstructure:"owner"`
-	Group          string         `mapstrucutre:"group"`
-	Mode           fs.FileMode    `mapstructure:"mode"`
-	Variables      map[string]any `mapstructure:"variables"`
-	rawTemplateDir string
-	rawTemplate    string
-	loadedTemplate template.Template
+	Name      string         `mapstructure:"name"`
+	Path      string         `mapstructure:"path"`
+	Owner     string         `mapstructure:"owner"`
+	Group     string         `mapstrucutre:"group"`
+	Mode      fs.FileMode    `mapstructure:"mode"`
+	Variables map[string]any `mapstructure:"variables"`
+	roleName  string
 }
 
 type TemplateResource struct {
@@ -132,7 +130,7 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 	return didSomething, nil
 }
 
-func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext) (string, error) {
+func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext, templ *template.Template) (string, error) {
 	// Build facts map
 	factsMap := facts.FactsToMap(*ctx.Facts)
 
@@ -146,7 +144,7 @@ func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext) (string
 
 	// Build actual template result from variables and template
 	var templateBytesResult bytes.Buffer
-	err := t.Data.loadedTemplate.ExecuteTemplate(&templateBytesResult, fmt.Sprintf("%s", t.Data.Name), variables)
+	err := templ.ExecuteTemplate(&templateBytesResult, fmt.Sprintf("%s", t.Data.Name), variables)
 	if err != nil {
 		return "", err
 	}
@@ -243,7 +241,19 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 func (t *TemplateResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
-	templateResult, err := t.generateTemplate(context)
+	rawTemplate, err := context.ApiClient.RetrieveTemplate(t.Data.Name, context.Environment, t.Data.roleName)
+	if err != nil {
+		result.Failed = true
+		return result, err
+	}
+
+	templ, err := template.New(t.Data.Name).Parse(rawTemplate)
+	if err != nil {
+		result.Failed = true
+		return result, err
+	}
+
+	templateResult, err := t.generateTemplate(context, templ)
 	if err != nil {
 		result.Failed = true
 		return result, err
@@ -353,8 +363,12 @@ func (t *TemplateResource) Validate() error {
 	return nil
 }
 
-func NewTemplateResource(resource *models.Resource, dataField map[string]any, templates map[string]string) (*TemplateResource, error) {
+func NewTemplateResource(resource *models.Resource, dataField map[string]any, roleContext *models.RoleContext) (*TemplateResource, error) {
 	var templateResource TemplateResource
+
+	if roleContext == nil {
+		return &templateResource, fmt.Errorf("Cannot use template resources outside of roles.")
+	}
 
 	defaults := map[string]any{
 		"owner": "root",
@@ -383,14 +397,7 @@ func NewTemplateResource(resource *models.Resource, dataField map[string]any, te
 	templateResource.WhenCondition = resource.When
 	templateResource.RegisterVariable = resource.Register
 	templateResource.Data = templateData
-
-	// Load raw template
-	currTemp := templates[templateData.Name]
-	rawTemplate, err := template.New(templateResource.Data.Name).Parse(currTemp)
-	if err != nil {
-		return &templateResource, err
-	}
-	templateResource.Data.loadedTemplate = *rawTemplate
+	templateResource.Data.roleName = roleContext.RoleName
 
 	// In the case that we didn't have any variables
 	if templateResource.Data.Variables == nil {

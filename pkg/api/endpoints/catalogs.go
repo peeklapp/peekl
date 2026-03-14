@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/peeklapp/peekl/pkg/api/requests"
 	"github.com/peeklapp/peekl/pkg/api/responses"
 	"github.com/peeklapp/peekl/pkg/catalog"
 	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/environments"
 	"github.com/peeklapp/peekl/pkg/models"
 )
 
@@ -24,7 +26,16 @@ func PostRetrieveCatalog(ctx fiber.Ctx) error {
 	}
 
 	conf, _ := ctx.Locals("config").(*config.ServerConfig)
-	directoryPath := fmt.Sprintf("%s/%s", conf.Code.Directory, input.Environment)
+
+	if !environments.EnvironmentNameIsValid(input.Environment) {
+		ctx.Status(400).JSON(responses.ErrorResponse{
+			Error:   "Environment name is not valid",
+			Details: fmt.Sprintf("The provided environment name %s is not valid", input.Environment),
+		})
+		return nil
+	}
+
+	directoryPath := path.Join(conf.Code.Directory, input.Environment)
 	nodeName := ctx.RequestCtx().TLSConnectionState().PeerCertificates[0].Subject.CommonName
 
 	if _, err := os.Stat(directoryPath); os.IsNotExist(err) {

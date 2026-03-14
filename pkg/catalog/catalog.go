@@ -116,11 +116,13 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 }
 
 type Catalog struct {
-	resources []models.LoadedResource
-	variables map[string]any
-	facts     *models.Facts
-	tags      []string
-	roles     []models.Role
+	resources   []models.LoadedResource
+	variables   map[string]any
+	facts       *models.Facts
+	tags        []string
+	roles       []models.Role
+	environment string
+	apiClient   models.ApiClient
 }
 
 type CatalogResult struct {
@@ -140,6 +142,8 @@ func (c *Catalog) Process() error {
 	resContext.Facts = c.facts
 	resContext.Variables = c.variables
 	resContext.Tags = c.tags
+	resContext.Environment = c.environment
+	resContext.ApiClient = c.apiClient
 
 	logrus.Info(
 		fmt.Sprintf(
@@ -235,7 +239,7 @@ func (c *Catalog) Validate() (bool, error) {
 func (c *Catalog) loadRoles(roles []models.Role) error {
 	for _, role := range roles {
 		// Handle main resources
-		loadedMainResources, err := c.loadResources(role.Resources, &models.RoleContext{Templates: role.Templates})
+		loadedMainResources, err := c.loadResources(role.Resources, &models.RoleContext{RoleName: role.Name})
 		if err != nil {
 			return err
 		}
@@ -243,7 +247,7 @@ func (c *Catalog) loadRoles(roles []models.Role) error {
 
 		// Handle each included
 		for key, include := range role.IncludedResources {
-			loadedIncludedResources, err := c.loadResources(include.Resources, &models.RoleContext{Templates: role.Templates})
+			loadedIncludedResources, err := c.loadResources(include.Resources, &models.RoleContext{RoleName: role.Name})
 			if err != nil {
 				return err
 			}
@@ -264,55 +268,55 @@ func (c *Catalog) loadSingleResource(resource models.Resource, dataField map[str
 
 	switch resource.Type {
 	case "builtin.user":
-		loadedUser, err := user.NewUserResource(&resource, dataField)
+		loadedUser, err := user.NewUserResource(&resource, dataField, roleContext)
 		if err != nil {
 			return nil, err
 		}
 		return loadedUser, nil
 	case "builtin.group":
-		loadedGroup, err := group.NewGroupResource(&resource, dataField)
+		loadedGroup, err := group.NewGroupResource(&resource, dataField, roleContext)
 		if err != nil {
 			return nil, err
 		}
 		return loadedGroup, nil
 	case "builtin.file":
-		loadedFile, err := file.NewFileResource(&resource, dataField)
+		loadedFile, err := file.NewFileResource(&resource, dataField, roleContext)
 		if err != nil {
 			return nil, err
 		}
 		return loadedFile, nil
 	case "builtin.directory":
-		loadedDirectory, err := directory.NewDirectoryResource(&resource, dataField)
+		loadedDirectory, err := directory.NewDirectoryResource(&resource, dataField, roleContext)
 		if err != nil {
 			return nil, err
 		}
 		return loadedDirectory, nil
 	case "builtin.pkg":
-		loadedPkg, err := pkg.NewPackageResource(&resource, dataField)
+		loadedPkg, err := pkg.NewPackageResource(&resource, dataField, roleContext)
 		if err != nil {
 			return nil, err
 		}
 		return loadedPkg, nil
 	case "builtin.template":
-		loadedTemplate, err := template.NewTemplateResource(&resource, dataField, roleContext.Templates)
+		loadedTemplate, err := template.NewTemplateResource(&resource, dataField, roleContext)
 		if err != nil {
 			return nil, err
 		}
 		return loadedTemplate, nil
 	case "builtin.systemd_service":
-		loadedSystemdService, err := systemdservice.NewSystemdServiceResource(&resource, dataField)
+		loadedSystemdService, err := systemdservice.NewSystemdServiceResource(&resource, dataField, roleContext)
 		if err != nil {
 			return nil, err
 		}
 		return loadedSystemdService, nil
 	case "builtin.debug":
-		loadedDebug, err := debug.NewDebugResource(&resource, dataField)
+		loadedDebug, err := debug.NewDebugResource(&resource, dataField, roleContext)
 		if err != nil {
 			return nil, err
 		}
 		return loadedDebug, nil
 	case "builtin.command":
-		loadedCommand, err := command.NewCommandResource(&resource, dataField)
+		loadedCommand, err := command.NewCommandResource(&resource, dataField, roleContext)
 		if err != nil {
 			return nil, err
 		}
@@ -349,6 +353,8 @@ func NewCatalog(rawCatalog models.RawCatalog) (*Catalog, error) {
 	// Add facts and catalog context
 	catalog.variables = rawCatalog.Variables
 	catalog.facts = rawCatalog.Facts
+	catalog.environment = rawCatalog.Environment
+	catalog.apiClient = rawCatalog.ApiClient
 
 	// Load global resources
 	globalLoadedResources, err := catalog.loadResources(rawCatalog.GlobalResources, nil)

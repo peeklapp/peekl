@@ -6,4 +6,6 @@ type RawCatalog struct {
 	Facts           *Facts
 	Tags            []string
 	Variables       map[string]any
+	Environment     string
+	ApiClient       ApiClient
 }
