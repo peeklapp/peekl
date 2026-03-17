@@ -50,7 +50,7 @@ func shouldNotSkipResource(res models.LoadedResource, resContext *models.Resourc
 
 func processResources(resources []models.LoadedResource, resContext *models.ResourceContext, catalogResult *CatalogResult) error {
 	for _, res := range resources {
-		logrus.Info(fmt.Sprintf("Processing resource [%s]", res.String()))
+		logrus.Info(fmt.Sprintf("[%s] Processing resource", res.String()))
 
 		// Process 'when' condition of resource
 		skip, err := shouldNotSkipResource(res, resContext)
@@ -58,13 +58,13 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 			return err
 		}
 		if !skip {
-			logrus.Debug(fmt.Sprintf("Resource %s has been skipped", res.String()))
+			logrus.Debug(fmt.Sprintf("[%s] Resource has been skipped", res.String()))
 			catalogResult.Skipped = catalogResult.Skipped + 1
 			continue
 		}
 
 		// Output log for indication of resource finished being processed
-		finishedOutputLog := fmt.Sprintf("Finished processing of resource [%s]. Result: ", res.String())
+		finishedOutputLog := fmt.Sprintf("[%s] Finished processing, result: ", res.String())
 
 		// Process resource
 		result, err := res.Process(resContext)
@@ -165,7 +165,7 @@ func (c *Catalog) Process() error {
 	// Handle roles
 	if !failedResource {
 		for _, role := range c.roles {
-			logrus.Info(fmt.Sprintf("Processing role [%s]", role.Name))
+			logrus.Info(fmt.Sprintf("[%s] Process the role", role.Name))
 
 			// Handle main
 			err := processResources(role.LoadedResources, &resContext, &catalogResult)
@@ -181,7 +181,7 @@ func (c *Catalog) Process() error {
 						failedResource = true
 					}
 				}
-				logrus.Info(fmt.Sprintf("Finished processing role [%s]", role.Name))
+				logrus.Info(fmt.Sprintf("[%s] Finished processing role", role.Name))
 			}
 		}
 	}

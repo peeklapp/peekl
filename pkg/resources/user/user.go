@@ -30,18 +30,19 @@ type UserResource struct {
 func (u *UserResource) exist() bool {
 	logrus.Debug(
 		fmt.Sprintf(
-			"Checking if user (%s) exist using builtin Go package `os/user`",
+			"[%s] Checking if user (%s) exist using builtin Go package `os/user`",
+			u.String(),
 			u.Data.Username,
 		),
 	)
 
 	_, err := user.Lookup(u.Data.Username)
 	if err != nil {
-		logrus.Debug(fmt.Sprintf("User (%s) does not exist", u.Data.Username))
+		logrus.Debug(fmt.Sprintf("[%s] User (%s) does not exist", u.String(), u.Data.Username))
 		return false
 	}
 
-	logrus.Debug(fmt.Sprintf("User (%s) exist", u.Data.Username))
+	logrus.Debug(fmt.Sprintf("[%s] User (%s) exist", u.String(), u.Data.Username))
 	return true
 }
 
@@ -53,7 +54,8 @@ func (u *UserResource) getCurrentGroups() ([]string, error) {
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Getting user (%s) group using the following command : %s %s",
+			"[%s] Getting user (%s) group using the following command : %s %s",
+			u.String(),
 			u.Data.Username,
 			command,
 			strings.Join(args, " "),
@@ -66,7 +68,7 @@ func (u *UserResource) getCurrentGroups() ([]string, error) {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to get user shell")
+		}).Debug(fmt.Sprintf("[%s] Could not execute command to get user shell", u.String()))
 		return groups, executionOutput.ErrorDetails
 	}
 
@@ -83,7 +85,8 @@ func (u *UserResource) addToGroup(group string) error {
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Adding user (%s) to group (%s) using the following command : %s %s",
+			"[%s] Adding user (%s) to group (%s) using the following command : %s %s",
+			u.String(),
 			u.Data.Username,
 			group,
 			command,
@@ -97,7 +100,7 @@ func (u *UserResource) addToGroup(group string) error {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("")
+		}).Debug(fmt.Sprintf("[%s] Error while trying to add user to group", u.String()))
 		return executionOutput.ErrorDetails
 	}
 
@@ -116,7 +119,8 @@ func (u *UserResource) addUserToGroupsIfNeeded() (bool, error) {
 		if !slices.Contains(groups, group) {
 			logrus.Info(
 				fmt.Sprintf(
-					"User (%s) is not a member of group (%s) but should be",
+					"[%s] User (%s) is not a member of group (%s) but should be",
+					u.String(),
 					u.Data.Username,
 					group,
 				),
@@ -127,7 +131,8 @@ func (u *UserResource) addUserToGroupsIfNeeded() (bool, error) {
 			}
 			logrus.Info(
 				fmt.Sprintf(
-					"User (%s) added to group (%s)",
+					"[%s] User (%s) added to group (%s)",
+					u.String(),
 					u.Data.Username,
 					group,
 				),
@@ -145,7 +150,8 @@ func (u *UserResource) getCurrentShell() (string, error) {
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Getting user (%s) shell using the following command : %s %s",
+			"[%s] Getting user (%s) shell using the following command : %s %s",
+			u.String(),
 			u.Data.Username,
 			command,
 			strings.Join(args, " "),
@@ -158,14 +164,14 @@ func (u *UserResource) getCurrentShell() (string, error) {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to get user shell")
+		}).Debug(fmt.Sprintf("[%s] Could not execute command to get user shell", u.String()))
 		return "", executionOutput.ErrorDetails
 	}
 
 	shell := strings.Trim(strings.Split(executionOutput.Stdout, ":")[6], "\n")
 
 	logrus.Debug(
-		fmt.Sprintf("Found shell (%s) for user (%s)", shell, u.Data.Username),
+		fmt.Sprintf("[%s] Found shell (%s) for user (%s)", shell, u.String(), u.Data.Username),
 	)
 	return shell, nil
 }
@@ -176,7 +182,8 @@ func (u *UserResource) setShell() error {
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Updating user (%s) shell using the following command : %s %s",
+			"[%s] Updating user (%s) shell using the following command : %s %s",
+			u.String(),
 			u.Data.Username,
 			command,
 			strings.Join(args, " "),
@@ -189,7 +196,7 @@ func (u *UserResource) setShell() error {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to change user shell")
+		}).Debug(fmt.Sprintf("[%s] Could not execute command to change user shell", u.String()))
 		return executionOutput.ErrorDetails
 	}
 
@@ -207,7 +214,8 @@ func (u *UserResource) updateShellIfNeeded() (bool, error) {
 	if userShell != u.Data.Shell {
 		logrus.Info(
 			fmt.Sprintf(
-				"Shell for user (%s) should be (%s) but is (%s)",
+				"[%s] Shell for user (%s) should be (%s) but is (%s)",
+				u.String(),
 				u.Data.Username,
 				u.Data.Shell,
 				userShell,
@@ -219,7 +227,8 @@ func (u *UserResource) updateShellIfNeeded() (bool, error) {
 		}
 		logrus.Info(
 			fmt.Sprintf(
-				"Shell for user (%s) has been updated from (%s) to (%s)",
+				"[%s] Shell for user (%s) has been updated from (%s) to (%s)",
+				u.String(),
 				u.Data.Username,
 				userShell,
 				u.Data.Shell,
@@ -246,7 +255,8 @@ func (u *UserResource) create() error {
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Creating user (%s) using the following command : %s %s",
+			"[%s] Creating user (%s) using the following command : %s %s",
+			u.String(),
 			u.Data.Username,
 			command,
 			strings.Join(args, " "),
@@ -259,7 +269,7 @@ func (u *UserResource) create() error {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Info("Could not execute command to create user")
+		}).Info(fmt.Sprintf("[%s] Could not execute command to create user", u.String()))
 		return executionOutput.ErrorDetails
 	}
 	return nil
@@ -271,7 +281,8 @@ func (u *UserResource) delete() error {
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Deleting user (%s) using the following command : %s %s",
+			"[%s] Deleting user (%s) using the following command : %s %s",
+			u.String(),
 			u.Data.Username,
 			command,
 			strings.Join(args, " "),
@@ -284,7 +295,7 @@ func (u *UserResource) delete() error {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to delete user")
+		}).Debug(fmt.Sprintf("[%s] Could not execute command to delete user", u.String()))
 		return executionOutput.ErrorDetails
 	}
 	return nil
@@ -296,7 +307,7 @@ func (u *UserResource) Process(context *models.ResourceContext) (models.Resource
 	// Handle user creation of deletion if needed
 	if !u.exist() && u.Present {
 		logrus.Info(
-			fmt.Sprintf("User (%s) does not exist but should", u.Data.Username),
+			fmt.Sprintf("[%s] User (%s) does not exist but should", u.String(), u.Data.Username),
 		)
 		err := u.create()
 		if err != nil {
@@ -304,12 +315,12 @@ func (u *UserResource) Process(context *models.ResourceContext) (models.Resource
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("User (%s) created", u.Data.Username),
+			fmt.Sprintf("[%s] User (%s) created", u.String(), u.Data.Username),
 		)
 		result.Created = true
 	} else if u.exist() && !u.Present {
 		logrus.Info(
-			fmt.Sprintf("User (%s) exist but should not", u.Data.Username),
+			fmt.Sprintf("[%s] User (%s) exist but should not", u.String(), u.Data.Username),
 		)
 		err := u.delete()
 		if err != nil {
@@ -317,7 +328,7 @@ func (u *UserResource) Process(context *models.ResourceContext) (models.Resource
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("User (%s) deleted", u.Data.Username),
+			fmt.Sprintf("[%s] User (%s) deleted", u.String(), u.Data.Username),
 		)
 		result.Deleted = true
 	}

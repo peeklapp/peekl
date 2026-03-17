@@ -37,7 +37,7 @@ func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string
 	case "masked":
 		break
 	default:
-		return false, fmt.Errorf("You can only checked for enabled of for masked")
+		return false, fmt.Errorf("[%s] You can only checked for enabled of for masked", s.String())
 	}
 
 	command := "systemctl"
@@ -45,7 +45,8 @@ func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Checking if service is %s using the following command : %s %s",
+			"[%s] Checking if service is %s using the following command : %s %s",
+			s.String(),
 			checking,
 			command,
 			strings.Join(args, " "),
@@ -58,7 +59,7 @@ func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to verify if a service is enabled")
+		}).Debug(fmt.Sprintf("[%s] Could not execute command to verify if a service is enabled", s.String()))
 		return false, executionOutput.ErrorDetails
 	}
 
@@ -74,7 +75,8 @@ func (s *SystemdServiceResource) getServiceDetails() (map[string]string, error) 
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Getting details of a systemd service using the following command : %s %s",
+			"[%s] Getting details of a systemd service using the following command : %s %s",
+			s.String(),
 			command,
 			strings.Join(args, " "),
 		),
@@ -86,7 +88,7 @@ func (s *SystemdServiceResource) getServiceDetails() (map[string]string, error) 
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to get service details")
+		}).Debug(fmt.Sprintf("[%s] Could not execute command to get service details", s.String()))
 		return nil, executionOutput.ErrorDetails
 	}
 
@@ -129,7 +131,8 @@ func (s *SystemdServiceResource) doActionOnService(action string) error {
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Performing action (%s) on service (%s.service) with following command : %s %s",
+			"[%s] Performing action (%s) on service (%s.service) with following command : %s %s",
+			s.String(),
 			action,
 			s.Data.Name,
 			command,
@@ -143,7 +146,7 @@ func (s *SystemdServiceResource) doActionOnService(action string) error {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to perform action on service")
+		}).Debug(fmt.Sprintf("[%s] Could not execute command to perform action on service", s.String()))
 		return executionOutput.ErrorDetails
 	}
 
@@ -189,7 +192,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		// Check if the service active state is considered running
 		if !slices.Contains(acceptableRunningStates, serviceDetails["ActiveState"]) {
 			logrus.Info(
-				fmt.Sprintf("Service (%s.service) is not running but should", s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s.service) is not running but should", s.String(), s.Data.Name),
 			)
 			// Start the service
 			err := s.doActionOnService("start")
@@ -199,13 +202,13 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 			}
 			result.Updated = true
 			logrus.Info(
-				fmt.Sprintf("Service (%s.service) started", s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s.service) started", s.String(), s.Data.Name),
 			)
 		}
 	case "stopped":
 		if slices.Contains(acceptableRunningStates, serviceDetails["ActiveState"]) && serviceDetails["ActiveState"] != "deactivating" {
 			logrus.Info(
-				fmt.Sprintf("Service (%s.service) is running but should not", s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s.service) is running but should not", s.String(), s.Data.Name),
 			)
 			// Stop the service
 			err := s.doActionOnService("stop")
@@ -215,7 +218,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 			}
 			result.Updated = true
 			logrus.Info(
-				fmt.Sprintf("Service (%s.service) stopped", s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s.service) stopped", s.String(), s.Data.Name),
 			)
 		}
 	case "restarted":
@@ -223,7 +226,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		// to bother for any previous status of the service,
 		// we simply send a restart action to the service
 		logrus.Info(
-			fmt.Sprintf("Service (%s.service) should be restarted", s.Data.Name),
+			fmt.Sprintf("[%s] Service (%s.service) should be restarted", s.String(), s.Data.Name),
 		)
 		err := s.doActionOnService("restart")
 		if err != nil {
@@ -232,11 +235,11 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		}
 		result.Updated = true
 		logrus.Info(
-			fmt.Sprintf("Service (%s.service) restarted", s.Data.Name),
+			fmt.Sprintf("[%s] Service (%s.service) restarted", s.String(), s.Data.Name),
 		)
 	case "reloaded":
 		logrus.Info(
-			fmt.Sprintf("Service (%s.service) should be reloaded", s.Data.Name),
+			fmt.Sprintf("[%s] Service (%s.service) should be reloaded", s.String(), s.Data.Name),
 		)
 		err := s.doActionOnService("reload")
 		if err != nil {
@@ -245,7 +248,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		}
 		result.Updated = true
 		logrus.Info(
-			fmt.Sprintf("Service (%s.service) reloaded", s.Data.Name),
+			fmt.Sprintf("[%s] Service (%s.service) reloaded", s.String(), s.Data.Name),
 		)
 	}
 
@@ -258,7 +261,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 	if enabled != s.Data.Enabled {
 		if s.Data.Enabled {
 			logrus.Info(
-				fmt.Sprintf("Service (%s.service) is not enabled but should", s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s.service) is not enabled but should", s.String(), s.Data.Name),
 			)
 			err := s.doActionOnService("enable")
 			if err != nil {
@@ -267,11 +270,11 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 			}
 			result.Updated = true
 			logrus.Info(
-				fmt.Sprintf("Service (%s.service) enabled", s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s.service) enabled", s.String(), s.Data.Name),
 			)
 		} else {
 			logrus.Info(
-				fmt.Sprintf("Service (%s.service) enabled but should not", s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s.service) enabled but should not", s.String(), s.Data.Name),
 			)
 			err := s.doActionOnService("disable")
 			if err != nil {
@@ -280,7 +283,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 			}
 			result.Updated = true
 			logrus.Info(
-				fmt.Sprintf("Service (%s.service) disabled", s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s.service) disabled", s.String(), s.Data.Name),
 			)
 		}
 	}

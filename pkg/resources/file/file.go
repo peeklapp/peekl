@@ -2,6 +2,7 @@ package file
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -138,25 +139,30 @@ func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 	defer file.Close()
 
 	// Then we create MD5 object of file
-	fileMD5 := md5.New()
-	if _, err := io.Copy(fileMD5, file); err != nil {
+	localFileHasher := md5.New()
+	logrus.Debug(localFileHasher)
+
+	file.Seek(0, 0)
+	if _, err := io.Copy(localFileHasher, file); err != nil {
 		return didSomething, err
 	}
+	logrus.Debug(localFileHasher)
 
 	// Then we create MD5 object of content
-	contentMD5 := md5.New()
-	io.WriteString(contentMD5, content)
+	contentHasher := md5.New()
+	io.WriteString(contentHasher, content)
 
-	fileMD5Checksum := fmt.Sprintf("%x", fileMD5.Sum(nil))
-	contentMD5Checksum := fmt.Sprintf("%x", contentMD5.Sum(nil))
+	localFileMD5Value := hex.EncodeToString(localFileHasher.Sum(nil))
+	contentMD5Value := hex.EncodeToString(contentHasher.Sum(nil))
 
-	if fileMD5Checksum != contentMD5Checksum {
+	if localFileMD5Value != contentMD5Value {
 		logrus.Info(
 			fmt.Sprintf(
-				"Checksum for file (%s) should be (%s) but is (%s)",
+				"[%s] Checksum for file (%s) should be (%s) but is (%s)",
+				f.String(),
 				f.Data.Path,
-				contentMD5Checksum,
-				fileMD5Checksum,
+				contentMD5Value,
+				localFileMD5Value,
 			),
 		)
 		err := os.WriteFile(f.Data.Path, []byte(content), f.Data.Mode)
@@ -165,7 +171,8 @@ func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 		}
 		logrus.Info(
 			fmt.Sprintf(
-				"File (%s) content has been updated",
+				"[%s] File (%s) content has been updated",
+				f.String(),
 				f.Data.Path,
 			),
 		)
@@ -231,7 +238,7 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 
 	if !f.exist() && f.Present {
 		logrus.Info(
-			fmt.Sprintf("File (%s) does not exist, but should", f.Data.Path),
+			fmt.Sprintf("[%s] File (%s) does not exist, but should", f.String(), f.Data.Path),
 		)
 		err := f.create(fileContent)
 		if err != nil {
@@ -239,12 +246,12 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("File (%s) created", f.Data.Path),
+			fmt.Sprintf("[%s] File (%s) created", f.String(), f.Data.Path),
 		)
 		result.Created = true
 	} else if f.exist() && !f.Present {
 		logrus.Info(
-			fmt.Sprintf("File (%s) exist, but should not", f.Data.Path),
+			fmt.Sprintf("[%s] File (%s) exist, but should not", f.String(), f.Data.Path),
 		)
 		err := f.delete()
 		if err != nil {
@@ -252,7 +259,7 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("File (%s) deleted", f.Data.Path),
+			fmt.Sprintf("[%s] File (%s) deleted", f.String(), f.Data.Path),
 		)
 		result.Deleted = true
 	}

@@ -48,7 +48,8 @@ func (t *TemplateResource) changePermissionsIfNeeded() (bool, error) {
 	if stat.Mode() != t.Data.Mode {
 		logrus.Info(
 			fmt.Sprintf(
-				"Mode for the template file (%s) should be (%s) but is (%s)",
+				"[%s] Mode for the template file (%s) should be (%s) but is (%s)",
+				t.String(),
 				t.Data.Path,
 				t.Data.Mode,
 				stat.Mode(),
@@ -58,7 +59,8 @@ func (t *TemplateResource) changePermissionsIfNeeded() (bool, error) {
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
-				"Mode for the template file (%s) has been updated from (%s) to (%s)",
+				"[%s] Mode for the template file (%s) has been updated from (%s) to (%s)",
+				t.String(),
 				t.Data.Path,
 				stat.Mode(),
 				t.Data.Mode,
@@ -106,7 +108,8 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 
 		logrus.Info(
 			fmt.Sprintf(
-				"Ownership of the template file (%s) should be (%s:%s) but is (%s:%s)",
+				"[%s] Ownership of the template file (%s) should be (%s:%s) but is (%s:%s)",
+				t.String(),
 				t.Data.Path,
 				t.Data.Owner,
 				t.Data.Group,
@@ -118,7 +121,8 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
-				"Ownership of the template file (%s) updated from (%s:%s) to (%s:%s)",
+				"[%s] Ownership of the template file (%s) updated from (%s:%s) to (%s:%s)",
+				t.String(),
 				t.Data.Path,
 				username,
 				groupName,
@@ -217,7 +221,8 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 	if fileMD5Checksum != contentMD5Checksum {
 		logrus.Info(
 			fmt.Sprintf(
-				"Checksum for file (%s) should be (%s) but is (%s)",
+				"[%s] Checksum for file (%s) should be (%s) but is (%s)",
+				t.String(),
 				t.Data.Path,
 				contentMD5Checksum,
 				fileMD5Checksum,
@@ -229,7 +234,8 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 		}
 		logrus.Info(
 			fmt.Sprintf(
-				"File (%s) content has been updated",
+				"[%s] File (%s) content has been updated",
+				t.String(),
 				t.Data.Path,
 			),
 		)
@@ -261,7 +267,7 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 
 	if !t.exist() && t.Present {
 		logrus.Info(
-			fmt.Sprintf("Template file (%s) does not exist, but should", t.Data.Path),
+			fmt.Sprintf("[%s] Template file (%s) does not exist, but should", t.String(), t.Data.Path),
 		)
 		err := t.create(templateResult)
 		if err != nil {
@@ -269,12 +275,12 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("Temaplte file (%s) created", t.Data.Path),
+			fmt.Sprintf("[%s] Template file (%s) created", t.String(), t.Data.Path),
 		)
 		result.Created = true
 	} else if t.exist() && !t.Present {
 		logrus.Info(
-			fmt.Sprintf("Template file (%s) exist, but should not", t.Data.Path),
+			fmt.Sprintf("[%s] Template file (%s) exist, but should not", t.String(), t.Data.Path),
 		)
 		err := t.delete()
 		if err != nil {
@@ -282,7 +288,7 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("Template file (%s) deleted", t.Data.Path),
+			fmt.Sprintf("[%s] Template file (%s) deleted", t.String(), t.Data.Path),
 		)
 		result.Deleted = true
 	}

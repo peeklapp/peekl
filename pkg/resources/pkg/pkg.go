@@ -95,7 +95,8 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 		if len(nonInstalledPackagesThatShouldBe) != 0 {
 			logrus.Info(
 				fmt.Sprintf(
-					"Packages (%s) are not installed but should be",
+					"[%s] Packages (%s) are not installed but should be",
+					p.String(),
 					strings.Join(nonInstalledPackagesThatShouldBeNames, " "),
 				),
 			)
@@ -107,7 +108,8 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 			result.Created = true
 			logrus.Info(
 				fmt.Sprintf(
-					"Packages (%s) have been installed",
+					"[%s] Packages (%s) have been installed",
+					p.String(),
 					strings.Join(nonInstalledPackagesThatShouldBeNames, " "),
 				),
 			)
@@ -134,7 +136,8 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 			// Install packages with correct versions
 			logrus.Info(
 				fmt.Sprintf(
-					"Packages (%s) does not have the correct version",
+					"[%s] Packages (%s) does not have the correct version",
+					p.String(),
 					strings.Join(packagesWithWrongVersionNames, " "),
 				),
 			)
@@ -145,7 +148,8 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 			}
 			logrus.Info(
 				fmt.Sprintf(
-					"Packages (%s) versions have been updated",
+					"[%s] Packages (%s) versions have been updated",
+					p.String(),
 					strings.Join(packagesWithWrongVersionNames, " "),
 				),
 			)
@@ -155,7 +159,7 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 		if len(installedPackagesThatShouldNot) != 0 {
 			for _, pkg := range installedPackagesThatShouldNot {
 				logrus.Info(
-					fmt.Sprintf("Package (%s) is installed but should not", pkg.Name),
+					fmt.Sprintf("[%s] Package (%s) is installed but should not", p.String(), pkg.Name),
 				)
 			}
 			err := p.Data.installer.Remove(installedPackagesThatShouldNot)
@@ -166,7 +170,7 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 			result.Deleted = true
 			for _, pkg := range installedPackagesThatShouldNot {
 				logrus.Info(
-					fmt.Sprintf("Package (%s) has been removed", pkg.Name),
+					fmt.Sprintf("[%s] Package (%s) has been removed", p.String(), pkg.Name),
 				)
 			}
 		}
