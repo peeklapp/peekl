@@ -24,18 +24,19 @@ type GroupResource struct {
 func (g *GroupResource) exist() bool {
 	logrus.Debug(
 		fmt.Sprintf(
-			"Checking if group (%s) exist using the builtin Go package `os/user`",
+			"[%s] Checking if group (%s) exist using the builtin Go package `os/user`",
+			g.String(),
 			g.Data.Name,
 		),
 	)
 
 	_, err := user.LookupGroup(g.Data.Name)
 	if err != nil {
-		logrus.Debug(fmt.Sprintf("Group (%s) does not exist", g.Data.Name))
+		logrus.Debug(fmt.Sprintf("[%s] Group (%s) does not exist", g.String(), g.Data.Name))
 		return false
 	}
 
-	logrus.Debug(fmt.Sprintf("Group (%s) exist", g.Data.Name))
+	logrus.Debug(fmt.Sprintf("[%s] Group (%s) exist", g.String(), g.Data.Name))
 	return true
 }
 
@@ -45,7 +46,8 @@ func (g *GroupResource) create() error {
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Creating group (%s) using the following command : %s %s",
+			"[%s] Creating group (%s) using the following command : %s %s",
+			g.String(),
 			g.Data.Name,
 			command,
 			strings.Join(args, " "),
@@ -57,7 +59,7 @@ func (g *GroupResource) create() error {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to create group")
+		}).Debug(fmt.Sprintf("[%s] Could not execute command to create group", g.String()))
 		return executionOutput.ErrorDetails
 	}
 
@@ -70,7 +72,8 @@ func (g *GroupResource) delete() error {
 
 	logrus.Debug(
 		fmt.Sprintf(
-			"Deleting group (%s) using the following command : %s %s",
+			"[%s] Deleting group (%s) using the following command : %s %s",
+			g.String(),
 			g.Data.Name,
 			command,
 			strings.Join(args, " "),
@@ -82,7 +85,7 @@ func (g *GroupResource) delete() error {
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
-		}).Debug("Could not execute command to delete group")
+		}).Debug(fmt.Sprintf("[%s] Could not execute command to delete group", g.String()))
 		return executionOutput.ErrorDetails
 	}
 
@@ -96,26 +99,26 @@ func (g *GroupResource) Process(context *models.ResourceContext) (models.Resourc
 
 	if !exist && g.Present {
 		logrus.Info(
-			fmt.Sprintf("Group (%s) does not exist but should", g.Data.Name),
+			fmt.Sprintf("[%s] Group (%s) does not exist but should", g.String(), g.Data.Name),
 		)
 		err := g.create()
 		if err != nil {
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("Group (%s) created", g.Data.Name),
+			fmt.Sprintf("[%s] Group (%s) created", g.String(), g.Data.Name),
 		)
 		result.Created = true
 	} else if exist && !g.Present {
 		logrus.Info(
-			fmt.Sprintf("Group (%s) exist but should not", g.Data.Name),
+			fmt.Sprintf("[%s] Group (%s) exist but should not", g.String(), g.Data.Name),
 		)
 		err := g.delete()
 		if err != nil {
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("Group (%s) deleted", g.Data.Name),
+			fmt.Sprintf("[%s] Group (%s) deleted", g.String(), g.Data.Name),
 		)
 		result.Deleted = true
 	}

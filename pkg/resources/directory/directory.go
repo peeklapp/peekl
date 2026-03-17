@@ -100,7 +100,8 @@ func (d *DirectoryResource) changeOwnershipIfNeeded() (bool, error) {
 
 		logrus.Info(
 			fmt.Sprintf(
-				"Ownership for directory (%s) should (%s:%s) but is (%s:%s)",
+				"[%s] Ownership for directory (%s) should (%s:%s) but is (%s:%s)",
+				d.String(),
 				d.Data.Path,
 				d.Data.Owner,
 				d.Data.Group,
@@ -112,7 +113,8 @@ func (d *DirectoryResource) changeOwnershipIfNeeded() (bool, error) {
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
-				"Ownership for directory (%s) updated from (%s:%s) to (%s:%s)",
+				"[%s] Ownership for directory (%s) updated from (%s:%s) to (%s:%s)",
+				d.String(),
 				d.Data.Path,
 				username,
 				groupName,
@@ -155,7 +157,7 @@ func (d *DirectoryResource) Process(context *models.ResourceContext) (models.Res
 
 	if !d.exist() && d.Present {
 		logrus.Info(
-			fmt.Sprintf("Directory (%s) does not exist, but should", d.Data.Path),
+			fmt.Sprintf("[%s] Directory (%s) does not exist, but should", d.String(), d.Data.Path),
 		)
 		err := d.create()
 		if err != nil {
@@ -163,12 +165,12 @@ func (d *DirectoryResource) Process(context *models.ResourceContext) (models.Res
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("Directory (%s) created", d.Data.Path),
+			fmt.Sprintf("[%s] Directory (%s) created", d.String(), d.Data.Path),
 		)
 		result.Created = true
 	} else if d.exist() && !d.Present {
 		logrus.Info(
-			fmt.Sprintf("Directory (%s) exist, but should not", d.Data.Path),
+			fmt.Sprintf("[%s] Directory (%s) exist, but should not", d.String(), d.Data.Path),
 		)
 		err := d.delete()
 		if err != nil {
@@ -176,7 +178,7 @@ func (d *DirectoryResource) Process(context *models.ResourceContext) (models.Res
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("Directory (%s) deleted", d.Data.Path),
+			fmt.Sprintf("[%s] Directory (%s) deleted", d.String(), d.Data.Path),
 		)
 		result.Deleted = true
 	}
@@ -185,14 +187,14 @@ func (d *DirectoryResource) Process(context *models.ResourceContext) (models.Res
 	if d.exist() && d.Present {
 		var err error
 
-		// Check permissions of the file
+		logrus.Debug(fmt.Sprintf("[%s] Checking permissions of the folder", d.String()))
 		permissionsHasBeenChanged, err := d.changePermissionsIfNeeded()
 		if err != nil {
 			result.Failed = true
 			return result, err
 		}
 
-		// Check owner/group of the file
+		logrus.Debug(fmt.Sprintf("[%s] Checking ownership of the folder", d.String()))
 		ownershipHasBeenChanged, err := d.changeOwnershipIfNeeded()
 		if err != nil {
 			result.Failed = true

@@ -37,8 +37,9 @@ func (c *CommandResource) createsAlreadyExist() bool {
 func (c *CommandResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
-	// If the path `creates` already exist we don't execute
+	logrus.Debug(fmt.Sprintf("[%s] Checking if the command needs to be ran, depending on if the `creates` path exist.", c.String()))
 	if c.createsAlreadyExist() {
+		logrus.Debug(fmt.Sprintf("[%s] The command does not need to be ran, as the `creates` path exist.", c.String()))
 		return result, nil
 	}
 
@@ -50,7 +51,7 @@ func (c *CommandResource) Process(context *models.ResourceContext) (models.Resou
 	cmd.Stdout = &stdoutBuff
 	cmd.Stderr = &stderrBuff
 
-	// Execute command
+	logrus.Debug(fmt.Sprintf("[%s] Running the command : %s", c.String(), commandWithArgs))
 	err := cmd.Run()
 
 	if err != nil {
@@ -62,19 +63,18 @@ func (c *CommandResource) Process(context *models.ResourceContext) (models.Resou
 					"stderr":    stderrBuff.String(),
 					"exit_code": exitError.ExitCode(),
 				},
-			).Error("Error during command execution")
+			).Error(fmt.Sprintf("[%s] Error during command execution", c.String()))
 			return result, nil
 		} else {
+			logrus.Debug(fmt.Sprintf("[%s] Command failed in an unexpected way.", c.String()))
 			return result, err
 		}
 	}
 
-	// Handle register of command output
 	if c.Data.RegisterOutput != "" {
 		context.Variables[c.Data.RegisterOutput] = stdoutBuff.String()
 	}
 
-	// Otherwise we consider the command succesful
 	result.Created = true
 	return result, nil
 }
