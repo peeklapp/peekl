@@ -10,7 +10,6 @@ type Role struct {
 	Resources         []Resource                   `json:"resources" yaml:"resources" mapstructure:"resources"`
 	LoadedResources   []LoadedResource             `json:"loaded_resources,omitempty"`
 	IncludedResources map[string]IncludedResources `json:"included_resources" yaml:"included_resources" mapstructure:"included_resources"`
-	Templates         map[string]string            `json:"templates" yaml:"templates"`
 	Variables         map[string]any               `json:"variables" yaml:"variables"`
 }
 
