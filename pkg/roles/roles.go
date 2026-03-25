@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/goccy/go-yaml"
 	"github.com/peeklapp/peekl/pkg/models"
@@ -29,7 +28,6 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 	var role models.Role
 
 	role.Name = roleName
-	role.Templates = map[string]string{}
 	role.IncludedResources = map[string]models.IncludedResources{}
 
 	err := DoesRoleExist(codePath, roleName)
@@ -83,38 +81,6 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 			role.IncludedResources[extraFile.Name] = models.IncludedResources{
 				Resources: resources,
 			}
-		}
-	}
-
-	// Make sure templates directory actually exist
-	var templatesDirExist bool
-	templatePath := filepath.Join(rolePath, "templates")
-	_, err = os.Stat(templatePath)
-	if err == nil {
-		templatesDirExist = true
-	} else {
-		if errors.Is(err, os.ErrNotExist) {
-			templatesDirExist = false
-		} else {
-			return &role, err
-		}
-	}
-
-	if templatesDirExist {
-		// Find all template files
-		templatePathGlob := filepath.Join(templatePath, "*.tmpl")
-		templateFiles, err := filepath.Glob(templatePathGlob)
-		if err != nil {
-			return &role, err
-		}
-
-		// Load all template file
-		for _, templateFile := range templateFiles {
-			rawTemplateFile, err := os.ReadFile(templateFile)
-			if err != nil {
-				return &role, err
-			}
-			role.Templates[strings.Split(filepath.Base(templateFile), ".tmpl")[0]] = string(rawTemplateFile)
 		}
 	}
 

@@ -21,13 +21,14 @@ import (
 )
 
 type TemplateData struct {
-	Name      string         `mapstructure:"name"`
-	Path      string         `mapstructure:"path"`
-	Owner     string         `mapstructure:"owner"`
-	Group     string         `mapstrucutre:"group"`
-	Mode      fs.FileMode    `mapstructure:"mode"`
-	Variables map[string]any `mapstructure:"variables"`
-	roleName  string
+	Source      string         `mapstructure:"source"`
+	Path        string         `mapstructure:"path"`
+	Owner       string         `mapstructure:"owner"`
+	Group       string         `mapstrucutre:"group"`
+	Mode        fs.FileMode    `mapstructure:"mode"`
+	Content     string         `mapstructure:"content"`
+	Variables   map[string]any `mapstructure:"variables"`
+	roleContext *models.RoleContext
 }
 
 type TemplateResource struct {
@@ -148,7 +149,7 @@ func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext, templ *
 
 	// Build actual template result from variables and template
 	var templateBytesResult bytes.Buffer
-	err := templ.ExecuteTemplate(&templateBytesResult, fmt.Sprintf("%s", t.Data.Name), variables)
+	err := templ.ExecuteTemplate(&templateBytesResult, t.Title, variables)
 	if err != nil {
 		return "", err
 	}
@@ -247,13 +248,20 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 func (t *TemplateResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
-	rawTemplate, err := context.ApiClient.RetrieveTemplate(t.Data.Name, context.Environment, t.Data.roleName)
-	if err != nil {
-		result.Failed = true
-		return result, err
+	var templateContent string
+	var err error
+
+	if t.Data.Source != "" {
+		templateContent, err = context.ApiClient.RetrieveTemplate(t.Data.Source, context.Environment, t.Data.roleContext.RoleName)
+		if err != nil {
+			result.Failed = true
+			return result, err
+		}
+	} else {
+		templateContent = t.Data.Content
 	}
 
-	templ, err := template.New(t.Data.Name).Parse(rawTemplate)
+	templ, err := template.New(t.Title).Parse(templateContent)
 	if err != nil {
 		result.Failed = true
 		return result, err
@@ -341,7 +349,6 @@ func (t *TemplateResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
 	fieldsThatCannotBeEmpty := [][]string{
-		{t.Data.Name, "name"},
 		{t.Data.Path, "path"},
 		{t.Data.Owner, "owner"},
 		{t.Data.Group, "group"},
@@ -358,6 +365,26 @@ func (t *TemplateResource) Validate() error {
 		}
 	}
 
+	if t.Data.Source != "" && t.Data.Content != "" {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "content / source",
+				ViolatedRule: "content field and source field are mutually exclusive, you cannot use both.",
+			},
+		)
+	}
+
+	if t.Data.Source != "" && t.Data.roleContext == nil {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "source",
+				ViolatedRule: "source field cannot be used outside of roles",
+			},
+		)
+	}
+
 	if len(validationErrors) > 1 {
 		return models.ResourceValidationError{
 			Type:             t.Type,
@@ -371,10 +398,6 @@ func (t *TemplateResource) Validate() error {
 
 func NewTemplateResource(resource *models.Resource, dataField map[string]any, roleContext *models.RoleContext) (*TemplateResource, error) {
 	var templateResource TemplateResource
-
-	if roleContext == nil {
-		return &templateResource, fmt.Errorf("Cannot use template resources outside of roles.")
-	}
 
 	defaults := map[string]any{
 		"owner": "root",
@@ -403,7 +426,7 @@ func NewTemplateResource(resource *models.Resource, dataField map[string]any, ro
 	templateResource.WhenCondition = resource.When
 	templateResource.RegisterVariable = resource.Register
 	templateResource.Data = templateData
-	templateResource.Data.roleName = roleContext.RoleName
+	templateResource.Data.roleContext = roleContext
 
 	// In the case that we didn't have any variables
 	if templateResource.Data.Variables == nil {
