@@ -18,13 +18,13 @@ import (
 )
 
 type FileData struct {
-	Path     string      `mapstructure:"path"`
-	Owner    string      `mapstructure:"owner"`
-	Group    string      `mapstructure:"group"`
-	Mode     fs.FileMode `mapstructure:"mode"`
-	Source   string      `mapstructure:"source"`
-	Content  string      `mapstructure:"content"`
-	roleName string
+	Path        string      `mapstructure:"path"`
+	Owner       string      `mapstructure:"owner"`
+	Group       string      `mapstructure:"group"`
+	Mode        fs.FileMode `mapstructure:"mode"`
+	Source      string      `mapstructure:"source"`
+	Content     string      `mapstructure:"content"`
+	roleContext *models.RoleContext
 }
 
 type FileResource struct {
@@ -227,7 +227,7 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 	var fileContent string
 	var err error
 	if f.Data.Source != "" {
-		fileContent, err = context.ApiClient.RetrieveFile(f.Data.Source, context.Environment, f.Data.roleName)
+		fileContent, err = context.ApiClient.RetrieveFile(f.Data.Source, context.Environment, f.Data.roleContext.RoleName)
 		if err != nil {
 			result.Failed = true
 			return result, err
@@ -340,7 +340,7 @@ func (f *FileResource) Validate() error {
 		)
 	}
 
-	if f.Data.Source != "" && f.Data.roleName == "" {
+	if f.Data.Source != "" && f.Data.roleContext == nil {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -392,7 +392,7 @@ func NewFileResource(resource *models.Resource, dataField any, roleContext *mode
 	fileResource.WhenCondition = resource.When
 	fileResource.RegisterVariable = resource.Register
 	fileResource.Data = fileData
-	fileResource.Data.roleName = roleContext.RoleName
+	fileResource.Data.roleContext = roleContext
 
 	return &fileResource, nil
 }
