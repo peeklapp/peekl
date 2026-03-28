@@ -3,6 +3,7 @@ package catalog
 import (
 	"errors"
 	"fmt"
+	"maps"
 
 	"github.com/expr-lang/expr"
 	"github.com/peeklapp/peekl/pkg/models"
@@ -29,7 +30,10 @@ func shouldNotSkipResource(res models.LoadedResource, resContext *models.Resourc
 	}
 
 	// Create env for when request with facts and vars
-	env := map[string]any{"facts": resContext.Facts, "vars": resContext.Variables, "tags": resContext.Tags}
+	env := map[string]any{}
+	maps.Copy(env, resContext.Variables)
+	env["facts"] = resContext.Facts
+	env["tags"] = resContext.Tags
 
 	// Compile the when request, and then execute it
 	compiledWhen, err := expr.Compile(res.When(), expr.Env(env))
@@ -58,7 +62,7 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 			return err
 		}
 		if !skip {
-			logrus.Debug(fmt.Sprintf("[%s] Resource has been skipped", res.String()))
+			logrus.Info(fmt.Sprintf("[%s] Resource has been skipped", res.String()))
 			catalogResult.Skipped = catalogResult.Skipped + 1
 			continue
 		}
@@ -159,6 +163,7 @@ func (c *Catalog) Process() error {
 	// Handle global resources
 	err := processResources(c.resources, &resContext, &catalogResult)
 	if err != nil {
+		logrus.Error(err)
 		failedResource = true
 	}
 
@@ -170,6 +175,7 @@ func (c *Catalog) Process() error {
 			// Handle main
 			err := processResources(role.LoadedResources, &resContext, &catalogResult)
 			if err != nil {
+				logrus.Error(err)
 				failedResource = true
 			}
 
@@ -178,6 +184,7 @@ func (c *Catalog) Process() error {
 				for _, included := range role.IncludedResources {
 					err := processResources(included.LoadedResources, &resContext, &catalogResult)
 					if err != nil {
+						logrus.Error(err)
 						failedResource = true
 					}
 				}
