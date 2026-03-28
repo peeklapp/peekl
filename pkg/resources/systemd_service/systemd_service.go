@@ -41,7 +41,7 @@ func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string
 	}
 
 	command := "systemctl"
-	args := []string{"is-enabled", fmt.Sprintf("%s.service", s.Data.Name)}
+	args := []string{"is-enabled", s.Data.Name}
 
 	logrus.Debug(
 		fmt.Sprintf(
@@ -71,7 +71,7 @@ func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string
 
 func (s *SystemdServiceResource) getServiceDetails() (map[string]string, error) {
 	command := "systemctl"
-	args := []string{"show", fmt.Sprintf("%s.service", s.Data.Name)}
+	args := []string{"show", s.Data.Name}
 
 	logrus.Debug(
 		fmt.Sprintf(
@@ -127,7 +127,7 @@ func (s *SystemdServiceResource) doActionOnService(action string) error {
 	}
 
 	command := "systemctl"
-	args := []string{action, fmt.Sprintf("%s.service", s.Data.Name)}
+	args := []string{action, s.Data.Name}
 
 	logrus.Debug(
 		fmt.Sprintf(
@@ -382,6 +382,11 @@ func NewSystemdServiceResource(resource *models.Resource, dataField map[string]a
 	systemdServiceResource.WhenCondition = resource.When
 	systemdServiceResource.RegisterVariable = resource.Register
 	systemdServiceResource.Data = systemdServiceData
+
+	// Append .service at end of name if not already present
+	if !strings.HasSuffix(systemdServiceResource.Data.Name, ".service") {
+		systemdServiceResource.Data.Name = fmt.Sprintf("%s.service", systemdServiceResource.Data.Name)
+	}
 
 	return &systemdServiceResource, nil
 }
