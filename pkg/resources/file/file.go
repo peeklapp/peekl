@@ -140,13 +140,11 @@ func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 
 	// Then we create MD5 object of file
 	localFileHasher := md5.New()
-	logrus.Debug(localFileHasher)
 
 	file.Seek(0, 0)
 	if _, err := io.Copy(localFileHasher, file); err != nil {
 		return didSomething, err
 	}
-	logrus.Debug(localFileHasher)
 
 	// Then we create MD5 object of content
 	contentHasher := md5.New()

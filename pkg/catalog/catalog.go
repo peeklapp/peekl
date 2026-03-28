@@ -54,7 +54,7 @@ func shouldNotSkipResource(res models.LoadedResource, resContext *models.Resourc
 
 func processResources(resources []models.LoadedResource, resContext *models.ResourceContext, catalogResult *CatalogResult) error {
 	for _, res := range resources {
-		logrus.Info(fmt.Sprintf("[%s] Processing resource", res.String()))
+		logrus.Debug(fmt.Sprintf("[%s] Processing resource", res.String()))
 
 		// Process 'when' condition of resource
 		skip, err := shouldNotSkipResource(res, resContext)
@@ -62,7 +62,7 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 			return err
 		}
 		if !skip {
-			logrus.Info(fmt.Sprintf("[%s] Resource has been skipped", res.String()))
+			logrus.Debug(fmt.Sprintf("[%s] Resource has been skipped", res.String()))
 			catalogResult.Skipped = catalogResult.Skipped + 1
 			continue
 		}
@@ -74,8 +74,8 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 		result, err := res.Process(resContext)
 		if err != nil {
 			logrus.Error(finishedOutputLog + "Failed")
-			logrus.Error(err)
-			return nil
+			logrus.Error(fmt.Sprintf("[%s] %s", res.String(), err.Error()))
+			return err
 		}
 
 		// Process 'register' field of resource
@@ -88,32 +88,36 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 			if registerField != "" {
 				resContext.Variables[registerField] = "created"
 			}
+			logrus.Info(finishedOutputLog)
 		} else if result.Deleted {
 			catalogResult.Deleted = catalogResult.Deleted + 1
 			finishedOutputLog = finishedOutputLog + "Deleted"
 			if registerField != "" {
 				resContext.Variables[registerField] = "deleted"
 			}
+			logrus.Info(finishedOutputLog)
 		} else if result.Updated {
 			catalogResult.Updated = catalogResult.Updated + 1
 			finishedOutputLog = finishedOutputLog + "Updated"
 			if registerField != "" {
 				resContext.Variables[registerField] = "updated"
 			}
+			logrus.Info(finishedOutputLog)
 		} else if result.Failed {
 			catalogResult.Failed = catalogResult.Failed + 1
 			finishedOutputLog = finishedOutputLog + "Failed"
 			if registerField != "" {
 				resContext.Variables[registerField] = "failed"
 			}
+			logrus.Info(finishedOutputLog)
 		} else {
 			catalogResult.Unchanged = catalogResult.Unchanged + 1
 			finishedOutputLog = finishedOutputLog + "Unchanged"
 			if registerField != "" {
 				resContext.Variables[registerField] = "unchanged"
 			}
+			logrus.Debug(finishedOutputLog)
 		}
-		logrus.Info(finishedOutputLog)
 	}
 
 	return nil
@@ -157,40 +161,31 @@ func (c *Catalog) Process() error {
 		),
 	)
 
-	// Failed resource
-	var failedResource bool
-
 	// Handle global resources
 	err := processResources(c.resources, &resContext, &catalogResult)
 	if err != nil {
-		logrus.Error(err)
-		failedResource = true
+		return nil
 	}
 
 	// Handle roles
-	if !failedResource {
-		for _, role := range c.roles {
-			logrus.Info(fmt.Sprintf("[%s] Process the role", role.Name))
+	for _, role := range c.roles {
+		logrus.Debug(fmt.Sprintf("[%s] Process the role", role.Name))
 
-			// Handle main
-			err := processResources(role.LoadedResources, &resContext, &catalogResult)
+		// Handle main of role
+		err := processResources(role.LoadedResources, &resContext, &catalogResult)
+		if err != nil {
+			break
+		}
+
+		// Handle included of role
+		for _, included := range role.IncludedResources {
+			err := processResources(included.LoadedResources, &resContext, &catalogResult)
 			if err != nil {
-				logrus.Error(err)
-				failedResource = true
-			}
-
-			if !failedResource {
-				// Handle included
-				for _, included := range role.IncludedResources {
-					err := processResources(included.LoadedResources, &resContext, &catalogResult)
-					if err != nil {
-						logrus.Error(err)
-						failedResource = true
-					}
-				}
-				logrus.Info(fmt.Sprintf("[%s] Finished processing role", role.Name))
+				break
 			}
 		}
+
+		logrus.Debug(fmt.Sprintf("[%s] Finished processing role", role.Name))
 	}
 
 	logrus.Info(
