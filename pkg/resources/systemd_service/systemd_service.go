@@ -54,7 +54,7 @@ func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string
 	)
 
 	executionOutput := utils.Execute(command, args...)
-	if executionOutput.ErrorDetails.ExitCode != 0 {
+	if executionOutput.ErrorDetails.ExitCode > 1 {
 		logrus.WithFields(logrus.Fields{
 			"command":   fmt.Sprintf("%s %s", command, strings.Join(args, " ")),
 			"stderr":    executionOutput.ErrorDetails.Stderr,
