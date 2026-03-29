@@ -243,7 +243,7 @@ func (c *Catalog) loadRoles(roles []models.Role) error {
 		// Handle main resources
 		loadedMainResources, err := c.loadResources(role.Resources, &models.RoleContext{RoleName: role.Name})
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed loading resource in role %s : %s", role.Name, err.Error())
 		}
 		role.LoadedResources = loadedMainResources
 
@@ -251,7 +251,7 @@ func (c *Catalog) loadRoles(roles []models.Role) error {
 		for key, include := range role.IncludedResources {
 			loadedIncludedResources, err := c.loadResources(include.Resources, &models.RoleContext{RoleName: role.Name})
 			if err != nil {
-				return err
+				return fmt.Errorf("Failed loading resource in role %s : %s", role.Name, err.Error())
 			}
 			include.LoadedResources = loadedIncludedResources
 			role.IncludedResources[key] = include
@@ -366,7 +366,10 @@ func NewCatalog(rawCatalog models.RawCatalog) (*Catalog, error) {
 	catalog.resources = globalLoadedResources
 
 	// Handle roles
-	catalog.loadRoles(rawCatalog.Roles)
+	err = catalog.loadRoles(rawCatalog.Roles)
+	if err != nil {
+		return &catalog, err
+	}
 
 	return &catalog, nil
 }
