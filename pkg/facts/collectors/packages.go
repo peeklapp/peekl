@@ -7,8 +7,13 @@ import (
 	"github.com/peeklapp/peekl/pkg/models"
 )
 
-func CollectPackagesBasedOnSource(source string) ([]models.Package, error) {
-	switch source {
+func GetPackages(distro string) ([]models.Package, error) {
+	packageCollectorMapping := map[string]string{
+		"Debian": "dpkg",
+		"Ubuntu": "dpkg",
+	}
+
+	switch packageCollectorMapping[distro] {
 	case "dpkg":
 		pkgs, err := dpkg.GetInstalledPackagesList()
 		if err != nil {
@@ -16,6 +21,6 @@ func CollectPackagesBasedOnSource(source string) ([]models.Package, error) {
 		}
 		return pkgs, nil
 	default:
-		return nil, fmt.Errorf("Unknown package collection method provided : %s", source)
+		return nil, fmt.Errorf("Unknown package collection method for distro : %s", distro)
 	}
 }
