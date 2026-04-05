@@ -1,68 +1,60 @@
 package facts
 
 import (
-	"fmt"
-	"runtime"
-
 	"github.com/peeklapp/peekl/pkg/facts/collectors"
 	"github.com/peeklapp/peekl/pkg/models"
-	"github.com/peeklapp/peekl/pkg/utils"
 )
 
-type Facter struct {
-	distro string
-}
-
-func (f *Facter) collectPackage() ([]models.Package, error) {
-	var packages []models.Package
-
-	collectorMapping := map[string]string{
-		"debian": "dpkg",
-		"ubuntu": "dpkg",
-	}
-
-	packages, err := collectors.CollectPackagesBasedOnSource(collectorMapping[f.distro])
-	if err != nil {
-		return packages, fmt.Errorf("An error happening during collection of packages : %s", err.Error())
-	}
-
-	return packages, nil
-}
-
-func (f *Facter) collectHostnme() (string, error) {
-	return collectors.GetHostname()
-}
+type Facter struct{}
 
 func (f *Facter) Collect() (*models.Facts, error) {
 	var facts models.Facts
 
-	// First we need to determine the OS
-	distro, err := utils.GetLinuxOS("")
+	// Collect LSB data
+	lsbData, err := collectors.GetLsbData()
 	if err != nil {
 		return &facts, err
 	}
-	f.distro = distro
-	facts.Os.Distro = distro
-	facts.Os.Arch = runtime.GOARCH
+	facts.Lsb = lsbData
 
 	// Collect list of packages
-	pkgs, err := f.collectPackage()
+	pkgs, err := collectors.GetPackages(facts.Lsb.DistributorId)
 	if err != nil {
 		return &facts, err
 	}
 	facts.Packages = pkgs
 
 	// Collect hostname
-	hostname, err := f.collectHostnme()
+	hostname, err := collectors.GetHostname()
 	if err != nil {
 		return &facts, err
 	}
 	facts.Hostname = hostname
 
+	// Collect network interfaces
+	networkInterfaces, err := collectors.GetNetworkInterfaces()
+	if err != nil {
+		return &facts, err
+	}
+	facts.NetworkInterfaces = networkInterfaces
+
+	// Collect DMI data
+	dmiData, err := collectors.GetDmiData()
+	if err != nil {
+		return &facts, err
+	}
+	facts.Dmi = dmiData
+
+	// Collect disks
+	disks, err := collectors.GetDisks()
+	if err != nil {
+		return &facts, err
+	}
+	facts.Disks = disks
+
 	return &facts, nil
 }
 
 func NewFacter() *Facter {
-	var facter Facter
-	return &facter
+	return &Facter{}
 }
