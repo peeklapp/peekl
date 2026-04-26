@@ -50,11 +50,24 @@ func (s *SystemdDaemonResource) Process(context *models.ResourceContext) (models
 	var result models.ResourceResult
 
 	if s.Data.Reload {
+		logrus.Info(
+			fmt.Sprintf(
+				"[%s] Systemd daemon should be reloaded",
+				s.String(),
+			),
+		)
 		err := s.reloadSystemdDaemon()
 		if err != nil {
 			result.Failed = true
 			return result, err
 		}
+		result.Updated = true
+		logrus.Info(
+			fmt.Sprintf(
+				"[%s] Systemd daemon has been reloaded",
+				s.String(),
+			),
+		)
 	}
 
 	return result, nil
