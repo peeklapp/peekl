@@ -93,16 +93,28 @@ func (s *SystemdDaemonResource) Validate() error {
 func NewSystemdDaemonResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*SystemdDaemonResource, error) {
 	var systemdDaemonResource SystemdDaemonResource
 
+	defaults := map[string]any{
+		"reload": true,
+	}
+
+	var systemdDaemonData SystemdDaemonData
+
+	err := mapstructure.Decode(defaults, &systemdDaemonData)
+	if err != nil {
+		return &systemdDaemonResource, err
+	}
+
+	err = mapstructure.Decode(dataField, &systemdDaemonData)
+	if err != nil {
+		return &systemdDaemonResource, err
+	}
+
 	systemdDaemonResource.Title = resource.Title
 	systemdDaemonResource.Type = resource.Type
 	systemdDaemonResource.Present = *resource.Present
 	systemdDaemonResource.WhenCondition = resource.When
 	systemdDaemonResource.RegisterVariable = resource.Register
-
-	err := mapstructure.Decode(dataField, &systemdDaemonResource.Data)
-	if err != nil {
-		return &systemdDaemonResource, err
-	}
+	systemdDaemonResource.Data = systemdDaemonData
 
 	return &systemdDaemonResource, nil
 }
