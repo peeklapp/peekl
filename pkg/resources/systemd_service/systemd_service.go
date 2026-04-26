@@ -1,4 +1,4 @@
-package systemdservice
+package systemdService
 
 import (
 	"fmt"

@@ -13,6 +13,7 @@ import (
 	"github.com/peeklapp/peekl/pkg/resources/file"
 	"github.com/peeklapp/peekl/pkg/resources/group"
 	"github.com/peeklapp/peekl/pkg/resources/pkg"
+	systemdDaemon "github.com/peeklapp/peekl/pkg/resources/systemd_daemon"
 	"github.com/peeklapp/peekl/pkg/resources/systemd_service"
 	"github.com/peeklapp/peekl/pkg/resources/template"
 	"github.com/peeklapp/peekl/pkg/resources/user"
@@ -270,59 +271,25 @@ func (c *Catalog) loadSingleResource(resource models.Resource, dataField map[str
 
 	switch resource.Type {
 	case "builtin.user":
-		loadedUser, err := user.NewUserResource(&resource, dataField, roleContext)
-		if err != nil {
-			return nil, err
-		}
-		return loadedUser, nil
+		return user.NewUserResource(&resource, dataField, roleContext)
 	case "builtin.group":
-		loadedGroup, err := group.NewGroupResource(&resource, dataField, roleContext)
-		if err != nil {
-			return nil, err
-		}
-		return loadedGroup, nil
+		return group.NewGroupResource(&resource, dataField, roleContext)
 	case "builtin.file":
-		loadedFile, err := file.NewFileResource(&resource, dataField, roleContext)
-		if err != nil {
-			return nil, err
-		}
-		return loadedFile, nil
+		return file.NewFileResource(&resource, dataField, roleContext)
 	case "builtin.directory":
-		loadedDirectory, err := directory.NewDirectoryResource(&resource, dataField, roleContext)
-		if err != nil {
-			return nil, err
-		}
-		return loadedDirectory, nil
+		return directory.NewDirectoryResource(&resource, dataField, roleContext)
 	case "builtin.pkg":
-		loadedPkg, err := pkg.NewPackageResource(&resource, dataField, roleContext)
-		if err != nil {
-			return nil, err
-		}
-		return loadedPkg, nil
+		return pkg.NewPackageResource(&resource, dataField, roleContext)
 	case "builtin.template":
-		loadedTemplate, err := template.NewTemplateResource(&resource, dataField, roleContext)
-		if err != nil {
-			return nil, err
-		}
-		return loadedTemplate, nil
+		return template.NewTemplateResource(&resource, dataField, roleContext)
 	case "builtin.systemd_service":
-		loadedSystemdService, err := systemdservice.NewSystemdServiceResource(&resource, dataField, roleContext)
-		if err != nil {
-			return nil, err
-		}
-		return loadedSystemdService, nil
+		return systemdService.NewSystemdServiceResource(&resource, dataField, roleContext)
+	case "builtin.systemd_daemon":
+		return systemdDaemon.NewSystemdDaemonResource(&resource, dataField, roleContext)
 	case "builtin.debug":
-		loadedDebug, err := debug.NewDebugResource(&resource, dataField, roleContext)
-		if err != nil {
-			return nil, err
-		}
-		return loadedDebug, nil
+		return debug.NewDebugResource(&resource, dataField, roleContext)
 	case "builtin.command":
-		loadedCommand, err := command.NewCommandResource(&resource, dataField, roleContext)
-		if err != nil {
-			return nil, err
-		}
-		return loadedCommand, nil
+		return command.NewCommandResource(&resource, dataField, roleContext)
 	}
 	return nil, fmt.Errorf("Unknown resource type : %s", resource.Type)
 }

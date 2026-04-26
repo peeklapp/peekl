@@ -1,4 +1,4 @@
-package systemd_daemon
+package systemdDaemon
 
 import (
 	"fmt"
