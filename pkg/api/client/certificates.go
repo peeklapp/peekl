@@ -43,9 +43,9 @@ func (c *Client) SubmitCertificateRequest(nodeName string, csr string) error {
 	return nil
 }
 
-func (c *Client) RetrieveSignedCertificate(nodeName string, csr string) (string, error) {
+func (c *Client) RetrieveSignedCertificate(csrSignature string) (string, error) {
 	endpoint := "/v1/certificates/retrieve"
-	body := requests.RetrieveSignedCertificate{NodeName: nodeName, CSR: csr}
+	body := requests.RetrieveSignedCertificate{CsrSignature: csrSignature}
 	var resp responses.RetrieveSignedCertificate
 
 	err := c.post(endpoint, body, &resp)

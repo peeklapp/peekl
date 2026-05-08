@@ -1,32 +1,5 @@
 package models
 
-import (
-	"encoding/json"
-	"fmt"
-)
-
-type ValidationError struct {
-	FieldName    string `json:"field_name"`
-	ViolatedRule string `json:"violated_rule"`
-}
-
-type ResourceValidationError struct {
-	Type             string
-	Title            string
-	ValidationErrors []ValidationError
-}
-
-func (r ResourceValidationError) Error() string {
-	var outputString = fmt.Sprintf(
-		"Invalid resource [%s / '%s'] : ",
-		r.Type,
-		r.Title,
-	)
-	jsonErrors, _ := json.Marshal(r.ValidationErrors)
-	outputString += string(jsonErrors)
-	return outputString
-}
-
 type ResourceRequire struct {
 	Title string `yaml:"title" json:"title"`
 	Type  string `yaml:"type" json:"type"`

@@ -27,26 +27,16 @@ func BootstrapServer(serverConfig *config.ServerConfig) error {
 		serverConfig.Certificates.CaCertificateKeyPath,
 		serverConfig.Certificates.ServerCertificateFilePath,
 		serverConfig.Certificates.ServerCertificateKeyPath,
-		serverConfig.Certificates.DatabasePath,
 	}
+
+	if serverConfig.Database.Type == "sqlite" {
+		dirs = append(dirs, serverConfig.Database.Path)
+	}
+
 	for _, dir := range dirs {
 		basePath := filepath.Dir(dir)
 		if _, err := os.Stat(basePath); errors.Is(err, os.ErrNotExist) {
 			err := os.MkdirAll(basePath, 0750)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	// Those are straight directories, and not files
-	otherDirs := []string{
-		serverConfig.Certificates.PendingDirectory,
-		serverConfig.Certificates.SignedDirectory,
-	}
-	for _, dir := range otherDirs {
-		if _, err := os.Stat(dir); errors.Is(err, os.ErrNotExist) {
-			err := os.MkdirAll(dir, 0750)
 			if err != nil {
 				return err
 			}

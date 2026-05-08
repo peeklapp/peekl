@@ -5,11 +5,11 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/peeklapp/peekl/pkg/api/endpoints"
 	"github.com/peeklapp/peekl/pkg/api/middlewares/mtls"
-	"github.com/peeklapp/peekl/pkg/certs"
 	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/database"
 )
 
-func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDatabaseEngine) (*fiber.App, error) {
+func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEngine) (*fiber.App, error) {
 	// Create app instance
 	app := fiber.New()
 
@@ -30,7 +30,7 @@ func NewApiEngine(conf *config.ServerConfig, certsDatabaseEngine *certs.CertsDat
 
 	// -- Certificates group needs access to certificate database engine
 	certificatesGroup.Use(func(c fiber.Ctx) error {
-		c.Locals("certsDatabaseEngine", certsDatabaseEngine)
+		c.Locals("databaseEngine", databaseEngine)
 		return c.Next()
 	})
 

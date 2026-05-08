@@ -199,13 +199,8 @@ func LoadPKCS8PrivateKeyFromFile(privateKeyFile string) (*ecdsa.PrivateKey, erro
 	return &ecdsa.PrivateKey{}, fmt.Errorf("The key was not of type ECDSA")
 }
 
-func LoadCertificateSigningRequestFromFile(csrPath string) (*x509.CertificateRequest, error) {
-	csrBytes, err := os.ReadFile(csrPath)
-	if err != nil {
-		return &x509.CertificateRequest{}, err
-	}
-
-	csrPem, _ := pem.Decode(csrBytes)
+func LoadCertificateSigningRequest(csrData string) (*x509.CertificateRequest, error) {
+	csrPem, _ := pem.Decode([]byte(csrData))
 	if csrPem == nil {
 		return &x509.CertificateRequest{}, fmt.Errorf("Could not decode CSR Bytes")
 	}
@@ -218,23 +213,19 @@ func LoadCertificateSigningRequestFromFile(csrPath string) (*x509.CertificateReq
 	return certificateRequest, nil
 }
 
-func SignCertificateSigningRequest(csrPath string, certOutPath string, caFilePath string, caKeyPath string) error {
-	// Load the CA
+func SignCertificateSigningRequest(csrData string, caFilePath string, caKeyPath string) (string, error) {
+	loadedCsr, err := LoadCertificateSigningRequest(csrData)
+	if err != nil {
+		return "", err
+	}
+
 	loadedCa, err := LoadCertificateFromFile(caFilePath)
 	if err != nil {
-		return err
+		return "", err
 	}
-
-	// Load the CA private key
 	loadedCaKey, err := LoadPKCS8PrivateKeyFromFile(caKeyPath)
 	if err != nil {
-		return err
-	}
-
-	// Load the CSR
-	loadedCsr, err := LoadCertificateSigningRequestFromFile(csrPath)
-	if err != nil {
-		return err
+		return "", err
 	}
 
 	certTemplate := x509.Certificate{
@@ -249,25 +240,12 @@ func SignCertificateSigningRequest(csrPath string, certOutPath string, caFilePat
 		BasicConstraintsValid: true,
 	}
 
-	// Generate actual certificate from CSR
 	certBytes, err := x509.CreateCertificate(rand.Reader, &certTemplate, loadedCa, loadedCsr.PublicKey, loadedCaKey)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	// Create CRT file on disk
-	crtOut, err := os.Create(certOutPath)
-	if err != nil {
-		return nil
-	}
-	defer crtOut.Close()
-
-	// Write CRT to file
-	if err := pem.Encode(crtOut, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes}); err != nil {
-		return err
-	}
-
-	return nil
+	return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})), nil
 }
 
 func GetCertificateSigningRequestSignature(csr string) string {
