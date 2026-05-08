@@ -10,6 +10,8 @@ import (
 	"github.com/peeklapp/peekl/pkg/api/responses"
 	"github.com/peeklapp/peekl/pkg/certs"
 	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/database"
+	"github.com/peeklapp/peekl/pkg/models"
 )
 
 // This file contains all the API routes related to certificates
@@ -45,30 +47,47 @@ func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 		return nil
 	}
 
-	// TODO: ADD VALIDATION TO THE BODY
+	dbEngine, _ := ctx.Locals("databaseEngine").(*database.DatabaseEngine)
 
-	// Get configuration
-	conf, _ := ctx.Locals("config").(*config.ServerConfig)
-
-	// Get certsDatabaseEngine
-	certsDbEngine, _ := ctx.Locals("certsDatabaseEngine").(*certs.CertsDatabaseEngine)
-
-	// Create local file containing CSR
-	filePath := fmt.Sprintf("%s/%s.csr", conf.Certificates.PendingDirectory, input.NodeName)
-	file, err := os.Create(filePath)
+	loadedCsr, err := certs.LoadCertificateSigningRequest(input.CSR)
 	if err != nil {
-		return err
+		ctx.Status(500).JSON(responses.ErrorResponse{
+			Error:   "Internal Server Error",
+			Details: err.Error(),
+		})
+		return nil
 	}
-	defer file.Close()
-	file.Write([]byte(input.CSR))
 
-	// Get CSR signature
-	csrSignature := certs.GetCertificateSigningRequestSignature(input.CSR)
+	nodeNameUsed, err := dbEngine.IsNodeNameUsed(loadedCsr.DNSNames[0])
+	if err != nil {
+		println(loadedCsr.DNSNames[0])
+		ctx.Status(500).JSON(responses.ErrorResponse{
+			Error:   "Internal Server Error",
+			Details: err.Error(),
+		})
+		return nil
+	}
 
-	// Insert Pending certificate in database
-	certsDbEngine.InsertPendingCertificate(input.NodeName, csrSignature)
+	if nodeNameUsed {
+		ctx.Status(400).JSON(responses.ErrorResponse{
+			Error: "Node name already used",
+			Details: fmt.Sprintf(
+				"Node name `%s` cannot be used to generate a new certificate, as a similar certificate already exist.",
+				loadedCsr.DNSNames[0],
+			),
+		})
+		return nil
+	}
 
-	// Send succesful answer
+	err = dbEngine.InsertPendingCertificate(loadedCsr.DNSNames[0], input.CSR)
+	if err != nil {
+		ctx.Status(500).JSON(responses.ErrorResponse{
+			Error:   "Internal Server Error",
+			Details: err.Error(),
+		})
+		return nil
+	}
+
 	ctx.Status(201).JSON(responses.MessageResponse{
 		Details: "CSR submitted to the server.",
 	})
@@ -85,23 +104,13 @@ func PostRetrieveSignedCertificate(ctx fiber.Ctx) error {
 		return nil
 	}
 
-	// TODO: ADD VALIDATION OF THE BODY
+	dbEngine, _ := ctx.Locals("databaseEngine").(*database.DatabaseEngine)
 
-	// Get configuration
-	conf, _ := ctx.Locals("config").(*config.ServerConfig)
-
-	// Get certsDatabaseEngine
-	certsDbEngine, _ := ctx.Locals("certsDatabaseEngine").(*certs.CertsDatabaseEngine)
-
-	// Get CSR signature
-	csrSignature := certs.GetCertificateSigningRequestSignature(input.CSR)
-
-	// Get node name from CSR
-	signedCertDb, err := certsDbEngine.GetSignedCertificate(input.NodeName)
+	signedCert, err := dbEngine.GetSignedCertificate(input.CsrSignature)
 	if err != nil {
-		if errors.Is(err, certs.SignedCertificateNotFound{}) {
+		if errors.Is(err, models.SignedCertificateNotFound{}) {
 			ctx.Status(404).JSON(responses.ErrorResponse{
-				Error:   "No signed certificate correspond to given node name",
+				Error:   "No signed certificate correspond to given CSR signature",
 				Details: err.Error(),
 			})
 			return nil
@@ -114,33 +123,8 @@ func PostRetrieveSignedCertificate(ctx fiber.Ctx) error {
 		}
 	}
 
-	// Make sure that CSR correspond to the one we have
-	if csrSignature != signedCertDb.CsrSignature {
-		ctx.Status(403).JSON(responses.ErrorResponse{
-			Error:   "CSR does not match",
-			Details: "The CSR that has been provided does not match the one found server-side",
-		})
-		return nil
-	}
-
-	// Send back the signed certificate
-	signedCert, err := os.ReadFile(
-		fmt.Sprintf(
-			"%s/%s.pem",
-			conf.Certificates.SignedDirectory,
-			input.NodeName,
-		),
-	)
-	if err != nil {
-		ctx.Status(500).JSON(responses.ErrorResponse{
-			Error:   "Internal Server Error",
-			Details: err.Error(),
-		})
-		return nil
-	}
-
 	ctx.Status(200).JSON(responses.RetrieveSignedCertificate{
-		Certificate: string(signedCert),
+		Certificate: signedCert.Data,
 	})
 	return nil
 }

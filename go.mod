@@ -6,6 +6,7 @@ require (
 	github.com/expr-lang/expr v1.17.7
 	github.com/goccy/go-yaml v1.18.0
 	github.com/gofiber/fiber/v3 v3.0.0
+	github.com/lib/pq v1.12.3
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v1.1.2
 	github.com/sirupsen/logrus v1.9.3

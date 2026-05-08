@@ -1,0 +1,11 @@
+services:
+  postgres:
+    container_name: peekl-postgres
+    image: postgres
+    environment:
+      POSTGRES_USER: peekl
+      POSTGRES_PASSWORD: peekl
+    ports:
+      - 5432:5432
+    command: ["postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"]
+

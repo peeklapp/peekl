@@ -6,8 +6,8 @@ import (
 
 	"github.com/peeklapp/peekl/pkg/api"
 	"github.com/peeklapp/peekl/pkg/bootstrap"
-	"github.com/peeklapp/peekl/pkg/certs"
 	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/database"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -28,16 +28,19 @@ var RunCmd = &cobra.Command{
 		state := bootstrap.GetServerBootstrapState(serverConfig)
 		if state == bootstrap.BootstrapNone {
 			logrus.Debug("Bootstrap of server was not done, doing it right now.")
-			bootstrap.BootstrapServer(serverConfig)
+			err := bootstrap.BootstrapServer(serverConfig)
+			if err != nil {
+				logrus.Fatal(err)
+			}
 		}
 
-		certsDbEngine, err := certs.NewCertsDatabaseEngine(serverConfig.Certificates.DatabasePath)
+		dbEngine, err := database.NewDatabaseEngine(&serverConfig.Database)
 		if err != nil {
 			logrus.Fatal(err)
 		}
 
 		// API Engine
-		engine, err := api.NewApiEngine(serverConfig, certsDbEngine)
+		engine, err := api.NewApiEngine(serverConfig, dbEngine)
 		if err != nil {
 			logrus.Fatal(err)
 		}

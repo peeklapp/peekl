@@ -121,18 +121,15 @@ func TryFetchCertificateFromServer(agentConfig *config.AgentConfig) (bool, error
 		return succes, err
 	}
 
-	hostname, err := collectors.GetHostname()
-	if err != nil {
-		return succes, err
-	}
-
 	csrFile, err := os.ReadFile(agentConfig.Certificates.CsrFilePath)
 	if err != nil {
 		return succes, err
 	}
 
+	signature := certs.GetCertificateSigningRequestSignature(string(csrFile))
+
 	for i := 0; i < 5; i++ {
-		crt, err := apiClient.RetrieveSignedCertificate(hostname, string(csrFile))
+		crt, err := apiClient.RetrieveSignedCertificate(signature)
 		if err != nil {
 			if errors.As(err, &client.HttpError{}) {
 				logrus.Error("Certificate not signed yet. You might still have to sign it on the server.")
