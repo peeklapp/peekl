@@ -76,7 +76,7 @@ type HttpError struct {
 }
 
 func (h HttpError) Error() string {
-	return fmt.Sprintf("Response is not OK : %d", h.StatusCode)
+	return fmt.Sprintf("Bad response from server\nStatus code : %d\nError: %s\nDetails: %s", h.StatusCode, h.ErrorBody.Error, h.ErrorBody.Details)
 }
 
 // Make a get request
