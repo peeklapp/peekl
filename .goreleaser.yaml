@@ -45,14 +45,30 @@ builds:
       - -X github.com/peeklapp/peekl/cmd/server/commands.commit={{.Commit}}
       - -X github.com/peeklapp/peekl/cmd/server/commands.date={{.CommitDate}}
 
+  - id: code
+    binary: peekl-code
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/code/main.go
+    ldflags:
+      - -s -w
+      - -X github.com/peeklapp/peekl/cmd/code/commands.version={{.Version}}
+      - -X github.com/peeklapp/peekl/cmd/code/commands.commit={{.Commit}}
+      - -X github.com/peeklapp/peekl/cmd/code/commands.date={{.CommitDate}}
+
 nfpms:
   - id: agent
     package_name: peekl-agent
     ids: ["agent"]
-    vendor: Your Organization
-    homepage: https://example.com/binary1
-    maintainer: Your Name <your.email@example.com>
-    description: Description for binary1
+    vendor: Peekl
+    homepage: https://peekl.dev
+    maintainer: Peekl
+    description: The agent for Peekl
     license: MIT
     formats:
       - deb
@@ -66,10 +82,10 @@ nfpms:
   - id: server
     package_name: peekl-server
     ids: ["server"]
-    vendor: Your Organization
-    homepage: https://example.com/binary2
-    maintainer: Your Name <your.email@example.com>
-    description: Description for binary2
+    vendor: Peekl
+    homepage: https://peekl.dev
+    maintainer: Peekl
+    description: The server for Peekl
     license: MIT
     formats:
       - deb
@@ -79,6 +95,18 @@ nfpms:
         dst: /etc/systemd/system/peekl-server.service
     scripts:
       postinstall: scripts/peekl-server/postinstall.sh
+
+  - id: code
+    package_name: peekl-code
+    ids: ["code"]
+    vendor: Peekl
+    homepage: "https://peekl.dev"
+    maintainer: Peekl
+    description: CLI tool to manage your Peekl code
+    license: MIT
+    formats:
+      - deb
+    bindir: /usr/bin
 
 archives:
   - id: peekl

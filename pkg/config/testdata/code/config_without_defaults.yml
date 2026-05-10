@@ -1,0 +1,3 @@
+repository:
+  url: "git@github.com:user/repo.git"
+  key: "/home/peekl/.ssh/id_rsa"
