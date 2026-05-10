@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/peeklapp/peekl/pkg/api/requests"
@@ -35,8 +34,14 @@ func PostRetrieveCatalog(ctx fiber.Ctx) error {
 		return nil
 	}
 
-	directoryPath := path.Join(conf.Code.Directory, input.Environment)
-	nodeName := ctx.RequestCtx().TLSConnectionState().PeerCertificates[0].Subject.CommonName
+	directoryPath, err := environments.GetEnvironmentFolder(input.Environment, conf.Code.Directory)
+	if err != nil {
+		ctx.Status(500).JSON(responses.ErrorResponse{
+			Error:   "Internal Server Error",
+			Details: "An issue happened while trying to identify environment folder",
+		})
+		return nil
+	}
 
 	if _, err := os.Stat(directoryPath); os.IsNotExist(err) {
 		ctx.Status(404).JSON(responses.ErrorResponse{
@@ -48,6 +53,7 @@ func PostRetrieveCatalog(ctx fiber.Ctx) error {
 		return nil
 	}
 
+	nodeName := ctx.RequestCtx().TLSConnectionState().PeerCertificates[0].Subject.CommonName
 	resources, loadedRoles, tags, variables, err := catalog.CompileCatalog(directoryPath, nodeName)
 	if err != nil {
 		if errors.As(err, &models.NodeNotFoundError{}) {

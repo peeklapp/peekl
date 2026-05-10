@@ -25,7 +25,7 @@ type CertificatesConfig struct {
 	BootstrapDnsNames         []string `mapstructure:"bootstrap_dns_names" yaml:"bootstrap_dns_names"`
 }
 
-type CodeConfig struct {
+type ServerCodeConfig struct {
 	Directory string `mapstructure:"directory" yaml:"directory"`
 }
 
@@ -78,7 +78,7 @@ type ServerConfig struct {
 	pathOfConfigurationFile string
 	Listen                  ListenConfig       `mapstructure:"listen" yaml:"listen"`
 	Certificates            CertificatesConfig `mapstructure:"certificates" yaml:"certificates"`
-	Code                    CodeConfig         `mapstructure:"code" yaml:"code"`
+	Code                    ServerCodeConfig   `mapstructure:"code" yaml:"code"`
 	Logging                 LoggingConfig      `mapstructure:"logging" yaml:"logging"`
 	Database                DatabaseConfig     `mapstructure:"database" yaml:"database"`
 }
