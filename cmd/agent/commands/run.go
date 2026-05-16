@@ -139,6 +139,22 @@ var RunCmd = &cobra.Command{
 			logrus.Fatal(err)
 		}
 
+		// Get environment to use from CLI
+		environment := ""
+
+		argEnvironment, err := cmd.Flags().GetString("environment")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		if cmd.Flags().Changed("environment") {
+			environment = argEnvironment
+		} else {
+			if agentConfig.Environment != environment {
+				environment = agentConfig.Environment
+			}
+		}
+
 		if daemon {
 			for {
 				err = performBootstrap(agentConfig)
@@ -159,7 +175,7 @@ var RunCmd = &cobra.Command{
 			for {
 				if !isLocked() {
 					createLockfile()
-					runAgent(apiClient, agentConfig.Environment)
+					runAgent(apiClient, environment)
 					deleteLockFile()
 				} else {
 					logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
@@ -178,7 +194,7 @@ var RunCmd = &cobra.Command{
 					logrus.Fatal(err)
 				}
 				createLockfile()
-				runAgent(apiClient, agentConfig.Environment)
+				runAgent(apiClient, environment)
 				deleteLockFile()
 			} else {
 				logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
