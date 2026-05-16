@@ -3,6 +3,7 @@ package commands
 import (
 	"github.com/peeklapp/peekl/pkg/code"
 	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/environments"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -39,6 +40,10 @@ var DeleteCmd = &cobra.Command{
 		environment, err := cmd.Flags().GetString("environment")
 		if err != nil {
 			logrus.Fatal(err)
+		}
+
+		if !environments.EnvironmentNameIsValid(environment) {
+			logrus.Fatalf("'%s' is not a valid environment name", environment)
 		}
 
 		// Get force
