@@ -9,7 +9,7 @@ import (
 )
 
 func EnvironmentNameIsValid(environmentName string) bool {
-	r, _ := regexp.Compile("^[A-Za-z0-9_]")
+	r, _ := regexp.Compile("^[A-Za-z0-9_-]+$")
 	return r.MatchString(environmentName)
 }
 
