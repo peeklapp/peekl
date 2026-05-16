@@ -142,20 +142,18 @@ var RunCmd = &cobra.Command{
 
 		// Get environment to use from CLI
 		environment := ""
-
-		argEnvironment, err := cmd.Flags().GetString("environment")
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
 		if cmd.Flags().Changed("environment") {
-			environment = argEnvironment
+			environment, err = cmd.Flags().GetString("environment")
+			if err != nil {
+				logrus.Fatal(err)
+			}
 		} else {
 			if agentConfig.Environment != environment {
 				environment = agentConfig.Environment
 			}
 		}
 
+		// Validate that the environment is valid
 		if !environments.EnvironmentNameIsValid(environment) {
 			logrus.Fatalf("'%s' is not a valid environment name", environment)
 		}
