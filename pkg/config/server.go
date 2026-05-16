@@ -178,7 +178,7 @@ func NewServerConfiguration(configFilePath string) (*ServerConfig, error) {
 		},
 		"database": map[string]any{
 			"type": "sqlite",
-			"path": "/etc/peekl/data.db",
+			"path": "/var/lib/peekl/data.db",
 			"name": "peekl",
 		},
 	}
