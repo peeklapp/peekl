@@ -1,10 +1,9 @@
 package commands
 
 import (
-	"log"
-
 	"github.com/peeklapp/peekl/pkg/code"
 	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/pkg/environments"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -41,9 +40,13 @@ var SyncCmd = &cobra.Command{
 			logrus.Fatal(err)
 		}
 
+		if !environments.EnvironmentNameIsValid(environment) {
+			logrus.Fatalf("'%s' is not a valid environment name", environment)
+		}
+
 		// Sync environment
 		if err := code.Sync(conf, environment); err != nil {
-			log.Fatal(err)
+			logrus.Fatal(err)
 		}
 	},
 }

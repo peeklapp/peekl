@@ -8,6 +8,7 @@ import (
 
 	"github.com/peeklapp/peekl/pkg/bootstrap"
 	"github.com/peeklapp/peekl/pkg/catalog"
+	"github.com/peeklapp/peekl/pkg/environments"
 	"github.com/peeklapp/peekl/pkg/facts"
 	"github.com/peeklapp/peekl/pkg/models"
 
@@ -153,6 +154,10 @@ var RunCmd = &cobra.Command{
 			if agentConfig.Environment != environment {
 				environment = agentConfig.Environment
 			}
+		}
+
+		if !environments.EnvironmentNameIsValid(environment) {
+			logrus.Fatalf("'%s' is not a valid environment name", environment)
 		}
 
 		if daemon {
