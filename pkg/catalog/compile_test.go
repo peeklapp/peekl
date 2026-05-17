@@ -17,6 +17,14 @@ func TestLoadNodeFromCode(t *testing.T) {
 	assert.Equal(t, 0, len(variables))
 }
 
+func TestNoDuplicateRoles(t *testing.T) {
+	_, loadedRoles, _, _, err := CompileCatalog("testdata/duplicate_role", "dummy")
+	if err != nil {
+		t.Errorf("Could not load catalog from code : %s", err.Error())
+	}
+	assert.Equal(t, 2, len(loadedRoles))
+}
+
 func TestLoadNodeMissingGroup(t *testing.T) {
 	_, _, _, _, err := CompileCatalog("testdata/missing_group", "dummy")
 	if err == nil {
