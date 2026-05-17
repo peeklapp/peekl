@@ -2,10 +2,12 @@ package catalog
 
 import (
 	"maps"
+	"slices"
 
 	"github.com/peeklapp/peekl/pkg/inventory"
 	"github.com/peeklapp/peekl/pkg/models"
 	"github.com/peeklapp/peekl/pkg/roles"
+	"github.com/sirupsen/logrus"
 )
 
 func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, []models.Role, []string, map[string]any, error) {
@@ -29,7 +31,12 @@ func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, [
 	}
 	tags = append(tags, node.Tags...)
 	nodeVars = node.Variables
-	rolesToLoad = append(rolesToLoad, node.Roles...)
+
+	for _, nodeCurRole := range node.Roles {
+		if !slices.Contains(rolesToLoad, nodeCurRole) {
+			rolesToLoad = append(rolesToLoad, nodeCurRole)
+		}
+	}
 
 	// Handle groups
 	for _, group := range node.Groups {
@@ -42,7 +49,12 @@ func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, [
 		}
 		tags = append(tags, groupInv.Tags...)
 		maps.Copy(groupsVars, groupInv.Variables)
-		rolesToLoad = append(rolesToLoad, groupInv.Roles...)
+
+		for _, groupCurRole := range groupInv.Roles {
+			if !slices.Contains(rolesToLoad, groupCurRole) {
+				rolesToLoad = append(rolesToLoad, groupCurRole)
+			}
+		}
 	}
 
 	// Handle roles
