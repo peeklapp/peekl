@@ -7,7 +7,6 @@ import (
 	"github.com/peeklapp/peekl/pkg/inventory"
 	"github.com/peeklapp/peekl/pkg/models"
 	"github.com/peeklapp/peekl/pkg/roles"
-	"github.com/sirupsen/logrus"
 )
 
 func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, []models.Role, []string, map[string]any, error) {
