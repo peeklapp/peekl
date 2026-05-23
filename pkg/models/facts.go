@@ -21,11 +21,11 @@ type NetworkInterface struct {
 	AddressInfo []NetworkInterfaceAddressInfo
 }
 
-type LsbData struct {
-	DistributorId string `json:"distributor_id"`
-	Description   string `json:"description"`
-	Release       string `json:"release"`
-	Codename      string `json:"codename"`
+type DistributionData struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Release string `json:"release"`
+	Id      string `json:"id"`
 }
 
 type DmiBiosData struct {
@@ -86,7 +86,7 @@ type Facts struct {
 	Hostname          string             `json:"hostname"`
 	Packages          []Package          `json:"packages"`
 	NetworkInterfaces []NetworkInterface `json:"network_interfaces"`
-	Lsb               LsbData            `json:"lsb"`
+	Distribution      DistributionData   `json:"distribution"`
 	Dmi               DmiData            `json:"dmi"`
 	Disks             []Disk             `json:"disks"`
 }

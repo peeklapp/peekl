@@ -4,13 +4,15 @@ import (
 	"fmt"
 
 	"github.com/peeklapp/peekl/pkg/facts/collectors/dpkg"
+	"github.com/peeklapp/peekl/pkg/facts/collectors/rpm"
 	"github.com/peeklapp/peekl/pkg/models"
 )
 
 func GetPackages(distro string) ([]models.Package, error) {
 	packageCollectorMapping := map[string]string{
-		"Debian": "dpkg",
-		"Ubuntu": "dpkg",
+		"debian": "dpkg",
+		"ubuntu": "dpkg",
+		"rocky":  "rpm",
 	}
 
 	switch packageCollectorMapping[distro] {
@@ -18,6 +20,12 @@ func GetPackages(distro string) ([]models.Package, error) {
 		pkgs, err := dpkg.GetInstalledPackagesList()
 		if err != nil {
 			return pkgs, fmt.Errorf("An error happened while getting list of installed packages using dpkg : %s", err.Error())
+		}
+		return pkgs, nil
+	case "rpm":
+		pkgs, err := rpm.GetInstalledPackagesList()
+		if err != nil {
+			return pkgs, fmt.Errorf("An error happened while getting list of installed packages using rpm : %s", err.Error())
 		}
 		return pkgs, nil
 	default:
