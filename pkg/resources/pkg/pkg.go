@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
+	"github.com/peeklapp/peekl/pkg/facts/collectors"
 	"github.com/peeklapp/peekl/pkg/models"
 	"github.com/peeklapp/peekl/pkg/resources"
 	"github.com/sirupsen/logrus"
@@ -146,6 +147,7 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 				result.Failed = true
 				return result, err
 			}
+			result.Updated = true
 			logrus.Info(
 				fmt.Sprintf(
 					"[%s] Packages (%s) versions have been updated",
@@ -228,13 +230,24 @@ func (p *PackageResource) Validate() error {
 func NewPackageResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*PackageResource, error) {
 	var packageResource PackageResource
 
+	providersPerDistribution := map[string]string{
+		"ubuntu": "apt",
+		"debian": "apt",
+		"rocky":  "dnf",
+	}
+
+	distributionData, err := collectors.GetDistributionData()
+	if err != nil {
+		return nil, err
+	}
+
 	defaults := map[string]any{
-		"provider": "apt",
+		"provider": providersPerDistribution[distributionData.Id],
 	}
 
 	var packageData PackageData
 
-	err := mapstructure.Decode(defaults, &packageData)
+	err = mapstructure.Decode(defaults, &packageData)
 	if err != nil {
 		return &packageResource, err
 	}
@@ -248,6 +261,8 @@ func NewPackageResource(resource *models.Resource, dataField any, roleContext *m
 	switch packageData.Provider {
 	case "apt":
 		installer = AptInstaller{}
+	case "dnf":
+		installer = DnfInstaller{}
 	}
 	packageData.installer = installer
 

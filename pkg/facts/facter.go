@@ -10,15 +10,15 @@ type Facter struct{}
 func (f *Facter) Collect() (*models.Facts, error) {
 	var facts models.Facts
 
-	// Collect LSB data
-	lsbData, err := collectors.GetLsbData()
+	// Collect Distribution data
+	distributionData, err := collectors.GetDistributionData()
 	if err != nil {
 		return &facts, err
 	}
-	facts.Lsb = lsbData
+	facts.Distribution = distributionData
 
 	// Collect list of packages
-	pkgs, err := collectors.GetPackages(facts.Lsb.DistributorId)
+	pkgs, err := collectors.GetPackages(facts.Distribution.Id)
 	if err != nil {
 		return &facts, err
 	}
