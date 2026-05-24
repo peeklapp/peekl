@@ -18,7 +18,7 @@ func (f *Facter) Collect() (*models.Facts, error) {
 	facts.Distribution = distributionData
 
 	// Collect list of packages
-	pkgs, err := collectors.GetPackages(facts.Distribution.Id)
+	pkgs, err := collectors.GetPackagesByDistro(facts.Distribution.Id)
 	if err != nil {
 		return &facts, err
 	}
