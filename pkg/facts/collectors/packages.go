@@ -30,9 +30,9 @@ func GetPackagesByCollector(collector string) ([]models.Package, error) {
 
 	switch collector {
 	case "rpm":
-		rawPackageList, err = dpkg.GetInstalledPackagesList()
-	case "dpkg":
 		rawPackageList, err = rpm.GetInstalledPackagesList()
+	case "dpkg":
+		rawPackageList, err = dpkg.GetInstalledPackagesList()
 	default:
 		return nil, fmt.Errorf("Unknown package collection method : %s", collector)
 	}
