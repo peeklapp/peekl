@@ -10,7 +10,7 @@ import (
 
 func GetInstalledPackagesList() (string, error) {
 	command := "rpm"
-	args := []string{"--query", "--all", "--queryformat", "%{NAME};%{VERSION}.%{RELEASE}\n"}
+	args := []string{"--query", "--all", "--queryformat", "%{NAME};%{VERSION}-%{RELEASE}\n"}
 
 	logrus.Debug(
 		fmt.Sprintf(
