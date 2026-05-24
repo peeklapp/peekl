@@ -10,9 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetNetworkInterfaces() ([]models.NetworkInterface, error) {
-	var networkInterfaces []models.NetworkInterface
-
+func getRawInterfacesWithIp() (string, error) {
 	command := "ip"
 	args := []string{"-j", "link"}
 
@@ -31,13 +29,25 @@ func GetNetworkInterfaces() ([]models.NetworkInterface, error) {
 			"stderr":    executionOutput.ErrorDetails.Stderr,
 			"exit_code": executionOutput.ErrorDetails.ExitCode,
 		}).Debug("Could not run command to list network interfaces")
-		return networkInterfaces, executionOutput.ErrorDetails
+		return "", executionOutput.ErrorDetails
 	}
 
-	err := json.Unmarshal([]byte(executionOutput.Stdout), &networkInterfaces)
+	return executionOutput.Stdout, nil
+}
+
+func processIpOutput(rawInterfaces string) ([]models.NetworkInterface, error) {
+	var networkInterfaces []models.NetworkInterface
+	err := json.Unmarshal([]byte(rawInterfaces), &networkInterfaces)
 	if err != nil {
 		return networkInterfaces, fmt.Errorf("An error happened while deserializing network interfaces data : %s", err.Error())
 	}
-
 	return networkInterfaces, nil
+}
+
+func GetNetworkInterfaces() ([]models.NetworkInterface, error) {
+	rawData, err := getRawInterfacesWithIp()
+	if err != nil {
+		return nil, err
+	}
+	return processIpOutput(rawData)
 }
