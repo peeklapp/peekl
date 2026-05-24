@@ -1,0 +1,46 @@
+{
+   "blockdevices": [
+      {
+         "name": "nvme0n1",
+         "maj:min": "259:0",
+         "rm": false,
+         "size": "465.8G",
+         "ro": false,
+         "type": "disk",
+         "mountpoints": [],
+         "children": [
+            {
+               "name": "nvme0n1p1",
+               "maj:min": "259:1",
+               "rm": false,
+               "size": "512M",
+               "ro": false,
+               "type": "part",
+               "mountpoints": [
+                   "/boot/efi"
+               ]
+            },{
+               "name": "nvme0n1p2",
+               "maj:min": "259:2",
+               "rm": false,
+               "size": "464.3G",
+               "ro": false,
+               "type": "part",
+               "mountpoints": [
+                   "/"
+               ]
+            },{
+               "name": "nvme0n1p3",
+               "maj:min": "259:3",
+               "rm": false,
+               "size": "976M",
+               "ro": false,
+               "type": "part",
+               "mountpoints": [
+                   "[SWAP]"
+               ]
+            }
+         ]
+      }
+   ]
+}
