@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/peeklapp/peekl/pkg/facts/collectors/rpm"
+	"github.com/peeklapp/peekl/pkg/facts/collectors"
 	"github.com/peeklapp/peekl/pkg/models"
 	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -108,5 +108,5 @@ func (d DnfInstaller) Upgrade(pkgs []models.Package) error {
 }
 
 func (d DnfInstaller) ListInstalledPackages() ([]models.Package, error) {
-	return rpm.GetInstalledPackagesList()
+	return collectors.GetPackagesByCollector("rpm")
 }

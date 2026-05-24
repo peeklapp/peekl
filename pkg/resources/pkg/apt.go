@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/peeklapp/peekl/pkg/facts/collectors/dpkg"
+	"github.com/peeklapp/peekl/pkg/facts/collectors"
 	"github.com/peeklapp/peekl/pkg/models"
 	"github.com/peeklapp/peekl/pkg/utils"
 	"github.com/sirupsen/logrus"
@@ -105,5 +105,5 @@ func (a AptInstaller) Upgrade(pkgs []models.Package) error {
 }
 
 func (a AptInstaller) ListInstalledPackages() ([]models.Package, error) {
-	return dpkg.GetInstalledPackagesList()
+	return collectors.GetPackagesByCollector("dpkg")
 }
