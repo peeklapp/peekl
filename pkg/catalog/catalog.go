@@ -8,6 +8,7 @@ import (
 	"github.com/expr-lang/expr"
 	"github.com/peeklapp/peekl/pkg/models"
 	"github.com/peeklapp/peekl/pkg/resources/command"
+	"github.com/peeklapp/peekl/pkg/resources/cron"
 	"github.com/peeklapp/peekl/pkg/resources/debug"
 	"github.com/peeklapp/peekl/pkg/resources/directory"
 	"github.com/peeklapp/peekl/pkg/resources/file"
@@ -290,6 +291,8 @@ func (c *Catalog) loadSingleResource(resource models.Resource, dataField map[str
 		return debug.NewDebugResource(&resource, dataField, roleContext)
 	case "builtin.command":
 		return command.NewCommandResource(&resource, dataField, roleContext)
+	case "builtin.cron":
+		return cron.NewCronResource(&resource, dataField, roleContext)
 	}
 	return nil, fmt.Errorf("Unknown resource type : %s", resource.Type)
 }
