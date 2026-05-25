@@ -304,14 +304,24 @@ func (c *Catalog) loadResources(resources []models.Resource, roleContext *models
 			for dataFieldId := range res.With {
 				loadedRes, err := c.loadSingleResource(res, res.With[dataFieldId], roleContext)
 				if err != nil {
-					return loadedResources, err
+					return loadedResources, fmt.Errorf(
+						"An error happened while trying to load resource '%s' of type '%s' : %s",
+						res.Title,
+						res.Type,
+						err.Error(),
+					)
 				}
 				loadedResources = append(loadedResources, loadedRes)
 			}
 		} else {
 			loadedRes, err := c.loadSingleResource(res, res.Data, roleContext)
 			if err != nil {
-				return loadedResources, err
+				return loadedResources, fmt.Errorf(
+					"An error happened while trying to load resource '%s' of type '%s' : %s",
+					res.Title,
+					res.Type,
+					err.Error(),
+				)
 			}
 			loadedResources = append(loadedResources, loadedRes)
 		}
