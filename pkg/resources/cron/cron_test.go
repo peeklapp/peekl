@@ -1,6 +1,7 @@
 package cron
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestValidNameRegex(t *testing.T) {
 		{"invalid_name_because_of_+", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validNameRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validNameRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -87,7 +88,7 @@ func TestValidMinuteRegex(t *testing.T) {
 		{"60", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validMinuteRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validMinuteRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -99,7 +100,7 @@ func TestValidMinuteRangeRegex(t *testing.T) {
 		{"60-60", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validMinuteRangeRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validMinuteRangeRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -124,7 +125,7 @@ func TestValidHourRegex(t *testing.T) {
 		{"16", true},
 		{"17", true},
 		{"18", true},
-		{"19", false},
+		{"19", true},
 		{"20", true},
 		{"21", true},
 		{"22", true},
@@ -132,7 +133,7 @@ func TestValidHourRegex(t *testing.T) {
 		{"24", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validHourRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validHourRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -144,7 +145,7 @@ func TestValidHourRangeRegex(t *testing.T) {
 		{"25-10", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validHourRangeRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validHourRangeRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -186,7 +187,7 @@ func TestValidDayRegex(t *testing.T) {
 		{"60", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validDayRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validDayRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -198,7 +199,7 @@ func TestValidDayRangeRegex(t *testing.T) {
 		{"60-10", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validDayRangeRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validDayRangeRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -233,7 +234,7 @@ func TestValidMonthRegex(t *testing.T) {
 		{"AGR", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validMonthRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validMonthRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -245,7 +246,7 @@ func TestValidMonthRangeRegex(t *testing.T) {
 		{"0-12", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validMonthRangeRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validMonthRangeRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -269,7 +270,7 @@ func TestValidWeekdayRegex(t *testing.T) {
 		{"GLO", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validWeekdayRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validWeekdayRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
 
@@ -281,6 +282,6 @@ func TestValidWeekdayRangeRegex(t *testing.T) {
 		{"0-7", false},
 	}
 	for _, testCase := range testCases {
-		assert.Equal(t, testCase.Result, validWeekdayRangeRegex.MatchString(testCase.Data))
+		assert.Equalf(t, testCase.Result, validWeekdayRangeRegex.MatchString(testCase.Data), fmt.Sprintf("Test case: %+v", testCase.Data))
 	}
 }
