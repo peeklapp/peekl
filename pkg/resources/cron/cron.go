@@ -62,7 +62,7 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 		fileContent := []byte("# MANAGED BY PEEKL\n")
 		fileContent = fmt.Appendf(
 			fileContent,
-			"%s %s %s %s %s %s %s",
+			"%s %s %s %s %s %s %s\n",
 			c.Data.Minute,
 			c.Data.Hour,
 			c.Data.Day,
@@ -105,6 +105,8 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 					fmt.Sprintf("[%s] Cron (%s) values have been updated", c.String(), c.Data.Name),
 				)
 				result.Updated = true
+				return result, nil
+			} else {
 				return result, nil
 			}
 		}
