@@ -234,6 +234,9 @@ func NewPackageResource(resource *models.Resource, dataField any, roleContext *m
 		"ubuntu": "apt",
 		"debian": "apt",
 		"rocky":  "dnf",
+		"fedora": "dnf",
+		"centos": "dnf",
+		"rhel":   "dnf",
 	}
 
 	distributionData, err := collectors.GetDistributionData()
