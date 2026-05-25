@@ -49,6 +49,9 @@ func GetPackagesByDistro(distro string) ([]models.Package, error) {
 		"debian": "dpkg",
 		"ubuntu": "dpkg",
 		"rocky":  "rpm",
+		"fedora": "rpm",
+		"centos": "rpm",
+		"rhel":   "rpm",
 	}
 
 	var pkgs []models.Package
