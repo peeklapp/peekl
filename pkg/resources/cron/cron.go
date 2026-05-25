@@ -47,6 +47,14 @@ type CronResource struct {
 func (c *CronResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
+	if !utils.FileExist(c.Data.CronFolder) {
+		result.Failed = true
+		return result, fmt.Errorf(
+			"The cron folder provided does not seem to exist : %s",
+			c.Data.CronFolder,
+		)
+	}
+
 	cronFilePath := path.Join(c.Data.CronFolder, c.Data.Name)
 
 	if c.Present {
