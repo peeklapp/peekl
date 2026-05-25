@@ -31,6 +31,7 @@ var (
 type CronData struct {
 	Name       string `mapstructure:"name"`
 	Command    string `mapstructure:"command"`
+	User       string `mapstructure:"user"`
 	Minute     string `mapstructure:"minute"`
 	Hour       string `mapstructure:"hour"`
 	Day        string `mapstructure:"day"`
@@ -61,12 +62,13 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 		fileContent := []byte("# MANAGED BY PEEKL\n")
 		fileContent = fmt.Appendf(
 			fileContent,
-			"%s %s %s %s %s %s",
+			"%s %s %s %s %s %s %s",
 			c.Data.Minute,
 			c.Data.Hour,
 			c.Data.Day,
 			c.Data.Month,
 			c.Data.Weekday,
+			c.Data.User,
 			c.Data.Command,
 		)
 
@@ -220,6 +222,16 @@ func (c *CronResource) Validate() error {
 		}
 	}
 
+	if c.Data.User == "" {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "user",
+				ViolatedRule: "Field cannot be empty",
+			},
+		)
+	}
+
 	if !c.validateMinuteField() {
 		validationErrors = append(
 			validationErrors,
@@ -290,6 +302,7 @@ func NewCronResource(resource *models.Resource, dataField any, roleContext *mode
 		"day":         "*",
 		"month":       "*",
 		"weekday":     "*",
+		"user":        "root",
 		"cron_folder": "/etc/cron.d",
 	}
 
