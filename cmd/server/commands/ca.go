@@ -7,10 +7,10 @@ import (
 	"os"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/peeklapp/peekl/pkg/certs"
-	"github.com/peeklapp/peekl/pkg/config"
-	"github.com/peeklapp/peekl/pkg/database"
-	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/internal/certs"
+	"github.com/peeklapp/peekl/internal/config"
+	"github.com/peeklapp/peekl/internal/database"
+	"github.com/peeklapp/peekl/internal/models"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

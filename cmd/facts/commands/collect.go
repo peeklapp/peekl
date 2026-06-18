@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/peeklapp/peekl/pkg/facts"
+	"github.com/peeklapp/peekl/internal/facts"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
