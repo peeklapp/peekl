@@ -14,7 +14,7 @@ import (
 	"github.com/peeklapp/peekl/internal/resources/file"
 	"github.com/peeklapp/peekl/internal/resources/group"
 	"github.com/peeklapp/peekl/internal/resources/pkg"
-	systemdDaemon "github.com/peeklapp/peekl/internal/resources/systemd_daemon"
+	"github.com/peeklapp/peekl/internal/resources/systemd_daemon"
 	"github.com/peeklapp/peekl/internal/resources/systemd_service"
 	"github.com/peeklapp/peekl/internal/resources/template"
 	"github.com/peeklapp/peekl/internal/resources/user"
