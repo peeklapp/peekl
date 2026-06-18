@@ -4,10 +4,10 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/peeklapp/peekl/pkg/api"
-	"github.com/peeklapp/peekl/pkg/bootstrap"
-	"github.com/peeklapp/peekl/pkg/config"
-	"github.com/peeklapp/peekl/pkg/database"
+	"github.com/peeklapp/peekl/internal/api"
+	"github.com/peeklapp/peekl/internal/bootstrap"
+	"github.com/peeklapp/peekl/internal/config"
+	"github.com/peeklapp/peekl/internal/database"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"github.com/peeklapp/peekl/pkg/code"
-	"github.com/peeklapp/peekl/pkg/config"
-	"github.com/peeklapp/peekl/pkg/environments"
+	"github.com/peeklapp/peekl/internal/code"
+	"github.com/peeklapp/peekl/internal/config"
+	"github.com/peeklapp/peekl/internal/environments"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -1,0 +1,280 @@
+package pkg
+
+import (
+	"fmt"
+	"slices"
+	"strings"
+
+	"github.com/mitchellh/mapstructure"
+	"github.com/peeklapp/peekl/internal/facts/collectors"
+	"github.com/peeklapp/peekl/internal/models"
+	"github.com/peeklapp/peekl/internal/resources"
+	"github.com/sirupsen/logrus"
+)
+
+type installerInterface interface {
+	Install([]models.Package) error                   // Used to install a package
+	Remove([]models.Package) error                    // Used to remove a package
+	Upgrade([]models.Package) error                   // Used to upgrade/downgrade a package
+	ListInstalledPackages() ([]models.Package, error) // Used to list installed packages
+}
+
+func pkgInListWithoutVersion(pkgToFindInList models.Package, pkgs []models.Package) bool {
+	for _, pkg := range pkgs {
+		if pkg.Name == pkgToFindInList.Name {
+			return true
+		}
+	}
+	return false
+}
+
+type PackageData struct {
+	Names             []string `mapstructure:"names"`
+	Provider          string   `mapstructure:"provider"`
+	installer         installerInterface
+	processedPackages []models.Package
+}
+
+type PackageResource struct {
+	resources.CommonFieldResource
+	Data PackageData
+}
+
+func (p *PackageResource) ProcessPackageList() {
+	for _, pkg := range p.Data.Names {
+		var name string
+		var version string
+
+		if strings.Contains(pkg, "=") {
+			splitted := strings.Split(pkg, "=")
+			name = splitted[0]
+			version = splitted[1]
+		} else {
+			name = pkg
+		}
+
+		var pkg models.Package
+		pkg.Name = name
+		pkg.Version = version
+
+		p.Data.processedPackages = append(p.Data.processedPackages, pkg)
+	}
+}
+
+func (p *PackageResource) FilterPackagesStatus(installed []models.Package) []models.Package {
+	var filteredPackages []models.Package
+	for _, pkg := range p.Data.processedPackages {
+		if p.Present {
+			if !pkgInListWithoutVersion(pkg, installed) {
+				filteredPackages = append(filteredPackages, pkg)
+			}
+		} else {
+			if pkgInListWithoutVersion(pkg, installed) {
+				filteredPackages = append(filteredPackages, pkg)
+			}
+		}
+	}
+	return filteredPackages
+}
+
+func (p *PackageResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
+	var result models.ResourceResult
+	p.ProcessPackageList()
+
+	installedPackages, err := p.Data.installer.ListInstalledPackages()
+	if err != nil {
+		result.Failed = true
+		return result, err
+	}
+
+	if p.Present {
+		nonInstalledPackagesThatShouldBe := p.FilterPackagesStatus(installedPackages)
+		var nonInstalledPackagesThatShouldBeNames []string
+		for _, pkg := range nonInstalledPackagesThatShouldBe {
+			nonInstalledPackagesThatShouldBeNames = append(nonInstalledPackagesThatShouldBeNames, pkg.Name)
+		}
+		if len(nonInstalledPackagesThatShouldBe) != 0 {
+			logrus.Info(
+				fmt.Sprintf(
+					"[%s] Packages (%s) are not installed but should be",
+					p.String(),
+					strings.Join(nonInstalledPackagesThatShouldBeNames, " "),
+				),
+			)
+			err := p.Data.installer.Install(nonInstalledPackagesThatShouldBe)
+			if err != nil {
+				result.Failed = true
+				return result, err
+			}
+			result.Created = true
+			logrus.Info(
+				fmt.Sprintf(
+					"[%s] Packages (%s) have been installed",
+					p.String(),
+					strings.Join(nonInstalledPackagesThatShouldBeNames, " "),
+				),
+			)
+		}
+		// Update the installed packages list
+		installedPackages, err = p.Data.installer.ListInstalledPackages()
+
+		// Find any packages without the good version
+		var packagesWithWrongVersion []models.Package
+		for _, pkg := range p.Data.processedPackages {
+			// Skip any package for which version is not specified
+			if pkg.Version != "" && !slices.Contains(installedPackages, pkg) {
+				packagesWithWrongVersion = append(packagesWithWrongVersion, pkg)
+			}
+		}
+
+		// If any package do not have the correct version
+		if len(packagesWithWrongVersion) != 0 {
+			// Prepare list of packages for output
+			var packagesWithWrongVersionNames []string
+			for _, pkg := range packagesWithWrongVersion {
+				packagesWithWrongVersionNames = append(packagesWithWrongVersionNames, pkg.Name)
+			}
+			// Install packages with correct versions
+			logrus.Info(
+				fmt.Sprintf(
+					"[%s] Packages (%s) does not have the correct version",
+					p.String(),
+					strings.Join(packagesWithWrongVersionNames, " "),
+				),
+			)
+			err := p.Data.installer.Upgrade(packagesWithWrongVersion)
+			if err != nil {
+				result.Failed = true
+				return result, err
+			}
+			result.Updated = true
+			logrus.Info(
+				fmt.Sprintf(
+					"[%s] Packages (%s) versions have been updated",
+					p.String(),
+					strings.Join(packagesWithWrongVersionNames, " "),
+				),
+			)
+		}
+	} else {
+		installedPackagesThatShouldNot := p.FilterPackagesStatus(installedPackages)
+		if len(installedPackagesThatShouldNot) != 0 {
+			for _, pkg := range installedPackagesThatShouldNot {
+				logrus.Info(
+					fmt.Sprintf("[%s] Package (%s) is installed but should not", p.String(), pkg.Name),
+				)
+			}
+			err := p.Data.installer.Remove(installedPackagesThatShouldNot)
+			if err != nil {
+				result.Failed = true
+				return result, err
+			}
+			result.Deleted = true
+			for _, pkg := range installedPackagesThatShouldNot {
+				logrus.Info(
+					fmt.Sprintf("[%s] Package (%s) has been removed", p.String(), pkg.Name),
+				)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func (p *PackageResource) String() string {
+	return fmt.Sprintf("%s / '%s'", p.Type, p.Title)
+}
+
+func (p *PackageResource) When() string {
+	return p.WhenCondition
+}
+
+func (p *PackageResource) Register() string {
+	return p.RegisterVariable
+}
+
+func (p *PackageResource) Validate() error {
+	validationErrors := []models.ValidationError{}
+
+	if len(p.Data.Names) == 0 {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "names",
+				ViolatedRule: "Missing packages in list",
+			},
+		)
+	}
+
+	if p.Data.Provider == "" {
+		validationErrors = append(
+			validationErrors,
+			models.ValidationError{
+				FieldName:    "provider",
+				ViolatedRule: "Field cannot be empty",
+			},
+		)
+	}
+
+	if len(validationErrors) > 0 {
+		return models.ResourceValidationError{
+			Type:             p.Type,
+			Title:            p.Title,
+			ValidationErrors: validationErrors,
+		}
+	}
+
+	return nil
+}
+
+func NewPackageResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*PackageResource, error) {
+	var packageResource PackageResource
+
+	providersPerDistribution := map[string]string{
+		"ubuntu": "apt",
+		"debian": "apt",
+		"rocky":  "dnf",
+		"fedora": "dnf",
+		"centos": "dnf",
+		"rhel":   "dnf",
+	}
+
+	distributionData, err := collectors.GetDistributionData()
+	if err != nil {
+		return nil, err
+	}
+
+	defaults := map[string]any{
+		"provider": providersPerDistribution[distributionData.Id],
+	}
+
+	var packageData PackageData
+
+	err = mapstructure.Decode(defaults, &packageData)
+	if err != nil {
+		return &packageResource, err
+	}
+
+	err = mapstructure.Decode(dataField, &packageData)
+	if err != nil {
+		return &packageResource, err
+	}
+
+	var installer installerInterface
+	switch packageData.Provider {
+	case "apt":
+		installer = AptInstaller{}
+	case "dnf":
+		installer = DnfInstaller{}
+	}
+	packageData.installer = installer
+
+	packageResource.Title = resource.Title
+	packageResource.Type = resource.Type
+	packageResource.Present = *resource.Present
+	packageResource.WhenCondition = resource.When
+	packageResource.RegisterVariable = resource.Register
+	packageResource.Data = packageData
+
+	return &packageResource, nil
+}

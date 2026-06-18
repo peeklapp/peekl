@@ -6,14 +6,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/peeklapp/peekl/pkg/bootstrap"
-	"github.com/peeklapp/peekl/pkg/catalog"
-	"github.com/peeklapp/peekl/pkg/environments"
-	"github.com/peeklapp/peekl/pkg/facts"
-	"github.com/peeklapp/peekl/pkg/models"
+	"github.com/peeklapp/peekl/internal/bootstrap"
+	"github.com/peeklapp/peekl/internal/catalog"
+	"github.com/peeklapp/peekl/internal/environments"
+	"github.com/peeklapp/peekl/internal/facts"
+	"github.com/peeklapp/peekl/internal/models"
 
-	"github.com/peeklapp/peekl/pkg/api/client"
-	"github.com/peeklapp/peekl/pkg/config"
+	"github.com/peeklapp/peekl/internal/api/client"
+	"github.com/peeklapp/peekl/internal/config"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
