@@ -25,6 +25,55 @@ import (
 // for a given node. It's the list of users you want to create,
 // the files you want to create... etc.
 
+func orderRoles(roles []models.Role) ([]models.Role, error) {
+	roleByName := make(map[string]models.Role)
+	for _, r := range roles {
+		roleByName[r.Name] = r
+	}
+
+	processedRole := make(map[string]bool)
+	visitingRole := make(map[string]bool)
+	var result []models.Role
+
+	var visitRole func(name string) error
+	visitRole = func(name string) error {
+		if processedRole[name] {
+			return nil
+		}
+
+		if visitingRole[name] {
+			return fmt.Errorf("Detected a cycle dependency with role : '%s'", name)
+		}
+
+		role, ok := roleByName[name]
+		if !ok {
+			return fmt.Errorf("Detected a dependency to a role that either does not exist or is not imported for this node : '%s'", name)
+		}
+
+		visitingRole[name] = true
+
+		for _, dependency := range role.DependsOn {
+			if err := visitRole(dependency); err != nil {
+				return err
+			}
+		}
+
+		visitingRole[name] = false
+		processedRole[name] = true
+		result = append(result, role)
+
+		return nil
+	}
+
+	for _, r := range roles {
+		if err := visitRole(r.Name); err != nil {
+			return result, err
+		}
+	}
+
+	return result, nil
+}
+
 func shouldNotSkipResource(res models.LoadedResource, resContext *models.ResourceContext) (bool, error) {
 	// If no when is specified, then we always run
 	if res.When() == "" {
@@ -241,6 +290,12 @@ func (c *Catalog) Validate() (bool, error) {
 }
 
 func (c *Catalog) loadRoles(roles []models.Role) error {
+	// Order the roles based on dependencies
+	roles, err := orderRoles(roles)
+	if err != nil {
+		return err
+	}
+
 	for _, role := range roles {
 		// Handle main resources
 		loadedMainResources, err := c.loadResources(role.Resources, &models.RoleContext{RoleName: role.Name})
