@@ -56,6 +56,12 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 	// Append resources of role main to role resources
 	role.Resources = roleMain.Resources
 
+	if len(roleMain.DependsOn) == 0 {
+		role.DependsOn = []string{}
+	} else {
+		role.DependsOn = roleMain.DependsOn
+	}
+
 	// For each include in roleMain, include resources
 	if len(roleMain.Includes) > 0 {
 		// For each extra file, process
