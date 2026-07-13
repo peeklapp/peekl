@@ -1,0 +1,27 @@
+listen:
+  host: 192.168.1.1
+  port: 27000
+
+certificates:
+  ca_certificate_file_path: "/var/lib/peekl/ca.pem"
+  ca_certificate_key_path: "/var/lib/peekl/ca.key"
+  server_certificate_file_path: "/var/lib/peekl/server.pem"
+  server_certificate_key_path: "/var/lib/peekl/server.key"
+  bootstrap_done_file_path: "/var/lib/peekl/done_bootstrap"
+  bootstrap_dns_names:
+    - "peekl.dev"
+
+code:
+  directory: "/var/lib/code"
+
+logging:
+  format: "json"
+  debug: true
+  log_path: "/var/log/main/peekl.log"
+
+database:
+  type: "postgres"
+  host: "localhost"
+  port: 5432
+  username: "dummy_user"
+  password: "dummy_password"

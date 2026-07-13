@@ -1,0 +1,21 @@
+server:
+  port: 27000
+  host: "peekl.dev"
+
+certificates:
+  ca_file_path: "/var/lib/peekl/ssl/ca/ca.pem"
+  csr_file_path: "/var/lib/peekl/ssl/agent/agent.csr"
+  certificate_file_path: "/var/lib/peekl/ssl/agent/agent.pem"
+  certificate_key_path: "/var/lib/peekl/ssl/agent/agent.key"
+  bootstrap_pending_file_path: "/var/lib/peekl/ssl/agent/.bootstrap_pending"
+  bootstrap_complete_file_path: "/var/lib/peekl/ssl/agent/.bootstrap_complete"
+
+
+daemon:
+  loop_time: 3600
+
+logging:
+  format: "json"
+  debug: true
+
+environment: "testing"
