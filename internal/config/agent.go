@@ -32,11 +32,18 @@ type AgentLoggingConfig struct {
 	Debug  bool   `mapstructure:"debug" yaml:"debug"`
 }
 
+type AgentCachingConfig struct {
+	TemplateCacheFolder string `mapstructure:"template_cache_folder" yaml:"template_cache_folder"`
+	TemplateCacheBypass bool   `mapstructure:"template_cache_bypass" yaml:"template_cache_bypass"`
+	FileCacheBypass     bool   `mapstructure:"file_cache_bypass" yaml:"file_cache_bypass"`
+}
+
 type AgentConfig struct {
 	Server       AgentServerConfig      `mapstructure:"server" yaml:"server"`
 	Certificates AgentCertificateConfig `mapstructure:"certificates" yaml:"certificates"`
 	Daemon       AgentDaemonConfig      `mapstructure:"daemon" yaml:"daemon"`
 	Logging      AgentLoggingConfig     `mapstructure:"logging" yaml:"logging"`
+	Caching      AgentCachingConfig     `mapstructure:"caching" yaml:"caching"`
 	Environment  string                 `mapstructure:"environment" yaml:"environment"`
 }
 
@@ -63,6 +70,11 @@ func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
 		"logging": map[string]any{
 			"format": "string",
 			"debug":  false,
+		},
+		"caching": map[string]any{
+			"template_cache_folder": "/var/lib/peekl/template_cache",
+			"template_cache_bypass": false,
+			"file_cache_bypass":     false,
 		},
 		"environment": "production",
 	}

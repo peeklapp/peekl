@@ -23,6 +23,9 @@ func TestLoadConfigurationAgent(t *testing.T) {
 	assert.Equal(t, 3600, config.Daemon.LoopTime)
 	assert.Equal(t, "json", config.Logging.Format)
 	assert.Equal(t, true, config.Logging.Debug)
+	assert.Equal(t, "/tmp", config.Caching.TemplateCacheFolder)
+	assert.Equal(t, true, config.Caching.TemplateCacheBypass)
+	assert.Equal(t, true, config.Caching.FileCacheBypass)
 	assert.Equal(t, "testing", config.Environment)
 }
 
@@ -43,5 +46,8 @@ func TestLoadConfigurationWithoutDefaultsAgent(t *testing.T) {
 	assert.Equal(t, 1800, config.Daemon.LoopTime)
 	assert.Equal(t, "string", config.Logging.Format)
 	assert.Equal(t, false, config.Logging.Debug)
+	assert.Equal(t, "/var/lib/peekl/template_cache", config.Caching.TemplateCacheFolder)
+	assert.Equal(t, false, config.Caching.TemplateCacheBypass)
+	assert.Equal(t, false, config.Caching.FileCacheBypass)
 	assert.Equal(t, "production", config.Environment)
 }

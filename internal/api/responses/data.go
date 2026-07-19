@@ -1,11 +1,13 @@
 package responses
 
 type RetrieveFile struct {
-	Filename string
-	Content  string
+	AgentCacheIsValid bool
+	Filename          string
+	Content           string
 }
 
 type RetrieveTemplate struct {
-	TemplateName string
-	Content      string
+	AgentCacheIsValid bool
+	TemplateName      string
+	Content           string
 }

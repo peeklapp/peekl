@@ -7,6 +7,7 @@ import (
 	"github.com/peeklapp/peekl/internal/api/middlewares/mtls"
 	"github.com/peeklapp/peekl/internal/config"
 	"github.com/peeklapp/peekl/internal/database"
+	"github.com/peeklapp/peekl/internal/filecache"
 )
 
 func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEngine) (*fiber.App, error) {
@@ -62,6 +63,10 @@ func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEn
 	dataGroup := v1.Group("data")
 	dataGroup.Use(mtlsMiddleware)
 
+	// -- Create caches for both templates, and files
+	templateCache := filecache.New()
+	fileCache := filecache.New()
+
 	// -- Data group needs access to server configuration
 	dataGroup.Use(func(c fiber.Ctx) error {
 		c.Locals("config", conf)
@@ -69,8 +74,8 @@ func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEn
 	})
 
 	// -- Data group endpoints
-	dataGroup.Post("/file", endpoints.PostRetrieveFile)
-	dataGroup.Post("/template", endpoints.PostRetrieveTemplate)
+	dataGroup.Post("/file", endpoints.NewPostRetrieveFileHandler(fileCache))
+	dataGroup.Post("/template", endpoints.NewPostretrieveTemplate(templateCache))
 
 	return app, nil
 }

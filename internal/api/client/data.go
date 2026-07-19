@@ -8,9 +8,9 @@ import (
 	"github.com/peeklapp/peekl/internal/api/responses"
 )
 
-func (c *Client) RetrieveFile(filename string, environment string, roleName string) (string, error) {
+func (c *Client) RetrieveFile(filename string, environment string, roleName string, agentCacheHash string) (string, error) {
 	endpoint := "/v1/data/file"
-	body := requests.RetrieveFile{Filename: filename, Environment: environment, RoleName: roleName}
+	body := requests.RetrieveFile{Filename: filename, Environment: environment, RoleName: roleName, AgentCacheHash: agentCacheHash}
 	var resp responses.RetrieveFile
 
 	err := c.post(endpoint, &body, &resp)
@@ -26,9 +26,9 @@ func (c *Client) RetrieveFile(filename string, environment string, roleName stri
 	return resp.Content, nil
 }
 
-func (c *Client) RetrieveTemplate(templateName string, environment string, roleName string) (string, error) {
+func (c *Client) RetrieveTemplate(templateName string, environment string, roleName string, agentCacheHash string) (string, error) {
 	endpoint := "/v1/data/template"
-	body := requests.RetrieveTemplate{TemplateName: templateName, Environment: environment, RoleName: roleName}
+	body := requests.RetrieveTemplate{TemplateName: templateName, Environment: environment, RoleName: roleName, AgentCacheHash: agentCacheHash}
 	var resp responses.RetrieveTemplate
 
 	err := c.post(endpoint, &body, &resp)

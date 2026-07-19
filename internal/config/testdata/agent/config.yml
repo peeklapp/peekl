@@ -10,12 +10,16 @@ certificates:
   bootstrap_pending_file_path: "/var/lib/peekl/ssl/agent/.bootstrap_pending"
   bootstrap_complete_file_path: "/var/lib/peekl/ssl/agent/.bootstrap_complete"
 
-
 daemon:
   loop_time: 3600
 
 logging:
   format: "json"
   debug: true
+
+caching:
+  template_cache_folder: "/tmp"
+  template_cache_bypass: true
+  file_cache_bypass: true
 
 environment: "testing"
