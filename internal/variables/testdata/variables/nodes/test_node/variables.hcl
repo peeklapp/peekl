@@ -1,0 +1,5 @@
+test = "test"
+dict = {
+  bonjour = "hello",
+  hola    = "bonjour"
+}

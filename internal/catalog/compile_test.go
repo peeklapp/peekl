@@ -30,7 +30,7 @@ func TestLoadNodeMissingGroup(t *testing.T) {
 	if err == nil {
 		t.Errorf("Should have returned an error because a group is missing")
 	}
-	assert.Equal(t, err.Error(), "The group web could not be found in the inventory")
+	assert.Equal(t, "The group web could not be found in the inventory", err.Error())
 }
 
 func TestLoadNodeMissingRole(t *testing.T) {
@@ -38,7 +38,7 @@ func TestLoadNodeMissingRole(t *testing.T) {
 	if err == nil {
 		t.Errorf("Should have returned an error because a role is missing")
 	}
-	assert.Equal(t, err.Error(), "The role test could not be found in the roles folder")
+	assert.Equal(t, "The role test could not be found in the roles folder", err.Error())
 }
 
 func TestLoadNodeMissingNode(t *testing.T) {
@@ -46,5 +46,5 @@ func TestLoadNodeMissingNode(t *testing.T) {
 	if err == nil {
 		t.Errorf("Should have returned an error because a role is missing")
 	}
-	assert.Equal(t, err.Error(), "The node dummy could not be found in the inventory")
+	assert.Equal(t, "The node dummy could not be found in the inventory", err.Error())
 }
