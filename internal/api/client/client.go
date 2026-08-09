@@ -6,7 +6,9 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -80,12 +82,15 @@ func (h HttpError) Error() string {
 }
 
 // Make a get request
-func (c *Client) get(endpoint string, out any) error {
+func (c *Client) get(endpoint string, out any, destPath string) error {
 	// Compute URL
-	url := c.baseURL + endpoint
+	reqUrl, err := url.JoinPath(c.baseURL, endpoint)
+	if err != nil {
+		return err
+	}
 
 	// Create request
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
 		return err
 	}
@@ -111,6 +116,18 @@ func (c *Client) get(endpoint string, out any) error {
 		return httpError
 	}
 
+	// Handle case where we download a static file
+	if destPath != "" {
+		outputFile, err := os.Create(destPath)
+		if err != nil {
+			return err
+		}
+		defer outputFile.Close()
+
+		_, err = io.Copy(outputFile, resp.Body)
+		return err
+	}
+
 	// Write result to passed variable
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return err
@@ -121,7 +138,11 @@ func (c *Client) get(endpoint string, out any) error {
 
 // Make a post request
 func (c *Client) post(endpoint string, body any, out any) error {
-	url := c.baseURL + endpoint
+	// Compute URL
+	reqUrl, err := url.JoinPath(c.baseURL, endpoint)
+	if err != nil {
+		return err
+	}
 
 	// Serialize body to JSON
 	jsonBody, err := json.Marshal(body)
@@ -130,7 +151,7 @@ func (c *Client) post(endpoint string, body any, out any) error {
 	}
 
 	// Create request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", reqUrl, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return err
 	}

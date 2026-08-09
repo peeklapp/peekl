@@ -19,7 +19,7 @@ type RepositoryConfig struct {
 type CodeConfig struct {
 	pathOfConfigurationFile string
 	CodeFolder              string           `yaml:"code" mapstructure:"code"`
-	StagingFolder           string           `yaml:"staging" mapstructure:"staging"`
+	Keep                    int              `yaml:"keep" mapstructure:"keep"`
 	Repository              RepositoryConfig `yaml:"repository"`
 }
 
@@ -59,8 +59,8 @@ func NewCodeConfiguration(configFilePath string) (*CodeConfig, error) {
 	config.pathOfConfigurationFile = configFilePath
 
 	defaults := map[string]any{
-		"code":    "/etc/peekl/code",
-		"staging": "/var/lib/peekl/code",
+		"code": "/etc/peekl/code",
+		"keep": 5,
 	}
 
 	err := mapstructure.Decode(defaults, &config)

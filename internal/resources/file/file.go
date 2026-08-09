@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"syscall"
 
 	"github.com/mitchellh/mapstructure"
@@ -223,13 +224,19 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 	var result models.ResourceResult
 
 	var fileContent string
-	var err error
+
 	if f.Data.Source != "" {
-		fileContent, err = context.ApiClient.RetrieveFile(f.Data.Source, context.Environment, f.Data.roleContext.RoleName)
+		fullFilePath := filepath.Join(context.CodePath, "roles", f.Data.roleContext.RoleName, "files", f.Data.Source)
+		if _, err := os.Stat(fullFilePath); errors.Is(err, os.ErrNotExist) {
+			result.Failed = true
+			return result, err
+		}
+		rawFileContent, err := os.ReadFile(fullFilePath)
 		if err != nil {
 			result.Failed = true
 			return result, err
 		}
+		fileContent = string(rawFileContent)
 	} else {
 		fileContent = f.Data.Content
 	}

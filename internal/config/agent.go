@@ -32,12 +32,17 @@ type AgentLoggingConfig struct {
 	Debug  bool   `mapstructure:"debug" yaml:"debug"`
 }
 
+type AgentCachingConfig struct {
+	Path string `mapstructure:"path" yaml:"path"`
+}
+
 type AgentConfig struct {
 	Server       AgentServerConfig      `mapstructure:"server" yaml:"server"`
 	Certificates AgentCertificateConfig `mapstructure:"certificates" yaml:"certificates"`
 	Daemon       AgentDaemonConfig      `mapstructure:"daemon" yaml:"daemon"`
 	Logging      AgentLoggingConfig     `mapstructure:"logging" yaml:"logging"`
 	Environment  string                 `mapstructure:"environment" yaml:"environment"`
+	Caching      AgentCachingConfig     `mapstructure:"caching" yaml:"caching"`
 }
 
 func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
@@ -65,6 +70,9 @@ func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
 			"debug":  false,
 		},
 		"environment": "production",
+		"caching": map[string]any{
+			"path": "/var/lib/peekl/cache/agent",
+		},
 	}
 
 	// Make default struct with default values

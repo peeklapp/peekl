@@ -1,5 +1,5 @@
 package requests
 
-type RetrieveCatalog struct {
+type InquiryForCatalog struct {
 	Environment string `json:"environment"`
 }

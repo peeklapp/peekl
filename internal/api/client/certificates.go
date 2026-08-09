@@ -12,9 +12,9 @@ func (c *Client) GetRootCA() (string, error) {
 	endpoint := "/v1/certificates/root"
 	var resp responses.GetRootCA
 
-	err := c.get(endpoint, &resp)
+	err := c.get(endpoint, &resp, "")
 	if err != nil {
-		if errors.Is(err, HttpError{}) {
+		if errors.As(err, &HttpError{}) {
 			detailedError, _ := err.(HttpError)
 			return "", fmt.Errorf("Status code : %d. Details : %+v", detailedError.StatusCode, detailedError.ErrorBody)
 		} else {
@@ -32,7 +32,7 @@ func (c *Client) SubmitCertificateRequest(nodeName string, csr string) error {
 
 	err := c.post(endpoint, body, &resp)
 	if err != nil {
-		if errors.Is(err, HttpError{}) {
+		if errors.As(err, &HttpError{}) {
 			detailedError, _ := err.(HttpError)
 			return fmt.Errorf("Status code : %d. Details : %+v", detailedError.StatusCode, detailedError.ErrorBody)
 		} else {
@@ -50,7 +50,7 @@ func (c *Client) RetrieveSignedCertificate(csrSignature string) (string, error) 
 
 	err := c.post(endpoint, body, &resp)
 	if err != nil {
-		if errors.Is(err, HttpError{}) {
+		if errors.As(err, &HttpError{}) {
 			detailedError, _ := err.(HttpError)
 			return "", fmt.Errorf("Status code : %d. Details : %+v", detailedError.StatusCode, detailedError.ErrorBody)
 		} else {

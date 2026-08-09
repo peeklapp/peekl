@@ -5,8 +5,11 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/peeklapp/peekl/internal/api/endpoints"
 	"github.com/peeklapp/peekl/internal/api/middlewares/mtls"
+	"github.com/peeklapp/peekl/internal/code"
 	"github.com/peeklapp/peekl/internal/config"
 	"github.com/peeklapp/peekl/internal/database"
+	"github.com/peeklapp/peekl/internal/filecache"
+	"os"
 )
 
 func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEngine) (*fiber.App, error) {
@@ -45,32 +48,31 @@ func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEn
 	certificatesGroup.Post("/submit", endpoints.PostSubmitCertificateRequest)
 	certificatesGroup.Post("/retrieve", endpoints.PostRetrieveSignedCertificate)
 
+	// Create data root
+	dataRoot, err := os.OpenRoot(conf.Code.Directory)
+	if err != nil {
+		return nil, err
+	}
+
 	// Catalogs group
 	catalogsGroup := v1.Group("catalogs")
 	catalogsGroup.Use(mtlsMiddleware)
-
-	// -- Catalogs group needs access to server configuration
-	catalogsGroup.Use(func(c fiber.Ctx) error {
-		c.Locals("config", conf)
-		return c.Next()
-	})
+	catalogsFilecache := filecache.New()
 
 	// -- Catalogs group endpoints
-	catalogsGroup.Post("/catalog", endpoints.PostRetrieveCatalog)
+	catalogsGroup.Post("/catalog", endpoints.NewPostInquiryForCatalog(dataRoot, catalogsFilecache))
 
 	// Data group
 	dataGroup := v1.Group("data")
-	dataGroup.Use(mtlsMiddleware)
 
-	// -- Data group needs access to server configuration
+	// -- Data group needs access to server configurtion
 	dataGroup.Use(func(c fiber.Ctx) error {
 		c.Locals("config", conf)
 		return c.Next()
 	})
 
-	// -- Data group endpoints
-	dataGroup.Post("/file", endpoints.PostRetrieveFile)
-	dataGroup.Post("/template", endpoints.PostRetrieveTemplate)
+	dataGroup.Get("/:environment/:id/nodes/:name", endpoints.NewGetNodeData(dataRoot))
+	dataGroup.Get("/:environment/:id/"+code.CodeTarballName, endpoints.NewGetCodeData(dataRoot))
 
 	return app, nil
 }

@@ -8,4 +8,5 @@ type RawCatalog struct {
 	Variables       map[string]any
 	Environment     string
 	ApiClient       ApiClient
+	CodePath        string
 }
