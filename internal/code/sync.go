@@ -5,29 +5,23 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
-	"github.com/google/uuid"
 	"github.com/peeklapp/peekl/internal/config"
 	"github.com/sirupsen/logrus"
 )
 
-func createInfoFile(environment string, codeFolder string, repositoryPath string) error {
-	infoFilePath := filepath.Join(codeFolder, fmt.Sprintf("%s.info", environment))
-	logrus.Debug(fmt.Sprintf("Creating info file at following path : %s", infoFilePath))
+func createLatestFile(environment string, codeFolder string, latestId int) error {
+	latestFilePath := filepath.Join(codeFolder, environment, "latest")
 
-	exist := true
-	if _, err := os.Stat(infoFilePath); errors.Is(err, os.ErrNotExist) {
-		exist = false
-	}
-
-	if exist {
-		err := os.Remove(infoFilePath)
+	if _, err := os.Stat(latestFilePath); !errors.Is(err, os.ErrNotExist) {
+		err := os.Remove(latestFilePath)
 		if err != nil {
 			return err
 		}
 	}
 
-	err := os.WriteFile(infoFilePath, []byte(repositoryPath), 0644)
+	err := os.WriteFile(latestFilePath, []byte(strconv.Itoa(latestId)), 0644)
 	if err != nil {
 		return err
 	}
@@ -36,32 +30,49 @@ func createInfoFile(environment string, codeFolder string, repositoryPath string
 }
 
 func Sync(conf *config.CodeConfig, environment string) error {
-	if _, err := os.Stat(conf.StagingFolder); errors.Is(err, os.ErrNotExist) {
-		logrus.Debug(fmt.Sprintf("%s (staging folder) does not exist, creating it.", conf.StagingFolder))
-		if err := os.MkdirAll(conf.StagingFolder, 0750); err != nil {
-			return fmt.Errorf("Could not create staging folder : %s", err.Error())
-		}
-	}
-
-	if _, err := os.Stat(conf.CodeFolder); errors.Is(err, os.ErrNotExist) {
-		logrus.Debug(fmt.Sprintf("%s (code folder) does not exist, creating it.", conf.CodeFolder))
-		if err := os.MkdirAll(conf.CodeFolder, 0750); err != nil {
+	if _, err := os.Stat(filepath.Join(conf.CodeFolder, environment)); errors.Is(err, os.ErrNotExist) {
+		logrus.Debug(fmt.Sprintf("%s (code folder) does not exist, creating it.", filepath.Join(conf.CodeFolder, environment)))
+		if err := os.MkdirAll(filepath.Join(conf.CodeFolder, environment), 0750); err != nil {
 			return fmt.Errorf("Could not create code folder : %s", err.Error())
 		}
 	}
 
-	repositoryName := fmt.Sprintf("%s-%s", environment, uuid.New())
-	repositoryPath := filepath.Join(conf.StagingFolder, repositoryName)
-	logrus.Debug(fmt.Sprintf("Repository path to clone into is : %s", repositoryPath))
-
-	err := cloneRepository(&conf.Repository, environment, repositoryPath)
+	logrus.Debugf("Creating temporary directory to clone into for environment '%s'", environment)
+	tempDir, err := os.MkdirTemp("", "peekl")
 	if err != nil {
-		logrus.Fatal(err)
+		return fmt.Errorf("Could not create temporary directory : %s", err.Error())
+	}
+	defer os.RemoveAll(tempDir)
+
+	logrus.Debugf("Cloning repository for environment '%s'", environment)
+	err = cloneRepository(&conf.Repository, environment, tempDir)
+	if err != nil {
+		return fmt.Errorf("Could not clone repository : %s", err.Error())
 	}
 
-	err = createInfoFile(environment, conf.CodeFolder, repositoryPath)
+	logrus.Debugf("Finding highest ID to use for environment '%s'", environment)
+	id, err := GetHighestIdInEnvironment(filepath.Join(conf.CodeFolder, environment))
 	if err != nil {
-		logrus.Fatal(err)
+		return fmt.Errorf("Could not get highest ID : %s", err.Error())
+	}
+	id = id + 1
+
+	logrus.Debugf("Generating global code archive for environment '%s'", environment)
+	err = GenerateCodeArchive(tempDir, filepath.Join(conf.CodeFolder, environment, strconv.Itoa(id)))
+	if err != nil {
+		return fmt.Errorf("Could not generate code archive : %s", err.Error())
+	}
+
+	logrus.Debugf("Generating nodes archives for environment '%s'", environment)
+	err = GenerateNodesArchives(tempDir, filepath.Join(conf.CodeFolder, environment, strconv.Itoa(id), "nodes"))
+	if err != nil {
+		return fmt.Errorf("Could not generate nodes archives : %s", err.Error())
+	}
+
+	logrus.Debugf("Creating the latest file for environment '%s'", environment)
+	err = createLatestFile(environment, conf.CodeFolder, id)
+	if err != nil {
+		return fmt.Errorf("Could not create the latest file for environment : %s", err.Error())
 	}
 
 	return nil

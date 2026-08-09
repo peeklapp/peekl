@@ -182,6 +182,7 @@ type Catalog struct {
 	roles       []models.Role
 	environment string
 	apiClient   models.ApiClient
+	codePath    string
 }
 
 type CatalogResult struct {
@@ -203,6 +204,7 @@ func (c *Catalog) Process() error {
 	resContext.Tags = c.tags
 	resContext.Environment = c.environment
 	resContext.ApiClient = c.apiClient
+	resContext.CodePath = c.codePath
 
 	logrus.Info(
 		fmt.Sprintf(
@@ -392,6 +394,7 @@ func NewCatalog(rawCatalog models.RawCatalog) (*Catalog, error) {
 	catalog.facts = rawCatalog.Facts
 	catalog.environment = rawCatalog.Environment
 	catalog.apiClient = rawCatalog.ApiClient
+	catalog.codePath = rawCatalog.CodePath
 
 	// Load global resources
 	globalLoadedResources, err := catalog.loadResources(rawCatalog.GlobalResources, nil)

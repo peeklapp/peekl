@@ -4,91 +4,111 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+	"strconv"
 
 	"github.com/peeklapp/peekl/internal/config"
 	"github.com/sirupsen/logrus"
 )
 
-func getAllDirsInStaging(stagingFolder string) ([]string, error) {
-	entries, err := os.ReadDir(stagingFolder)
-	if err != nil {
-		return nil, err
-	}
-
-	var dirsInStaging []string
-	for _, e := range entries {
-		if e.IsDir() {
-			dirsInStaging = append(dirsInStaging, filepath.Join(stagingFolder, e.Name()))
-		}
-	}
-
-	return dirsInStaging, nil
+type DirInCodeFolder struct {
+	Path string
+	Id   int
+	Name string
 }
 
-func getAllReferencedDirsInCode(codeFolder string) ([]string, error) {
+func getListOfEnvironments(codeFolder string) ([]string, error) {
 	entries, err := os.ReadDir(codeFolder)
 	if err != nil {
 		return nil, err
 	}
 
-	var referenceDirs []string
+	var environmentsDir []string
 	for _, e := range entries {
-		if strings.HasSuffix(e.Name(), ".info") {
-			data, err := os.ReadFile(filepath.Join(codeFolder, e.Name()))
-			if err != nil {
-				return nil, err
-			}
-			referenceDirs = append(referenceDirs, string(data))
+		if e.IsDir() {
+			environmentsDir = append(environmentsDir, e.Name())
 		}
 	}
 
-	return referenceDirs, nil
+	return environmentsDir, nil
 }
 
-func findDirsToDelete(dirsInStaging []string, referencedDirs []string) []string {
-	var dirsToDelete []string
+func getDirsInCodeFolder(environmentPath string) ([]DirInCodeFolder, error) {
+	entries, err := os.ReadDir(environmentPath)
+	if err != nil {
+		return nil, err
+	}
 
-	for _, dir := range dirsInStaging {
-		found := false
-		for _, ref := range referencedDirs {
-			if dir == ref {
-				found = true
+	var dirsInCodeFolder []DirInCodeFolder
+	for _, e := range entries {
+		if e.IsDir() {
+			dirId, err := strconv.Atoi(e.Name())
+			if err != nil {
+				return dirsInCodeFolder, err
 			}
-		}
-		if !found {
-			dirsToDelete = append(dirsToDelete, dir)
+			dirsInCodeFolder = append(
+				dirsInCodeFolder,
+				DirInCodeFolder{
+					Path: filepath.Join(environmentPath, e.Name()),
+					Name: e.Name(),
+					Id:   dirId,
+				},
+			)
 		}
 	}
 
-	return dirsToDelete
+	return dirsInCodeFolder, nil
+}
+
+func findDirsToDelete(environmentPath string, toKeep int) ([]DirInCodeFolder, error) {
+	dirsInCodeFolder, err := getDirsInCodeFolder(environmentPath)
+	if err != nil {
+		return nil, err
+	}
+
+	highestId, err := GetHighestIdInEnvironment(environmentPath)
+	if err != nil {
+		return nil, err
+	}
+
+	lowestAcceptableId := highestId - toKeep
+	if lowestAcceptableId <= 0 {
+		lowestAcceptableId = 0
+	}
+
+	var dirsToDelete []DirInCodeFolder
+	for _, dirInCodeFolder := range dirsInCodeFolder {
+		if dirInCodeFolder.Id <= lowestAcceptableId {
+			dirsToDelete = append(dirsToDelete, dirInCodeFolder)
+		}
+	}
+
+	return dirsToDelete, nil
 }
 
 func Clean(conf *config.CodeConfig) error {
-	logrus.Info("Getting all folders in staging")
-	dirsInStaging, err := getAllDirsInStaging(conf.StagingFolder)
+	logrus.Info("Finding list of existing environments")
+	existingEnvironments, err := getListOfEnvironments(conf.CodeFolder)
 	if err != nil {
-		return err
+		return fmt.Errorf("Could not obtain list of environments : %s", err.Error())
 	}
 
-	logrus.Info("Getting all referenced folders")
-	referencedDirs, err := getAllReferencedDirsInCode(conf.CodeFolder)
-	if err != nil {
-		return err
-	}
+	for _, env := range existingEnvironments {
+		environmentPath := filepath.Join(conf.CodeFolder, env)
+		logrus.Infof("Finding list of folders to be deleted for environment '%s'", env)
+		dirsToDelete, err := findDirsToDelete(environmentPath, conf.Keep)
+		if err != nil {
+			return fmt.Errorf("Could not obtain the list of folders to delete : %s", err.Error())
+		}
+		logrus.Info(fmt.Sprintf("Found %d stale folder to delete.", len(dirsToDelete)))
 
-	logrus.Info("Filtering folders not referenced")
-	dirsToDelete := findDirsToDelete(dirsInStaging, referencedDirs)
-	logrus.Info(fmt.Sprintf("Found %d stale folder to delete.", len(dirsToDelete)))
-
-	if len(dirsToDelete) > 0 {
-		logrus.Info("Deleting folders")
-		for _, dir := range dirsToDelete {
-			err := os.RemoveAll(dir)
-			if err != nil {
-				return err
+		if len(dirsToDelete) > 0 {
+			logrus.Info("Deleting folders")
+			for _, dir := range dirsToDelete {
+				err := os.RemoveAll(dir.Path)
+				if err != nil {
+					return err
+				}
 			}
-
 		}
 	}
 

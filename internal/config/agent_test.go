@@ -24,6 +24,7 @@ func TestLoadConfigurationAgent(t *testing.T) {
 	assert.Equal(t, "json", config.Logging.Format)
 	assert.Equal(t, true, config.Logging.Debug)
 	assert.Equal(t, "testing", config.Environment)
+	assert.Equal(t, "/tmp/peekl/cache/agent", config.Caching.Path)
 }
 
 func TestLoadConfigurationWithoutDefaultsAgent(t *testing.T) {
@@ -44,4 +45,5 @@ func TestLoadConfigurationWithoutDefaultsAgent(t *testing.T) {
 	assert.Equal(t, "string", config.Logging.Format)
 	assert.Equal(t, false, config.Logging.Debug)
 	assert.Equal(t, "production", config.Environment)
+	assert.Equal(t, "/var/lib/peekl/cache/agent", config.Caching.Path)
 }

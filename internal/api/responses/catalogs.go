@@ -1,10 +1,11 @@
 package responses
 
-import "github.com/peeklapp/peekl/internal/models"
+type FileResponseEntry struct {
+	Path string `json:"path"`
+	Hash string `json:"hash"`
+}
 
-type GetCatalog struct {
-	GlobalResource []models.Resource `json:"resources"`
-	Roles          []models.Role     `json:"roles"`
-	Tags           []string          `json:"tags"`
-	Variables      map[string]any    `json:"variables"`
+type InquiryForCatalog struct {
+	NodeTarball FileResponseEntry `json:"node_tarball"`
+	CodeTarball FileResponseEntry `json:"code_tarball"`
 }

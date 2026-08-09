@@ -19,3 +19,6 @@ logging:
   debug: true
 
 environment: "testing"
+
+caching:
+  path: "/tmp/peekl/cache/agent"

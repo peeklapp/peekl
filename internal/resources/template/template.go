@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"maps"
 	"os"
+	"path/filepath"
 	"syscall"
 
 	"github.com/mitchellh/mapstructure"
@@ -252,11 +253,17 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 	var err error
 
 	if t.Data.Source != "" {
-		templateContent, err = context.ApiClient.RetrieveTemplate(t.Data.Source, context.Environment, t.Data.roleContext.RoleName)
+		fullTemplatePath := filepath.Join(context.CodePath, "roles", t.Data.roleContext.RoleName, "templates", t.Data.Source)
+		if _, err := os.Stat(fullTemplatePath); errors.Is(err, os.ErrNotExist) {
+			result.Failed = true
+			return result, err
+		}
+		rawTemplateContent, err := os.ReadFile(fullTemplatePath)
 		if err != nil {
 			result.Failed = true
 			return result, err
 		}
+		templateContent = string(rawTemplateContent)
 	} else {
 		templateContent = t.Data.Content
 	}

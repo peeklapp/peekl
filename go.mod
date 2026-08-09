@@ -6,13 +6,14 @@ require (
 	github.com/expr-lang/expr v1.17.7
 	github.com/goccy/go-yaml v1.18.0
 	github.com/gofiber/fiber/v3 v3.0.0
-	github.com/google/uuid v1.6.0
+	github.com/klauspost/compress v1.19.2
 	github.com/lib/pq v1.12.3
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/olekukonko/tablewriter v1.1.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/sync v0.19.0
 	modernc.org/sqlite v1.43.0
 )
 
@@ -26,8 +27,8 @@ require (
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/gofiber/schema v1.6.0 // indirect
 	github.com/gofiber/utils/v2 v2.0.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/klauspost/compress v1.18.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect

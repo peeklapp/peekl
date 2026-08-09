@@ -1,0 +1,5 @@
+resources:
+  - title: "Install package nginx"
+    type: "builtin.pkg"
+    data:
+      names: ["nginx"]

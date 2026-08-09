@@ -1,5 +1,4 @@
 code: "/etc/test/peekl/code"
-staging: "/var/lib/test/code"
 
 repository:
   url: "git@github.com:user/repo.git"
