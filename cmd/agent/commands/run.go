@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -28,10 +27,10 @@ func init() {
 }
 
 func isLocked() bool {
-	if _, err := os.Stat("/tmp/.peekl_run"); errors.Is(err, os.ErrNotExist) {
-		return false
+	if utils.FileExist("/tmp/.peekl_run", nil) {
+		return true
 	}
-	return true
+	return false
 }
 
 func createLockfile() {
@@ -44,18 +43,15 @@ func deleteLockFile() {
 
 // Verify that a cache is still valid
 func isCacheValid(filePath string, expectedHash string) (bool, error) {
-	// Handle case where file doesn't exist
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	if !utils.FileExist(filePath, nil) {
 		return false, nil
 	}
 
-	// Get file checksum
 	checksum, err := utils.GetMd5CheckumForFile(filePath, nil)
 	if err != nil {
 		return false, err
 	}
 
-	// Compare checksum
 	return expectedHash == checksum, nil
 }
 
@@ -80,14 +76,14 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 	}
 
 	logrus.Debug("Creating global cache folder if it doesn't exist")
-	if _, err := os.Stat(cachePath); os.IsNotExist(err) {
+	if !utils.FileExist(cachePath, nil) {
 		if err := os.MkdirAll(cachePath, 0750); err != nil {
 			logrus.Fatal(err)
 		}
 	}
 
 	logrus.Debug("Creating environment cache folder if it doesn't exist")
-	if _, err := os.Stat(filepath.Join(cachePath, environment)); os.IsNotExist(err) {
+	if !utils.FileExist(filepath.Join(cachePath, environment), nil) {
 		if err := os.Mkdir(filepath.Join(cachePath, environment), 0750); err != nil {
 			logrus.Fatal(err)
 		}

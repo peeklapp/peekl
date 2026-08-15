@@ -10,7 +10,7 @@ import (
 )
 
 func getOsReleaseContent() (string, error) {
-	if !utils.FileExist("/etc/os-release") {
+	if !utils.FileExist("/etc/os-release", nil) {
 		return "", fmt.Errorf("Error while trying to read file content for distribution facts data : '/etc/os-release' file does not exist")
 	}
 

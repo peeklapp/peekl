@@ -1,20 +1,20 @@
 package code
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	"github.com/peeklapp/peekl/internal/config"
+	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
 func createLatestFile(environment string, codeFolder string, latestId int) error {
 	latestFilePath := filepath.Join(codeFolder, environment, "latest")
 
-	if _, err := os.Stat(latestFilePath); !errors.Is(err, os.ErrNotExist) {
+	if utils.FileExist(latestFilePath, nil) {
 		err := os.Remove(latestFilePath)
 		if err != nil {
 			return err
@@ -30,7 +30,7 @@ func createLatestFile(environment string, codeFolder string, latestId int) error
 }
 
 func Sync(conf *config.CodeConfig, environment string) error {
-	if _, err := os.Stat(filepath.Join(conf.CodeFolder, environment)); errors.Is(err, os.ErrNotExist) {
+	if !utils.FileExist(filepath.Join(conf.CodeFolder, environment), nil) {
 		logrus.Debug(fmt.Sprintf("%s (code folder) does not exist, creating it.", filepath.Join(conf.CodeFolder, environment)))
 		if err := os.MkdirAll(filepath.Join(conf.CodeFolder, environment), 0750); err != nil {
 			return fmt.Errorf("Could not create code folder : %s", err.Error())

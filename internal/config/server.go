@@ -1,13 +1,13 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
 	"github.com/goccy/go-yaml"
 	"github.com/mitchellh/mapstructure"
 	"github.com/peeklapp/peekl/internal/models"
+	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -190,7 +190,7 @@ func NewServerConfiguration(configFilePath string) (*ServerConfig, error) {
 	}
 
 	// Check if file exist
-	if _, err := os.Stat(configFilePath); errors.Is(err, os.ErrNotExist) {
+	if !utils.FileExist(configFilePath, nil) {
 		logrus.Warn("No configuration file found at provided path, using default values")
 		return &config, nil
 	}

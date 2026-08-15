@@ -3,7 +3,6 @@ package file
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -182,10 +181,7 @@ func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 }
 
 func (f *FileResource) exist() bool {
-	if _, err := os.Stat(f.Data.Path); errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	return true
+	return utils.FileExist(f.Data.Path, nil)
 }
 
 func (f *FileResource) create(content string) error {
@@ -227,9 +223,13 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 
 	if f.Data.Source != "" {
 		fullFilePath := filepath.Join(context.CodePath, "roles", f.Data.roleContext.RoleName, "files", f.Data.Source)
-		if _, err := os.Stat(fullFilePath); errors.Is(err, os.ErrNotExist) {
+		if !utils.FileExist(fullFilePath, nil) {
 			result.Failed = true
-			return result, err
+			return result, fmt.Errorf(
+				"[%s] The file doesn't exist in role : %s",
+				f.String(),
+				filepath.Join(context.CodePath, "roles", f.Data.roleContext.RoleName, "files", f.Data.Source),
+			)
 		}
 		rawFileContent, err := os.ReadFile(fullFilePath)
 		if err != nil {

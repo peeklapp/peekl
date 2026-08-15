@@ -1,7 +1,6 @@
 package directory
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -128,10 +127,7 @@ func (d *DirectoryResource) changeOwnershipIfNeeded() (bool, error) {
 }
 
 func (d *DirectoryResource) exist() bool {
-	if _, err := os.Stat(d.Data.Path); errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	return true
+	return utils.FileExist(d.Data.Path, nil)
 }
 
 func (d *DirectoryResource) create() error {
