@@ -1,10 +1,11 @@
 package code
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/peeklapp/peekl/internal/utils"
 )
 
 func TestGenerateNodesArchives(t *testing.T) {
@@ -22,7 +23,7 @@ func TestGenerateNodesArchives(t *testing.T) {
 	}
 
 	// Assert that archive exist
-	if _, err := os.Stat(filepath.Join(tempDir, "testing.tar.zst")); errors.Is(err, os.ErrNotExist) {
+	if !utils.FileExist(filepath.Join(tempDir, "testing.tar.zst"), nil) {
 		t.Errorf("Archive does not exist after generation")
 	}
 }
@@ -42,7 +43,7 @@ func TestGenerateCodeArchive(t *testing.T) {
 	}
 
 	// Assert that archive exist
-	if _, err := os.Stat(filepath.Join(tempDir, "code.tar.zst")); errors.Is(err, os.ErrNotExist) {
+	if !utils.FileExist(filepath.Join(tempDir, "code.tar.zst"), nil) {
 		t.Errorf("Archive does not exist after generation")
 	}
 }

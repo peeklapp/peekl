@@ -2,15 +2,14 @@ package command
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/peeklapp/peekl/internal/models"
 	"github.com/peeklapp/peekl/internal/resources"
+	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,10 +27,7 @@ type CommandResource struct {
 }
 
 func (c *CommandResource) createsAlreadyExist() bool {
-	if _, err := os.Stat(c.Data.Creates); errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	return true
+	return utils.FileExist(c.Data.Creates, nil)
 }
 
 func (c *CommandResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {

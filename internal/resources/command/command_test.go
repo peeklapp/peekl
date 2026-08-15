@@ -1,11 +1,11 @@
 package command
 
 import (
-	"errors"
 	"os"
 	"testing"
 
 	"github.com/peeklapp/peekl/internal/models"
+	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +28,7 @@ func TestCommand(t *testing.T) {
 			t.Errorf("No error should happen at that stage")
 		}
 
-		if _, err := os.Stat("/tmp/testing_file"); !errors.Is(err, os.ErrNotExist) {
+		if utils.FileExist("/tmp/testing_file", nil) {
 			t.Errorf("File /tmp/testing_file should not exist at that stage")
 		}
 
@@ -38,7 +38,7 @@ func TestCommand(t *testing.T) {
 			t.Errorf("An error happened during the process of the resource : %s", err.Error())
 		}
 
-		if _, err := os.Stat("/tmp/testing_file"); errors.Is(err, os.ErrNotExist) {
+		if !utils.FileExist("/tmp/testing_file", nil) {
 			t.Errorf("File /tmp/testing_file should exist at that stage")
 		}
 	})

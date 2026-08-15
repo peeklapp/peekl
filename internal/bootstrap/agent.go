@@ -16,9 +16,9 @@ import (
 )
 
 func GetAgentBootstrapState(agentConfig *config.AgentConfig) BootstrapState {
-	if utils.FileExist(agentConfig.Certificates.BootstrapCompleteFilePath) {
+	if utils.FileExist(agentConfig.Certificates.BootstrapCompleteFilePath, nil) {
 		return BootstrapComplete
-	} else if utils.FileExist(agentConfig.Certificates.BootstrapPendingFilePath) {
+	} else if utils.FileExist(agentConfig.Certificates.BootstrapPendingFilePath, nil) {
 		return BootstrapPendingCert
 	}
 	return BootstrapNone
@@ -34,7 +34,7 @@ func BootstrapAgent(agentConfig *config.AgentConfig) error {
 	}
 	for _, dir := range dirs {
 		basePath := filepath.Dir(dir)
-		if _, err := os.Stat(basePath); errors.Is(err, os.ErrNotExist) {
+		if !utils.FileExist(basePath, nil) {
 			err := os.MkdirAll(basePath, 0750)
 			if err != nil {
 				return err
@@ -152,7 +152,7 @@ func TryFetchCertificateFromServer(agentConfig *config.AgentConfig) (bool, error
 		time.Sleep(15 * time.Second)
 	}
 
-	if utils.FileExist(agentConfig.Certificates.CertificateFilePath) {
+	if utils.FileExist(agentConfig.Certificates.CertificateFilePath, nil) {
 		logrus.Info("Successfully performed bootstrap against server.")
 
 		bootstrapDoneFile, err := os.Create(agentConfig.Certificates.BootstrapCompleteFilePath)

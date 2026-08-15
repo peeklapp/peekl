@@ -48,7 +48,7 @@ type CronResource struct {
 func (c *CronResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
-	if !utils.FileExist(c.Data.CronFolder) {
+	if !utils.FileExist(c.Data.CronFolder, nil) {
 		result.Failed = true
 		return result, fmt.Errorf(
 			"The cron folder provided does not seem to exist : %s",
@@ -72,7 +72,7 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 			c.Data.Command,
 		)
 
-		if !utils.FileExist(cronFilePath) {
+		if !utils.FileExist(cronFilePath, nil) {
 			logrus.Info(
 				fmt.Sprintf("[%s] Cron (%s) does not exist but should", c.String(), c.Data.Name),
 			)
@@ -112,7 +112,7 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 		}
 	}
 
-	if utils.FileExist(cronFilePath) {
+	if utils.FileExist(cronFilePath, nil) {
 		os.Remove(cronFilePath)
 	}
 	result.Deleted = true

@@ -1,7 +1,6 @@
 package endpoints
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,10 +9,11 @@ import (
 	"github.com/peeklapp/peekl/internal/api/responses"
 	"github.com/peeklapp/peekl/internal/code"
 	"github.com/peeklapp/peekl/internal/config"
+	"github.com/peeklapp/peekl/internal/utils"
 )
 
 func isAFolderMissing(ctx fiber.Ctx, dataRoot *os.Root, environment string, id string) bool {
-	if _, err := dataRoot.Stat(environment); errors.Is(err, os.ErrNotExist) {
+	if !utils.FileExist(environment, dataRoot) {
 		ctx.Status(404).JSON(responses.ErrorResponse{
 			Error:   "Environment not found",
 			Details: fmt.Sprintf("The environment '%s' could not be found inside the code directory", environment),
@@ -21,7 +21,7 @@ func isAFolderMissing(ctx fiber.Ctx, dataRoot *os.Root, environment string, id s
 		return true
 	}
 
-	if _, err := dataRoot.Stat(filepath.Join(environment, id)); errors.Is(err, os.ErrNotExist) {
+	if !utils.FileExist(filepath.Join(environment, id), dataRoot) {
 		ctx.Status(404).JSON(responses.ErrorResponse{
 			Error:   "ID not found",
 			Details: fmt.Sprintf("The ID '%s' could not be found inside the code directory for environment '%s'", id, environment),
@@ -52,7 +52,7 @@ func NewGetNodeData(dataRoot *os.Root) fiber.Handler {
 			return nil
 		}
 
-		if _, err := dataRoot.Stat(filepath.Join(environment, id, "nodes", tarballName)); errors.Is(err, os.ErrNotExist) {
+		if !utils.FileExist(filepath.Join(environment, id, "nodes", tarballName), dataRoot) {
 			ctx.Status(404).JSON(responses.ErrorResponse{
 				Error:   "Node tarball not found",
 				Details: fmt.Sprintf("The node tarball '%s' could not be found inside the code directory for ID '%s' and environment '%s'", tarballName, id, environment),
@@ -74,7 +74,7 @@ func NewGetCodeData(dataRoot *os.Root) fiber.Handler {
 			return nil
 		}
 
-		if _, err := dataRoot.Stat(filepath.Join(conf.Code.Directory, environment, id, code.CodeTarballName)); errors.Is(err, os.ErrNotExist) {
+		if !utils.FileExist(filepath.Join(environment, id, code.CodeTarballName), dataRoot) {
 			ctx.Status(404).JSON(responses.ErrorResponse{
 				Error:   "Node tarball not found",
 				Details: fmt.Sprintf("The code tarball '%s' could not be found inside the code directory for ID '%s' and environment '%s'", code.CodeTarballName, id, environment),

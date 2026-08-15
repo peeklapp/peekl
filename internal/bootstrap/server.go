@@ -1,7 +1,6 @@
 package bootstrap
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,7 +12,7 @@ import (
 )
 
 func GetServerBootstrapState(serverConfig *config.ServerConfig) BootstrapState {
-	bootstrapDoneFileExist := utils.FileExist(serverConfig.Certificates.BootstrapDoneFilePath)
+	bootstrapDoneFileExist := utils.FileExist(serverConfig.Certificates.BootstrapDoneFilePath, nil)
 	if bootstrapDoneFileExist {
 		return BootstrapComplete
 	}
@@ -35,7 +34,7 @@ func BootstrapServer(serverConfig *config.ServerConfig) error {
 
 	for _, dir := range dirs {
 		basePath := filepath.Dir(dir)
-		if _, err := os.Stat(basePath); errors.Is(err, os.ErrNotExist) {
+		if !utils.FileExist(basePath, nil) {
 			err := os.MkdirAll(basePath, 0750)
 			if err != nil {
 				return err

@@ -9,17 +9,13 @@ import (
 
 	"github.com/goccy/go-yaml"
 	"github.com/peeklapp/peekl/internal/models"
+	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/peeklapp/peekl/internal/variables"
 )
 
 func DoesRoleExist(codePath string, roleName string) error {
-	rolePath := filepath.Join(codePath, "roles", roleName)
-	if _, err := os.Stat(rolePath); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return models.RoleNotFoundError{RoleName: roleName}
-		} else {
-			return err
-		}
+	if !utils.FileExist(filepath.Join(codePath, "roles", roleName), nil) {
+		return models.RoleNotFoundError{RoleName: roleName}
 	}
 	return nil
 }

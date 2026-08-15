@@ -21,7 +21,7 @@ func GetDmiData() (models.DmiData, error) {
 	var dmiData models.DmiData
 
 	// If no DMI data, return empty
-	if !utils.FileExist("/sys/devices/virtual/dmi/id") {
+	if !utils.FileExist("/sys/devices/virtual/dmi/id", nil) {
 		return dmiData, nil
 	}
 

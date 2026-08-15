@@ -3,7 +3,6 @@ package template
 import (
 	"bytes"
 	"crypto/md5"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -159,10 +158,7 @@ func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext, templ *
 }
 
 func (t *TemplateResource) exist() bool {
-	if _, err := os.Stat(t.Data.Path); errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	return true
+	return utils.FileExist(t.Data.Path, nil)
 }
 
 func (t *TemplateResource) create(fileContent string) error {
@@ -254,9 +250,9 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 
 	if t.Data.Source != "" {
 		fullTemplatePath := filepath.Join(context.CodePath, "roles", t.Data.roleContext.RoleName, "templates", t.Data.Source)
-		if _, err := os.Stat(fullTemplatePath); errors.Is(err, os.ErrNotExist) {
+		if !utils.FileExist(fullTemplatePath, nil) {
 			result.Failed = true
-			return result, err
+			return result, fmt.Errorf("[%s] The template doesn't exist in role : %s", t.String(), fullTemplatePath)
 		}
 		rawTemplateContent, err := os.ReadFile(fullTemplatePath)
 		if err != nil {
