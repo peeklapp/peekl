@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"maps"
+	"os"
 	"slices"
 
 	"github.com/peeklapp/peekl/internal/inventory"
@@ -9,7 +10,7 @@ import (
 	"github.com/peeklapp/peekl/internal/roles"
 )
 
-func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, []models.Role, []string, map[string]any, error) {
+func CompileCatalog(codeRoot *os.Root, nodeName string) ([]models.Resource, []models.Role, []string, map[string]any, error) {
 	var resources []models.Resource
 	var tags []string
 	var rolesToLoad []string
@@ -20,7 +21,7 @@ func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, [
 	var loadedRoles []models.Role
 
 	// Handle node
-	node, err := inventory.LoadNodeFromInventory(codeDirectory, nodeName)
+	node, err := inventory.LoadNodeFromInventory(codeRoot, nodeName)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -38,7 +39,7 @@ func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, [
 
 	// Handle groups
 	for _, group := range node.Groups {
-		groupInv, err := inventory.LoadGroupFromInventory(codeDirectory, group)
+		groupInv, err := inventory.LoadGroupFromInventory(codeRoot, group)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}
@@ -57,7 +58,7 @@ func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, [
 
 	// Handle roles
 	for _, role := range rolesToLoad {
-		loadedRole, err := roles.LoadRoleFromCode(codeDirectory, role)
+		loadedRole, err := roles.LoadRoleFromCode(codeRoot, role)
 		if err != nil {
 			return nil, nil, nil, nil, err
 		}

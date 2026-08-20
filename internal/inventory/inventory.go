@@ -39,19 +39,18 @@ import (
 //        ...
 
 // Load an host from inventory
-func LoadNodeFromInventory(codePath string, nodeName string) (*models.NodeInventory, error) {
+func LoadNodeFromInventory(codeRoot *os.Root, nodeName string) (*models.NodeInventory, error) {
 	var node models.NodeInventory
 
 	// Determine node file path
 	nodeFile := filepath.Join(
-		codePath,
 		"inventory",
 		"nodes",
 		fmt.Sprintf("%s.yml", nodeName),
 	)
 
 	// Open file, handle case where it does not exist
-	f, err := os.ReadFile(nodeFile)
+	f, err := codeRoot.ReadFile(nodeFile)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return &node, models.NodeNotFoundError{NodeName: nodeName}
@@ -67,7 +66,7 @@ func LoadNodeFromInventory(codePath string, nodeName string) (*models.NodeInvent
 	}
 
 	// Load variables
-	node.Variables, err = variables.LoadNodeVariables(codePath, nodeName)
+	node.Variables, err = variables.LoadNodeVariables(codeRoot, nodeName)
 	if err != nil {
 		return &node, err
 	}
@@ -75,19 +74,18 @@ func LoadNodeFromInventory(codePath string, nodeName string) (*models.NodeInvent
 	return &node, nil
 }
 
-func LoadGroupFromInventory(codePath string, groupName string) (*models.GroupInventory, error) {
+func LoadGroupFromInventory(codeRoot *os.Root, groupName string) (*models.GroupInventory, error) {
 	var group models.GroupInventory
 
 	// Determine group file path
 	groupFile := filepath.Join(
-		codePath,
 		"inventory",
 		"groups",
 		fmt.Sprintf("%s.yml", groupName),
 	)
 
 	// Open file, handle case where it does not exist
-	f, err := os.ReadFile(groupFile)
+	f, err := codeRoot.ReadFile(groupFile)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return &group, models.GroupNotFoundError{GroupName: groupName}
@@ -103,7 +101,7 @@ func LoadGroupFromInventory(codePath string, groupName string) (*models.GroupInv
 	}
 
 	// Load variables
-	group.Variables, err = variables.LoadGroupVariables(codePath, groupName)
+	group.Variables, err = variables.LoadGroupVariables(codeRoot, groupName)
 	if err != nil {
 		return &group, err
 	}

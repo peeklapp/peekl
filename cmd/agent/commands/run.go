@@ -135,6 +135,12 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 	}
 	defer deleteExtractDir(extractDir)
 
+	logrus.Debug("Opening root to extraction directory")
+	extractDirRoot, err := os.OpenRoot(extractDir)
+	if err != nil {
+		logrus.Fatal(err)
+	}
+
 	logrus.Debug("Extracting the archives")
 	archives := []string{expectedCodeFilePath, expectedNodeFilePath}
 	for _, arch := range archives {
@@ -146,7 +152,7 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 	}
 
 	logrus.Debug("Compiling raw catalog based on extracted archives")
-	rawCatalog.GlobalResources, rawCatalog.Roles, rawCatalog.Tags, rawCatalog.Variables, err = catalog.CompileCatalog(extractDir, rawCatalog.Facts.Hostname)
+	rawCatalog.GlobalResources, rawCatalog.Roles, rawCatalog.Tags, rawCatalog.Variables, err = catalog.CompileCatalog(extractDirRoot, rawCatalog.Facts.Hostname)
 	if err != nil {
 		logrus.Fatal(err)
 	}

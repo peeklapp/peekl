@@ -1,6 +1,7 @@
 package variables
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -15,26 +16,26 @@ const (
 	VariablesSourceRole
 )
 
-func loadVariables(codePath string, entityName string, sourceType VariablesSourceType) (map[string]any, error) {
+func loadVariables(codeRoot *os.Root, entityName string, sourceType VariablesSourceType) (map[string]any, error) {
 	variables := map[string]any{}
 
 	var variablesFilesPath string
 	switch sourceType {
 	case VariablesSourceGroup:
-		variablesFilesPath = filepath.Join(codePath, "variables", "groups", entityName, "*.yml")
+		variablesFilesPath = filepath.Join("variables", "groups", entityName, "*.yml")
 	case VariablesSourceNode:
-		variablesFilesPath = filepath.Join(codePath, "variables", "nodes", entityName, "*.yml")
+		variablesFilesPath = filepath.Join("variables", "nodes", entityName, "*.yml")
 	case VariablesSourceRole:
-		variablesFilesPath = filepath.Join(codePath, "roles", entityName, "variables", "*.yml")
+		variablesFilesPath = filepath.Join("roles", entityName, "variables", "*.yml")
 	}
 
-	variablesFiles, err := filepath.Glob(variablesFilesPath)
+	variablesFiles, err := fs.Glob(codeRoot.FS(), variablesFilesPath)
 	if err != nil {
 		return variables, err
 	}
 
 	for _, variableFile := range variablesFiles {
-		rawFile, err := os.ReadFile(variableFile)
+		rawFile, err := codeRoot.ReadFile(variableFile)
 		if err != nil {
 			return variables, err
 		}
@@ -47,24 +48,24 @@ func loadVariables(codePath string, entityName string, sourceType VariablesSourc
 	return variables, nil
 }
 
-func LoadGroupVariables(codePath string, groupName string) (map[string]any, error) {
-	variables, err := loadVariables(codePath, groupName, VariablesSourceGroup)
+func LoadGroupVariables(codeRoot *os.Root, groupName string) (map[string]any, error) {
+	variables, err := loadVariables(codeRoot, groupName, VariablesSourceGroup)
 	if err != nil {
 		return variables, err
 	}
 	return variables, nil
 }
 
-func LoadNodeVariables(codePath string, nodeName string) (map[string]any, error) {
-	variables, err := loadVariables(codePath, nodeName, VariablesSourceNode)
+func LoadNodeVariables(codeRoot *os.Root, nodeName string) (map[string]any, error) {
+	variables, err := loadVariables(codeRoot, nodeName, VariablesSourceNode)
 	if err != nil {
 		return variables, err
 	}
 	return variables, nil
 }
 
-func LoadRoleVariables(codePath string, roleName string) (map[string]any, error) {
-	variables, err := loadVariables(codePath, roleName, VariablesSourceRole)
+func LoadRoleVariables(codeRoot *os.Root, roleName string) (map[string]any, error) {
+	variables, err := loadVariables(codeRoot, roleName, VariablesSourceRole)
 	if err != nil {
 		return variables, err
 	}
