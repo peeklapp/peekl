@@ -1,6 +1,7 @@
 package variables
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,7 +9,8 @@ import (
 
 func TestImportRoleVariables(t *testing.T) {
 	t.Run("ImportValidRole", func(t *testing.T) {
-		variables, err := LoadRoleVariables("testdata/", "test_role")
+		root, _ := os.OpenRoot("testdata/")
+		variables, err := LoadRoleVariables(root, "test_role")
 		if err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
@@ -16,7 +18,8 @@ func TestImportRoleVariables(t *testing.T) {
 	})
 
 	t.Run("ImportEmptyRole", func(t *testing.T) {
-		variables, err := LoadRoleVariables("testdata/", "test_empty_role")
+		root, _ := os.OpenRoot("testdata/")
+		variables, err := LoadRoleVariables(root, "test_empty_role")
 		if err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
@@ -26,7 +29,8 @@ func TestImportRoleVariables(t *testing.T) {
 
 func TestImportGroupVariables(t *testing.T) {
 	t.Run("ImportValidGroup", func(t *testing.T) {
-		variables, err := LoadGroupVariables("testdata/", "test_group")
+		root, _ := os.OpenRoot("testdata/")
+		variables, err := LoadGroupVariables(root, "test_group")
 		if err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
@@ -34,7 +38,8 @@ func TestImportGroupVariables(t *testing.T) {
 	})
 
 	t.Run("ImportEmptyGroup", func(t *testing.T) {
-		variables, err := LoadGroupVariables("testdata/", "test_empty_group")
+		root, _ := os.OpenRoot("testdata/")
+		variables, err := LoadGroupVariables(root, "test_empty_group")
 		if err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
@@ -44,7 +49,8 @@ func TestImportGroupVariables(t *testing.T) {
 
 func TestImportNodeVariables(t *testing.T) {
 	t.Run("ImportValidNode", func(t *testing.T) {
-		variables, err := LoadNodeVariables("testdata/", "test_node")
+		root, _ := os.OpenRoot("testdata/")
+		variables, err := LoadNodeVariables(root, "test_node")
 		if err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
@@ -52,7 +58,8 @@ func TestImportNodeVariables(t *testing.T) {
 	})
 
 	t.Run("ImportEmptyNode", func(t *testing.T) {
-		variables, err := LoadNodeVariables("testdata/", "test_empty_node")
+		root, _ := os.OpenRoot("testdata/")
+		variables, err := LoadNodeVariables(root, "test_empty_node")
 		if err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}

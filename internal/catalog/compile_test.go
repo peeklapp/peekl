@@ -1,13 +1,15 @@
 package catalog
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadNodeFromCode(t *testing.T) {
-	resources, loadedRoles, tags, variables, err := CompileCatalog("testdata/valid_code", "dummy")
+	root, _ := os.OpenRoot("testdata/valid_code")
+	resources, loadedRoles, tags, variables, err := CompileCatalog(root, "dummy")
 	if err != nil {
 		t.Errorf("Could not load catalog from code : %s", err.Error())
 	}
@@ -18,7 +20,8 @@ func TestLoadNodeFromCode(t *testing.T) {
 }
 
 func TestNoDuplicateRoles(t *testing.T) {
-	_, loadedRoles, _, _, err := CompileCatalog("testdata/duplicate_role", "dummy")
+	root, _ := os.OpenRoot("testdata/duplicate_role")
+	_, loadedRoles, _, _, err := CompileCatalog(root, "dummy")
 	if err != nil {
 		t.Errorf("Could not load catalog from code : %s", err.Error())
 	}
@@ -26,7 +29,8 @@ func TestNoDuplicateRoles(t *testing.T) {
 }
 
 func TestLoadNodeMissingGroup(t *testing.T) {
-	_, _, _, _, err := CompileCatalog("testdata/missing_group", "dummy")
+	root, _ := os.OpenRoot("testdata/missing_group")
+	_, _, _, _, err := CompileCatalog(root, "dummy")
 	if err == nil {
 		t.Errorf("Should have returned an error because a group is missing")
 	}
@@ -34,7 +38,8 @@ func TestLoadNodeMissingGroup(t *testing.T) {
 }
 
 func TestLoadNodeMissingRole(t *testing.T) {
-	_, _, _, _, err := CompileCatalog("testdata/missing_role", "dummy")
+	root, _ := os.OpenRoot("testdata/missing_role")
+	_, _, _, _, err := CompileCatalog(root, "dummy")
 	if err == nil {
 		t.Errorf("Should have returned an error because a role is missing")
 	}
@@ -42,7 +47,8 @@ func TestLoadNodeMissingRole(t *testing.T) {
 }
 
 func TestLoadNodeMissingNode(t *testing.T) {
-	_, _, _, _, err := CompileCatalog("testdata/missing_node", "dummy")
+	root, _ := os.OpenRoot("testdata/missing_node")
+	_, _, _, _, err := CompileCatalog(root, "dummy")
 	if err == nil {
 		t.Errorf("Should have returned an error because a role is missing")
 	}

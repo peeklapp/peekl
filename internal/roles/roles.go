@@ -13,27 +13,33 @@ import (
 	"github.com/peeklapp/peekl/internal/variables"
 )
 
-func DoesRoleExist(codePath string, roleName string) error {
-	if !utils.FileExist(filepath.Join(codePath, "roles", roleName), nil) {
+func DoesRoleExist(codeRoot *os.Root, roleName string) error {
+	if !utils.FileExist(filepath.Join("roles", roleName), codeRoot) {
 		return models.RoleNotFoundError{RoleName: roleName}
 	}
 	return nil
 }
 
-func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
+func LoadRoleFromCode(codeRoot *os.Root, roleName string) (*models.Role, error) {
 	var role models.Role
 
 	role.Name = roleName
 	role.IncludedResources = map[string]models.IncludedResources{}
 
-	err := DoesRoleExist(codePath, roleName)
+	err := DoesRoleExist(codeRoot, roleName)
 	if err != nil {
 		return &role, err
 	}
 
+	// Open root of role
+	rolePath := filepath.Join("roles", roleName)
+	roleRoot, err := codeRoot.OpenRoot(rolePath)
+	if err != nil {
+		return &role, fmt.Errorf("could not open root inside role when loading role %s", roleName)
+	}
+
 	// Open main.yml file, handle error if it does not exist
-	rolePath := filepath.Join(codePath, "roles", roleName)
-	mainFile, err := os.ReadFile(filepath.Join(rolePath, "main.yml"))
+	mainFile, err := roleRoot.ReadFile("main.yml")
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return &role, fmt.Errorf("could not find any main.yml file in the %s role", roleName)
@@ -63,7 +69,7 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 		// For each extra file, process
 		for _, extraFile := range roleMain.Includes {
 			// Open extra file, handle error if it does not exist
-			rawExtraFile, err := os.ReadFile(filepath.Join(rolePath, fmt.Sprintf("%s.yml", extraFile.Name)))
+			rawExtraFile, err := roleRoot.ReadFile(fmt.Sprintf("%s.yml", extraFile.Name))
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
 					return &role, fmt.Errorf("the include `%s` in role `%s` could not be found", extraFile.Name, roleName)
@@ -86,7 +92,7 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 		}
 	}
 
-	role.Variables, err = variables.LoadRoleVariables(codePath, roleName)
+	role.Variables, err = variables.LoadRoleVariables(codeRoot, roleName)
 	if err != nil {
 		return &role, err
 	}
