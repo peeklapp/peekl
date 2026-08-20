@@ -11,7 +11,7 @@ func TestLoadNonExistentConfigurationCode(t *testing.T) {
 	if err == nil {
 		t.Errorf("Should have returned an error because the file doesn't exist.")
 	}
-	assert.Equal(t, "No configuration file found at provided path : testdata/code/i_dont_exist.yml", err.Error())
+	assert.Equal(t, "no configuration file found at provided path : testdata/code/i_dont_exist.yml", err.Error())
 }
 
 func TestLoadConfigurationCode(t *testing.T) {

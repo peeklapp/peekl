@@ -106,7 +106,7 @@ func TestDependencyCycle(t *testing.T) {
 	}
 
 	_, err := orderRoles(rolesToOrder)
-	if err.Error() != "Detected a cycle dependency with role : 'nginx'" {
+	if err.Error() != "detected a cycle dependency with role : 'nginx'" {
 		t.Errorf("Should have raised an error for a cycling dependency, but got error : %s", err.Error())
 	}
 }
@@ -124,7 +124,7 @@ func TestNonExistingRole(t *testing.T) {
 	}
 
 	_, err := orderRoles(rolesToOrder)
-	if err.Error() != "Detected a dependency to a role that either does not exist or is not imported for this node : 'apt'" {
+	if err.Error() != "detected a dependency to a role that either does not exist or is not imported for this node : 'apt'" {
 		t.Errorf("Should have raised an error for a dependency on a role that doesn't exist, but got error : %s", err.Error())
 	}
 }

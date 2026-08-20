@@ -36,10 +36,10 @@ func TestLoadUnknowRole(t *testing.T) {
 
 func TestLoadRoleMissingMain(t *testing.T) {
 	_, err := LoadRoleFromCode("testdata", "invalid_role")
-	assert.Equal(t, err.Error(), "Could not find any main.yml file in the invalid_role role.")
+	assert.Equal(t, err.Error(), "could not find any main.yml file in the invalid_role role")
 }
 
 func TestLoadRoleMissingInclude(t *testing.T) {
 	_, err := LoadRoleFromCode("testdata", "missing_include")
-	assert.Equal(t, err.Error(), "The include `test` in role `missing_include` could not be found.")
+	assert.Equal(t, err.Error(), "the include `test` in role `missing_include` could not be found")
 }
