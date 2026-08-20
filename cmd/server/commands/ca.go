@@ -39,7 +39,9 @@ var CaCmd = &cobra.Command{
 	Short: "Manipulate the CA",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			cmd.Help()
+			if err := cmd.Help(); err != nil {
+				logrus.Fatal(err)
+			}
 			os.Exit(0)
 		}
 	},
@@ -50,7 +52,9 @@ var caListCmd = &cobra.Command{
 	Short: "List certificates in the CA",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			cmd.Help()
+			if err := cmd.Help(); err != nil {
+				logrus.Fatal(err)
+			}
 			os.Exit(0)
 		}
 	},
@@ -107,9 +111,13 @@ var caListPendingCmd = &cobra.Command{
 			table := tablewriter.NewWriter(os.Stdout)
 			table.Header([]string{"Name", "Submission Date"})
 			for _, p := range pendings {
-				table.Append([]string{p.NodeName, p.SubmittedAt.String()})
+				if err := table.Append([]string{p.NodeName, p.SubmittedAt.String()}); err != nil {
+					logrus.Fatal(err)
+				}
 			}
-			table.Render()
+			if err := table.Render(); err != nil {
+				logrus.Fatal(err)
+			}
 		}
 	},
 }
@@ -165,9 +173,13 @@ var caListSignedCmd = &cobra.Command{
 			table := tablewriter.NewWriter(os.Stdout)
 			table.Header([]string{"Name", "Signature Date"})
 			for _, p := range signeds {
-				table.Append([]string{p.NodeName, p.SignedAt.String()})
+				if err := table.Append([]string{p.NodeName, p.SignedAt.String()}); err != nil {
+					logrus.Fatal(err)
+				}
 			}
-			table.Render()
+			if err := table.Render(); err != nil {
+				logrus.Fatal(err)
+			}
 		}
 
 	},

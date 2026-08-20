@@ -10,7 +10,7 @@ func (c *Client) DownloadFile(filePath string, outputFile string) error {
 	if err != nil {
 		if errors.As(err, &HttpError{}) {
 			detailedError, _ := err.(HttpError)
-			return fmt.Errorf("Status code : %d. Details : %+v", detailedError.StatusCode, detailedError.ErrorBody)
+			return fmt.Errorf("status code : %d. details : %+v", detailedError.StatusCode, detailedError.ErrorBody)
 		} else {
 			return err
 		}

@@ -47,7 +47,9 @@ func (d *DirectoryResource) changePermissionsIfNeeded() (bool, error) {
 				stat.Mode(),
 			),
 		)
-		os.Chmod(d.Data.Path, d.Data.Mode)
+		if err := os.Chmod(d.Data.Path, d.Data.Mode); err != nil {
+			return didSomething, err
+		}
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
@@ -108,7 +110,9 @@ func (d *DirectoryResource) changeOwnershipIfNeeded() (bool, error) {
 				groupName,
 			),
 		)
-		os.Chown(d.Data.Path, expectedUid, expectedGid)
+		if err := os.Chown(d.Data.Path, expectedUid, expectedGid); err != nil {
+			return didSomething, err
+		}
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(

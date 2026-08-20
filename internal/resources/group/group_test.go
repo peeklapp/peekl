@@ -32,7 +32,10 @@ func TestCreateAndDeleteGroup(t *testing.T) {
 		}
 
 		context := models.ResourceContext{}
-		groupRes.Process(&context)
+		_, err = groupRes.Process(&context)
+		if err != nil {
+			t.Errorf("Process should not have returned any error")
+		}
 
 		_, err = user.LookupGroup("peekl")
 		if err != nil {
@@ -64,7 +67,10 @@ func TestCreateAndDeleteGroup(t *testing.T) {
 		}
 
 		context := models.ResourceContext{}
-		groupRes.Process(&context)
+		_, err = groupRes.Process(&context)
+		if err != nil {
+			t.Errorf("Process should not have returned any error")
+		}
 
 		_, err = user.LookupGroup("peekl")
 		if err == nil {

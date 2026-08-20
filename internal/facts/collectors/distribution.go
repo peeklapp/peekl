@@ -11,12 +11,12 @@ import (
 
 func getOsReleaseContent() (string, error) {
 	if !utils.FileExist("/etc/os-release", nil) {
-		return "", fmt.Errorf("Error while trying to read file content for distribution facts data : '/etc/os-release' file does not exist")
+		return "", fmt.Errorf("error while trying to read file content for distribution facts data : '/etc/os-release' file does not exist")
 	}
 
 	data, err := os.ReadFile("/etc/os-release")
 	if err != nil {
-		return "", fmt.Errorf("Error while trying to read file content for distribution facts data : %s", err.Error())
+		return "", fmt.Errorf("error while trying to read file content for distribution facts data : %s", err.Error())
 	}
 
 	return string(data), nil

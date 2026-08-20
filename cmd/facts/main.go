@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/peeklapp/peekl/cmd/facts/commands"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,9 @@ var rootCmd = &cobra.Command{
 	Short: "peekl-facts is an utility that allows you to collect facts about a node.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			cmd.Help()
+			if err := cmd.Help(); err != nil {
+				logrus.Fatal(err)
+			}
 			os.Exit(0)
 		}
 	},
@@ -25,7 +27,7 @@ var rootCmd = &cobra.Command{
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logrus.Fatal(err)
 		os.Exit(1)
 	}
 }

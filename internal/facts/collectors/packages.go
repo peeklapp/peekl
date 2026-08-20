@@ -34,7 +34,7 @@ func GetPackagesByCollector(collector string) ([]models.Package, error) {
 	case "dpkg":
 		rawPackageList, err = dpkg.GetInstalledPackagesList()
 	default:
-		return nil, fmt.Errorf("Unknown package collection method : %s", collector)
+		return nil, fmt.Errorf("unknown package collection method : %s", collector)
 	}
 
 	if err != nil {
@@ -63,7 +63,7 @@ func GetPackagesByDistro(distro string) ([]models.Package, error) {
 	case "rpm":
 		pkgs, err = GetPackagesByCollector("rpm")
 	default:
-		return nil, fmt.Errorf("Could not find any collector for provided distro : %s", err)
+		return nil, fmt.Errorf("could not find any collector for provided distro : %s", err)
 	}
 
 	if err != nil {

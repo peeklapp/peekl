@@ -43,7 +43,7 @@ func processLsblkOutput(lsblkOutput string) ([]models.Disk, error) {
 	var rawLsblkData RawLsblkData
 	err := json.Unmarshal([]byte(lsblkOutput), &rawLsblkData)
 	if err != nil {
-		return nil, fmt.Errorf("An error happened while deserializing disks data : %s", err.Error())
+		return nil, fmt.Errorf("an error happened while deserializing disks data : %s", err.Error())
 	}
 	return rawLsblkData.Blockdevices, nil
 }

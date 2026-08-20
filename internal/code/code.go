@@ -17,7 +17,7 @@ func GetHighestIdInEnvironment(environmentFolder string) (int, error) {
 		return 0, err
 	}
 
-	var maxValue int = -1
+	maxValue := -1
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue

@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/goccy/go-yaml"
+	yaml "github.com/goccy/go-yaml"
 )
 
 type VariablesSourceType int

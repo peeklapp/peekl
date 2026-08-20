@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/goccy/go-yaml"
+	yaml "github.com/goccy/go-yaml"
 	"github.com/peeklapp/peekl/internal/models"
 	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/peeklapp/peekl/internal/variables"
@@ -36,7 +36,7 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 	mainFile, err := os.ReadFile(filepath.Join(rolePath, "main.yml"))
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return &role, fmt.Errorf("Could not find any main.yml file in the %s role.", roleName)
+			return &role, fmt.Errorf("could not find any main.yml file in the %s role", roleName)
 		} else {
 			return &role, err
 		}
@@ -66,7 +66,7 @@ func LoadRoleFromCode(codePath string, roleName string) (*models.Role, error) {
 			rawExtraFile, err := os.ReadFile(filepath.Join(rolePath, fmt.Sprintf("%s.yml", extraFile.Name)))
 			if err != nil {
 				if errors.Is(err, os.ErrNotExist) {
-					return &role, fmt.Errorf("The include `%s` in role `%s` could not be found.", extraFile.Name, roleName)
+					return &role, fmt.Errorf("the include `%s` in role `%s` could not be found", extraFile.Name, roleName)
 				} else {
 					return &role, err
 				}

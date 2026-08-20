@@ -51,7 +51,7 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 	if !utils.FileExist(c.Data.CronFolder, nil) {
 		result.Failed = true
 		return result, fmt.Errorf(
-			"The cron folder provided does not seem to exist : %s",
+			"the cron folder provided does not seem to exist : %s",
 			c.Data.CronFolder,
 		)
 	}
@@ -113,7 +113,10 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 	}
 
 	if utils.FileExist(cronFilePath, nil) {
-		os.Remove(cronFilePath)
+		if err := os.Remove(cronFilePath); err != nil {
+			result.Failed = true
+			return result, err
+		}
 	}
 	result.Deleted = true
 	return result, nil

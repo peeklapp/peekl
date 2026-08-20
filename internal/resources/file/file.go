@@ -51,7 +51,9 @@ func (f *FileResource) changePermissionsIfNeeded() (bool, error) {
 				stat.Mode(),
 			),
 		)
-		os.Chmod(f.Data.Path, f.Data.Mode)
+		if err := os.Chmod(f.Data.Path, f.Data.Mode); err != nil {
+			return didSomething, err
+		}
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
@@ -111,7 +113,9 @@ func (f *FileResource) changeOwnershipIfNeeded() (bool, error) {
 				groupName,
 			),
 		)
-		os.Chown(f.Data.Path, expectedUid, expectedGid)
+		if err := os.Chown(f.Data.Path, expectedUid, expectedGid); err != nil {
+			return didSomething, err
+		}
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
@@ -136,19 +140,25 @@ func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 	if err != nil {
 		return didSomething, err
 	}
-	defer file.Close()
+	defer utils.CloseWithoutError(file)
 
 	// Then we create MD5 object of file
 	localFileHasher := md5.New()
 
-	file.Seek(0, 0)
+	if _, err := file.Seek(0, 0); err != nil {
+		return didSomething, err
+	}
+
 	if _, err := io.Copy(localFileHasher, file); err != nil {
 		return didSomething, err
 	}
 
 	// Then we create MD5 object of content
 	contentHasher := md5.New()
-	io.WriteString(contentHasher, content)
+	_, err = io.WriteString(contentHasher, content)
+	if err != nil {
+		return didSomething, err
+	}
 
 	localFileMD5Value := hex.EncodeToString(localFileHasher.Sum(nil))
 	contentMD5Value := hex.EncodeToString(contentHasher.Sum(nil))
@@ -189,13 +199,19 @@ func (f *FileResource) create(content string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer utils.CloseWithoutError(file)
 
 	// Write content to file
-	file.Write([]byte(content))
+	_, err = file.Write([]byte(content))
+	if err != nil {
+		return err
+	}
 
 	// Change mode of file
-	file.Chmod(f.Data.Mode)
+	err = file.Chmod(f.Data.Mode)
+	if err != nil {
+		return err
+	}
 
 	// Set owner and group
 	uid, err := utils.GetUserUidFromUsername(f.Data.Owner)
@@ -206,9 +222,13 @@ func (f *FileResource) create(content string) error {
 	if err != nil {
 		return err
 	}
-	file.Chown(uid, gid)
 
-	return nil
+	err = file.Chown(uid, gid)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 func (f *FileResource) delete() error {

@@ -14,8 +14,8 @@ import (
 	"github.com/peeklapp/peekl/internal/resources/file"
 	"github.com/peeklapp/peekl/internal/resources/group"
 	"github.com/peeklapp/peekl/internal/resources/pkg"
-	"github.com/peeklapp/peekl/internal/resources/systemd_daemon"
-	"github.com/peeklapp/peekl/internal/resources/systemd_service"
+	systemdDaemon "github.com/peeklapp/peekl/internal/resources/systemd_daemon"
+	systemdService "github.com/peeklapp/peekl/internal/resources/systemd_service"
 	"github.com/peeklapp/peekl/internal/resources/template"
 	"github.com/peeklapp/peekl/internal/resources/user"
 	"github.com/sirupsen/logrus"
@@ -42,12 +42,12 @@ func orderRoles(roles []models.Role) ([]models.Role, error) {
 		}
 
 		if visitingRole[name] {
-			return fmt.Errorf("Detected a cycle dependency with role : '%s'", name)
+			return fmt.Errorf("detected a cycle dependency with role : '%s'", name)
 		}
 
 		role, ok := roleByName[name]
 		if !ok {
-			return fmt.Errorf("Detected a dependency to a role that either does not exist or is not imported for this node : '%s'", name)
+			return fmt.Errorf("detected a dependency to a role that either does not exist or is not imported for this node : '%s'", name)
 		}
 
 		visitingRole[name] = true
@@ -100,7 +100,7 @@ func shouldNotSkipResource(res models.LoadedResource, resContext *models.Resourc
 	if b, ok := output.(bool); ok {
 		return b, nil
 	}
-	return false, fmt.Errorf("'when' condition for res '%s' did not return a boolean !", res.String())
+	return false, fmt.Errorf("'when' condition for res '%s' did not return a boolean", res.String())
 }
 
 func processResources(resources []models.LoadedResource, resContext *models.ResourceContext, catalogResult *CatalogResult) error {
@@ -302,7 +302,7 @@ func (c *Catalog) loadRoles(roles []models.Role) error {
 		// Handle main resources
 		loadedMainResources, err := c.loadResources(role.Resources, &models.RoleContext{RoleName: role.Name})
 		if err != nil {
-			return fmt.Errorf("Failed loading resource in role %s : %s", role.Name, err.Error())
+			return fmt.Errorf("failed loading resource in role %s : %s", role.Name, err.Error())
 		}
 		role.LoadedResources = loadedMainResources
 
@@ -310,7 +310,7 @@ func (c *Catalog) loadRoles(roles []models.Role) error {
 		for key, include := range role.IncludedResources {
 			loadedIncludedResources, err := c.loadResources(include.Resources, &models.RoleContext{RoleName: role.Name})
 			if err != nil {
-				return fmt.Errorf("Failed loading resource in role %s : %s", role.Name, err.Error())
+				return fmt.Errorf("failed loading resource in role %s : %s", role.Name, err.Error())
 			}
 			include.LoadedResources = loadedIncludedResources
 			role.IncludedResources[key] = include
@@ -351,7 +351,7 @@ func (c *Catalog) loadSingleResource(resource models.Resource, dataField map[str
 	case "builtin.cron":
 		return cron.NewCronResource(&resource, dataField, roleContext)
 	}
-	return nil, fmt.Errorf("Unknown resource type : %s", resource.Type)
+	return nil, fmt.Errorf("unknown resource type : %s", resource.Type)
 }
 
 func (c *Catalog) loadResources(resources []models.Resource, roleContext *models.RoleContext) ([]models.LoadedResource, error) {
@@ -362,7 +362,7 @@ func (c *Catalog) loadResources(resources []models.Resource, roleContext *models
 				loadedRes, err := c.loadSingleResource(res, res.With[dataFieldId], roleContext)
 				if err != nil {
 					return loadedResources, fmt.Errorf(
-						"An error happened while trying to load resource '%s' of type '%s' : %s",
+						"an error happened while trying to load resource '%s' of type '%s' : %s",
 						res.Title,
 						res.Type,
 						err.Error(),
@@ -374,7 +374,7 @@ func (c *Catalog) loadResources(resources []models.Resource, roleContext *models
 			loadedRes, err := c.loadSingleResource(res, res.Data, roleContext)
 			if err != nil {
 				return loadedResources, fmt.Errorf(
-					"An error happened while trying to load resource '%s' of type '%s' : %s",
+					"an error happened while trying to load resource '%s' of type '%s' : %s",
 					res.Title,
 					res.Type,
 					err.Error(),

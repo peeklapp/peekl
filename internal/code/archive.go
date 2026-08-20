@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/klauspost/compress/zstd"
+	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -52,7 +53,7 @@ func addFileToArchive(rootDirectory string, path string, archiveWriter *tar.Writ
 	if err != nil {
 		return err
 	}
-	defer fileData.Close()
+	defer utils.CloseWithoutError(fileData)
 
 	_, err = io.Copy(archiveWriter, fileData)
 	if err != nil {
@@ -91,7 +92,7 @@ func addDirectoryToArchive(rootDirectory string, archiveWriter *tar.Writer, dire
 			if err != nil {
 				return err
 			}
-			defer fileData.Close()
+			defer utils.CloseWithoutError(fileData)
 
 			if _, err := io.Copy(archiveWriter, fileData); err != nil {
 				return err
@@ -114,9 +115,9 @@ func GenerateCodeArchive(codeFolder string, outputFolder string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	defer zstdWriter.Close()
-	defer archiveWriter.Close()
+	defer utils.CloseWithoutError(file)
+	defer utils.CloseWithoutError(zstdWriter)
+	defer utils.CloseWithoutError(archiveWriter)
 
 	logrus.Debug("Generating global tarball")
 	includedDirRegex := regexp.MustCompile("^(inventory/groups|roles|variables/groups).+")
@@ -149,9 +150,9 @@ func GenerateNodesArchives(codeFolder, outputFolder string) error {
 		if err != nil {
 			return err
 		}
-		defer file.Close()
-		defer zstdWriter.Close()
-		defer archiveWriter.Close()
+		defer utils.CloseWithoutError(file)
+		defer utils.CloseWithoutError(zstdWriter)
+		defer utils.CloseWithoutError(archiveWriter)
 
 		err = addFileToArchive(codeFolder, filepath.Join(codeFolder, "inventory/nodes", nodeInvFile.Name()), archiveWriter, nodeFileInfo)
 		if err != nil {
@@ -180,20 +181,20 @@ func GenerateNodesArchives(codeFolder, outputFolder string) error {
 func DecompressArchive(tarballPath string, outputDir string) error {
 	tarball, err := os.Open(tarballPath)
 	if err != nil {
-		return fmt.Errorf("Could not read tarball due the following error : %s", err.Error())
+		return fmt.Errorf("could not read tarball due the following error : %s", err.Error())
 	}
-	defer tarball.Close()
+	defer utils.CloseWithoutError(tarball)
 
 	zstdReader, err := zstd.NewReader(tarball)
 	if err != nil {
-		return fmt.Errorf("Could not create a Zstd reader due to the following error : %s", err.Error())
+		return fmt.Errorf("could not create a Zstd reader due to the following error : %s", err.Error())
 	}
 	defer zstdReader.Close()
 
 	tarReader := tar.NewReader(zstdReader)
 
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
-		return fmt.Errorf("Could not create output dir due to the following error : %s", err.Error())
+		return fmt.Errorf("could not create output dir due to the following error : %s", err.Error())
 	}
 
 	for {
@@ -202,7 +203,7 @@ func DecompressArchive(tarballPath string, outputDir string) error {
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("An error happened while to read tar entry : %s", err.Error())
+			return fmt.Errorf("an error happened while to read tar entry : %s", err.Error())
 		}
 
 		target := filepath.Join(outputDir, filepath.Clean("/"+header.Name))
@@ -210,27 +211,26 @@ func DecompressArchive(tarballPath string, outputDir string) error {
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
-				return fmt.Errorf("Could not create directory '%s' locally : %s", target, err.Error())
+				return fmt.Errorf("could not create directory '%s' locally : %s", target, err.Error())
 			}
 		case tar.TypeReg:
 			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-				return fmt.Errorf("Could not create parent directory '%s' locally : %s", target, err.Error())
+				return fmt.Errorf("could not create parent directory '%s' locally : %s", target, err.Error())
 			}
 
 			out, err := os.OpenFile(target, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(header.Mode))
 			if err != nil {
-				return fmt.Errorf("An error happened while trying to create file '%s' locally : %s", target, err.Error())
+				return fmt.Errorf("an error happened while trying to create file '%s' locally : %s", target, err.Error())
 			}
+			defer utils.CloseWithoutError(out)
 
 			if _, err := io.Copy(out, tarReader); err != nil {
-				out.Close()
-				return fmt.Errorf("An error happened while writing to file '%s' : %s", target, err.Error())
+				return fmt.Errorf("an error happened while writing to file '%s' : %s", target, err.Error())
 			}
-			out.Close()
 		default:
-			return fmt.Errorf("Unsupported tar entry type '%v' for file '%s'", header.Typeflag, header.Name)
+			return fmt.Errorf("unsupported tar entry type '%v' for file '%s'", header.Typeflag, header.Name)
 		}
 	}
 
-	return nil
+	return err
 }

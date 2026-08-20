@@ -19,10 +19,13 @@ func GetMd5CheckumForFile(filePath string, root *os.Root) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer CloseWithoutError(file)
 
 	hasher := md5.New()
-	file.Seek(0, 0)
+	if _, err := file.Seek(0, 0); err != nil {
+		return "", err
+	}
+
 	if _, err := io.Copy(hasher, file); err != nil {
 		return "", err
 	}

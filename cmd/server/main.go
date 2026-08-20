@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/peeklapp/peekl/cmd/server/commands"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/peeklapp/peekl/cmd/server/commands"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
@@ -11,7 +13,9 @@ var rootCmd = &cobra.Command{
 	Short: "peekl-server is the server component of the Peekl suite.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			cmd.Help()
+			if err := cmd.Help(); err != nil {
+				logrus.Fatal(err)
+			}
 			os.Exit(0)
 		}
 	},

@@ -14,7 +14,7 @@ func TestGenerateNodesArchives(t *testing.T) {
 	if err != nil {
 		t.Errorf("Returned an error during temporary directory creation : %s", err.Error())
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	// Generate archive
 	err = GenerateNodesArchives("testdata/uncompressed", tempDir)
@@ -34,7 +34,7 @@ func TestGenerateCodeArchive(t *testing.T) {
 	if err != nil {
 		t.Errorf("Returned an error during temporary directory creation : %s", err.Error())
 	}
-	defer os.RemoveAll(tempDir)
+	defer os.RemoveAll(tempDir) //nolint:errcheck
 
 	// Generate archive
 	err = GenerateCodeArchive("testdata/uncompressed", tempDir)
