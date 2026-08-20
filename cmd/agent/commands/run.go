@@ -77,7 +77,7 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 
 	// Getting what to download
 	logrus.Debug("Getting URL path for tarballs")
-	nodeTarballUrl, nodeTarballHash, codeTarballUrl, codeTarballHash, err := client.InquiryForCatalog(environment)
+	nodeTarballUrl, nodeTarballHash, codeTarballUrl, codeTarballHash, err := client.GetCatalog(environment)
 	if err != nil {
 		logrus.Fatal(err)
 	}
