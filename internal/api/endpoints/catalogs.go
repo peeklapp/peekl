@@ -13,9 +13,9 @@ import (
 	"github.com/peeklapp/peekl/internal/filecache"
 )
 
-func NewPostInquiryForCatalog(dataRoot *os.Root, filecache *filecache.FileCache) fiber.Handler {
+func NewPostGetCatalog(dataRoot *os.Root, filecache *filecache.FileCache) fiber.Handler {
 	return func(ctx fiber.Ctx) error {
-		var input requests.InquiryForCatalog
+		var input requests.GetCatalog
 		if err := ctx.Bind().Body(&input); err != nil {
 			return ctx.Status(400).JSON(responses.ErrorResponse{
 				Error:   "Body Invalid",
@@ -76,7 +76,7 @@ func NewPostInquiryForCatalog(dataRoot *os.Root, filecache *filecache.FileCache)
 			}
 		}
 
-		return ctx.Status(200).JSON(responses.InquiryForCatalog{
+		return ctx.Status(200).JSON(responses.GetCatalog{
 			NodeTarball: responses.FileResponseEntry{
 				Path: fmt.Sprintf("v1/data/%s/%s/nodes/%s%s", input.Environment, latestId, nodeName, code.TarballExtension),
 				Hash: nodeFileInfo.Hash,

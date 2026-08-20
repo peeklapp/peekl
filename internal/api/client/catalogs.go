@@ -8,10 +8,10 @@ import (
 	"github.com/peeklapp/peekl/internal/api/responses"
 )
 
-func (c *Client) InquiryForCatalog(environment string) (string, string, string, string, error) {
+func (c *Client) GetCatalog(environment string) (string, string, string, string, error) {
 	endpoint := "/v1/catalogs/catalog"
-	body := requests.InquiryForCatalog{Environment: environment}
-	var resp responses.InquiryForCatalog
+	body := requests.GetCatalog{Environment: environment}
+	var resp responses.GetCatalog
 
 	err := c.post(endpoint, body, &resp)
 	if err != nil {

@@ -60,7 +60,7 @@ func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEn
 	catalogsFilecache := filecache.New()
 
 	// -- Catalogs group endpoints
-	catalogsGroup.Post("/catalog", endpoints.NewPostInquiryForCatalog(dataRoot, catalogsFilecache))
+	catalogsGroup.Post("/catalog", endpoints.NewPostGetCatalog(dataRoot, catalogsFilecache))
 
 	// Data group
 	dataGroup := v1.Group("data")
