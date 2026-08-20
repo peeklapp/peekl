@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/goccy/go-yaml"
+	yaml "github.com/goccy/go-yaml"
 	"github.com/mitchellh/mapstructure"
 	"github.com/peeklapp/peekl/internal/models"
 	"github.com/peeklapp/peekl/internal/utils"
@@ -208,7 +208,9 @@ func NewServerConfiguration(configFilePath string) (*ServerConfig, error) {
 	}
 
 	// Override any defaults with the configuration file
-	err = mapstructure.Decode(rawYaml, &config)
+	if err = mapstructure.Decode(rawYaml, &config); err != nil {
+		return &config, err
+	}
 
 	// Validate the configuration
 	if err = config.Validate(); err != nil {

@@ -67,7 +67,7 @@ func BootstrapAgent(agentConfig *config.AgentConfig) error {
 	if err != nil {
 		return err
 	}
-	defer caFile.Close()
+	defer utils.CloseWithoutError(caFile)
 
 	_, err = caFile.Write([]byte(rootCa))
 	if err != nil {
@@ -101,7 +101,7 @@ func BootstrapAgent(agentConfig *config.AgentConfig) error {
 	if err != nil {
 		return err
 	}
-	defer bootstrapPendingFile.Close()
+	defer utils.CloseWithoutError(bootstrapPendingFile)
 
 	return nil
 }
@@ -142,7 +142,7 @@ func TryFetchCertificateFromServer(agentConfig *config.AgentConfig) (bool, error
 			if err != nil {
 				return succes, err
 			}
-			defer crtFile.Close()
+			defer utils.CloseWithoutError(crtFile)
 			_, err = crtFile.Write([]byte(crt))
 			if err != nil {
 				return succes, err
@@ -159,7 +159,7 @@ func TryFetchCertificateFromServer(agentConfig *config.AgentConfig) (bool, error
 		if err != nil {
 			return succes, err
 		}
-		defer bootstrapDoneFile.Close()
+		defer utils.CloseWithoutError(bootstrapDoneFile)
 
 		succes = true
 	}

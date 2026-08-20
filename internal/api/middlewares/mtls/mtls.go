@@ -3,7 +3,7 @@ package mtls
 import (
 	"crypto/x509"
 
-	"github.com/gofiber/fiber/v3"
+	fiber "github.com/gofiber/fiber/v3"
 	"github.com/peeklapp/peekl/internal/api/responses"
 	"github.com/peeklapp/peekl/internal/certs"
 )
@@ -34,20 +34,18 @@ func New(caPath string) (fiber.Handler, error) {
 
 		// Check if any certificate has been provided
 		if len(peerCertificates) == 0 {
-			ctx.Status(403).JSON(responses.ErrorResponse{
+			return ctx.Status(403).JSON(responses.ErrorResponse{
 				Error:   "No certificate provided",
 				Details: "You have not provided any certificate with your request.",
 			})
-			return nil
 		}
 
 		// Check if the certificate is valid
 		if _, err := peerCertificates[0].Verify(verifyOptions); err != nil {
-			ctx.Status(403).JSON(responses.ErrorResponse{
+			return ctx.Status(403).JSON(responses.ErrorResponse{
 				Error:   "Certificate invalid",
 				Details: "The certificate that has been sent is not valid.",
 			})
-			return nil
 		}
 
 		// TODO: IMPLEMENT CRL ?

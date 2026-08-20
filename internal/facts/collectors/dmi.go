@@ -42,7 +42,7 @@ func GetDmiData() (models.DmiData, error) {
 				if errors.Is(err, os.ErrNotExist) {
 					continue
 				}
-				return dmiData, fmt.Errorf("Error while trying to read file for DMI data : %s", err.Error())
+				return dmiData, fmt.Errorf("error while trying to read file for DMI data : %s", err.Error())
 			}
 			rawStruct[types[iType].Name] = map[string]any{tag: string(data)}
 		}
@@ -50,7 +50,7 @@ func GetDmiData() (models.DmiData, error) {
 
 	err := mapstructure.Decode(rawStruct, &dmiData)
 	if err != nil {
-		return dmiData, fmt.Errorf("Error while decoding raw data into struct : %s", err.Error())
+		return dmiData, fmt.Errorf("error while decoding raw data into struct : %s", err.Error())
 	}
 
 	return dmiData, nil

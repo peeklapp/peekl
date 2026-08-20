@@ -3,7 +3,7 @@ package config
 import (
 	"os"
 
-	"github.com/goccy/go-yaml"
+	yaml "github.com/goccy/go-yaml"
 	"github.com/mitchellh/mapstructure"
 	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/sirupsen/logrus"
@@ -94,13 +94,14 @@ func NewAgentConfiguration(configFilePath string) (*AgentConfig, error) {
 	}
 
 	var rawYaml map[string]any
-	err = yaml.Unmarshal(data, &rawYaml)
-	if err != nil {
+	if err = yaml.Unmarshal(data, &rawYaml); err != nil {
 		return &config, err
 	}
 
 	// Override any defaults with the configuration file
-	err = mapstructure.Decode(rawYaml, &config)
+	if err = mapstructure.Decode(rawYaml, &config); err != nil {
+		return &config, err
+	}
 
 	return &config, nil
 }

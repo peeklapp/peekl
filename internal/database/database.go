@@ -25,7 +25,7 @@ func (c *DatabaseEngine) InsertPendingCertificate(nodeName string, csrData strin
 
 	_, err := c.DB.Exec(queries[c.DBType], nodeName, csrData)
 	if err != nil {
-		return fmt.Errorf("Could not insert pending certificate in database : %s", err.Error())
+		return fmt.Errorf("could not insert pending certificate in database : %s", err.Error())
 	}
 	return nil
 }
@@ -59,7 +59,7 @@ func (c *DatabaseEngine) ListPendingCertificates() ([]models.PendingCertificate,
 	if err != nil {
 		return pendCerts, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	for rows.Next() {
 		var s models.PendingCertificate
@@ -93,7 +93,7 @@ func (c *DatabaseEngine) InsertSignedCertificate(nodeName string, csrSignature s
 	}
 	_, err := c.DB.Exec(queries[c.DBType], nodeName, csrSignature, certificate)
 	if err != nil {
-		return fmt.Errorf("Could not insert signed certificate in database : %s", err.Error())
+		return fmt.Errorf("could not insert signed certificate in database : %s", err.Error())
 	}
 	return nil
 }
@@ -124,7 +124,7 @@ func (c *DatabaseEngine) ListSignedCertificates() ([]models.SignedCertificate, e
 	if err != nil {
 		return signedCerts, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	for rows.Next() {
 		var s models.SignedCertificate
@@ -199,6 +199,9 @@ func NewDatabaseEngine(databaseConfig *config.DatabaseConfig) (*DatabaseEngine, 
 	var engine DatabaseEngine
 
 	db, err := sql.Open(databaseConfig.Type, databaseConfig.ToDSN())
+	if err != nil {
+		return &engine, err
+	}
 
 	_, err = db.Exec(databaseSchema(databaseConfig.Type))
 	if err != nil {

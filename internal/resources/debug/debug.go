@@ -24,7 +24,11 @@ type DebugResource struct {
 func (d *DebugResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
-	factsMap := facts.FactsToMap(*context.Facts)
+	factsMap, err := facts.FactsToMap(*context.Facts)
+	if err != nil {
+		result.Failed = true
+		return result, err
+	}
 	variables := context.Variables
 	variables["facts"] = factsMap
 

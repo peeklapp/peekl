@@ -14,6 +14,7 @@ import (
 
 	"github.com/peeklapp/peekl/internal/api/responses"
 	"github.com/peeklapp/peekl/internal/config"
+	"github.com/peeklapp/peekl/internal/utils"
 )
 
 type Client struct {
@@ -100,7 +101,7 @@ func (c *Client) get(endpoint string, out any, destPath string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer utils.CloseWithoutError(resp.Body)
 
 	// Make sure response is ok, if not process it
 	if resp.StatusCode > 299 {
@@ -122,7 +123,7 @@ func (c *Client) get(endpoint string, out any, destPath string) error {
 		if err != nil {
 			return err
 		}
-		defer outputFile.Close()
+		defer utils.CloseWithoutError(outputFile)
 
 		_, err = io.Copy(outputFile, resp.Body)
 		return err
@@ -161,7 +162,7 @@ func (c *Client) post(endpoint string, body any, out any) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer utils.CloseWithoutError(resp.Body)
 
 	if resp.StatusCode > 299 {
 		// Get body of request (contains error details)

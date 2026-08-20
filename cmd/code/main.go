@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/peeklapp/peekl/cmd/code/commands"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +13,9 @@ var rootCmd = &cobra.Command{
 	Short: "peekl-code is used to sync the code base of Peekl with distant.",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			cmd.Help()
+			if err := cmd.Help(); err != nil {
+				logrus.Fatal(err)
+			}
 			os.Exit(0)
 		}
 	},

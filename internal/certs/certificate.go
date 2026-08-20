@@ -13,6 +13,8 @@ import (
 	"math/big"
 	"os"
 	"time"
+
+	"github.com/peeklapp/peekl/internal/utils"
 )
 
 const SERIAL_NUMBER_LIMIT = 128
@@ -62,13 +64,16 @@ func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, o
 
 	// Generate actual certificate
 	certBytes, err := x509.CreateCertificate(rand.Reader, &certValues, loadedCa, certPubKey, loadedCaKey)
+	if err != nil {
+		return err
+	}
 
 	// Create CRT file on disk
 	crtOut, err := os.Create(outCertFilePath)
 	if err != nil {
 		return nil
 	}
-	defer crtOut.Close()
+	defer utils.CloseWithoutError(crtOut)
 
 	// Write CRT to file
 	if err := pem.Encode(crtOut, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes}); err != nil {
@@ -86,7 +91,7 @@ func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, o
 	if err != nil {
 		return err
 	}
-	defer csrKeyOut.Close()
+	defer utils.CloseWithoutError(csrKeyOut)
 
 	// Write private key to file
 	if err := pem.Encode(csrKeyOut, &pem.Block{Type: "ECDSA PRIVATE KEY", Bytes: marshalledCsrKey}); err != nil {
@@ -146,7 +151,7 @@ func CreateCertificateSigningRequest(nodeName string, keyFileOutput string, csrF
 	if err != nil {
 		return nil
 	}
-	defer csrOut.Close()
+	defer utils.CloseWithoutError(csrOut)
 
 	// Write CSR to file
 	if err := pem.Encode(csrOut, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes}); err != nil {
@@ -164,7 +169,7 @@ func LoadCertificateFromFile(certificateFile string) (*x509.Certificate, error) 
 
 	certificatePem, _ := pem.Decode(certificateBytes)
 	if certificatePem == nil {
-		return &x509.Certificate{}, fmt.Errorf("Could not decode certificate bytes")
+		return &x509.Certificate{}, fmt.Errorf("could not decode certificate bytes")
 	}
 
 	certificate, err := x509.ParseCertificate(certificatePem.Bytes)
@@ -183,7 +188,7 @@ func LoadPKCS8PrivateKeyFromFile(privateKeyFile string) (*ecdsa.PrivateKey, erro
 
 	privPem, _ := pem.Decode(privateKeyBytes)
 	if privPem == nil {
-		return &ecdsa.PrivateKey{}, fmt.Errorf("Could not decode EC private key bytes")
+		return &ecdsa.PrivateKey{}, fmt.Errorf("could not decode EC private key bytes")
 	}
 
 	privateKey, err := x509.ParsePKCS8PrivateKey(privPem.Bytes)
@@ -196,13 +201,13 @@ func LoadPKCS8PrivateKeyFromFile(privateKeyFile string) (*ecdsa.PrivateKey, erro
 		return privateKey, nil
 	}
 
-	return &ecdsa.PrivateKey{}, fmt.Errorf("The key was not of type ECDSA")
+	return &ecdsa.PrivateKey{}, fmt.Errorf("the key was not of type ECDSA")
 }
 
 func LoadCertificateSigningRequest(csrData string) (*x509.CertificateRequest, error) {
 	csrPem, _ := pem.Decode([]byte(csrData))
 	if csrPem == nil {
-		return &x509.CertificateRequest{}, fmt.Errorf("Could not decode CSR Bytes")
+		return &x509.CertificateRequest{}, fmt.Errorf("could not decode CSR Bytes")
 	}
 
 	certificateRequest, err := x509.ParseCertificateRequest(csrPem.Bytes)

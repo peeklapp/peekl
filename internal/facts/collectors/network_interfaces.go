@@ -39,7 +39,7 @@ func processIpOutput(rawInterfaces string) ([]models.NetworkInterface, error) {
 	var networkInterfaces []models.NetworkInterface
 	err := json.Unmarshal([]byte(rawInterfaces), &networkInterfaces)
 	if err != nil {
-		return networkInterfaces, fmt.Errorf("An error happened while deserializing network interfaces data : %s", err.Error())
+		return networkInterfaces, fmt.Errorf("an error happened while deserializing network interfaces data : %s", err.Error())
 	}
 	return networkInterfaces, nil
 }

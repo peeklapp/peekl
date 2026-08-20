@@ -89,7 +89,7 @@ func Clean(conf *config.CodeConfig) error {
 	logrus.Info("Finding list of existing environments")
 	existingEnvironments, err := getListOfEnvironments(conf.CodeFolder)
 	if err != nil {
-		return fmt.Errorf("Could not obtain list of environments : %s", err.Error())
+		return fmt.Errorf("could not obtain list of environments : %s", err.Error())
 	}
 
 	for _, env := range existingEnvironments {
@@ -97,7 +97,7 @@ func Clean(conf *config.CodeConfig) error {
 		logrus.Infof("Finding list of folders to be deleted for environment '%s'", env)
 		dirsToDelete, err := findDirsToDelete(environmentPath, conf.Keep)
 		if err != nil {
-			return fmt.Errorf("Could not obtain the list of folders to delete : %s", err.Error())
+			return fmt.Errorf("could not obtain the list of folders to delete : %s", err.Error())
 		}
 		logrus.Info(fmt.Sprintf("Found %d stale folder to delete.", len(dirsToDelete)))
 

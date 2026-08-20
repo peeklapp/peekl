@@ -71,7 +71,7 @@ func BootstrapServer(serverConfig *config.ServerConfig) error {
 	if err != nil {
 		return err
 	}
-	defer bootstrapDoneFile.Close()
+	defer utils.CloseWithoutError(bootstrapDoneFile)
 
 	return nil
 }

@@ -66,6 +66,8 @@ var RunCmd = &cobra.Command{
 		}
 
 		// Start server
-		engine.Listener(tlsListener)
+		if err = engine.Listener(tlsListener); err != nil {
+			logrus.Fatal(err)
+		}
 	},
 }

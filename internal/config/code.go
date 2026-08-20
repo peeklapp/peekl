@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/goccy/go-yaml"
+	yaml "github.com/goccy/go-yaml"
 	"github.com/mitchellh/mapstructure"
 	"github.com/peeklapp/peekl/internal/models"
 	"github.com/peeklapp/peekl/internal/utils"
@@ -51,7 +51,7 @@ func (c *CodeConfig) Validate() error {
 
 func NewCodeConfiguration(configFilePath string) (*CodeConfig, error) {
 	if !utils.FileExist(configFilePath, nil) {
-		return nil, fmt.Errorf("No configuration file found at provided path : %s", configFilePath)
+		return nil, fmt.Errorf("no configuration file found at provided path : %s", configFilePath)
 	}
 
 	var config CodeConfig

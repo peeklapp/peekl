@@ -9,9 +9,12 @@ import (
 )
 
 func init() {
-	DeleteCmd.Flags().StringP("environment", "e", "", "Environment to delete from server")
 	DeleteCmd.Flags().BoolP("force", "f", false, "Ignore the 'production' branch protection")
-	DeleteCmd.MarkFlagRequired("environment")
+	DeleteCmd.Flags().StringP("environment", "e", "", "Environment to delete from server")
+	err := DeleteCmd.MarkFlagRequired("environment")
+	if err != nil {
+		logrus.Fatal(err)
+	}
 }
 
 var DeleteCmd = &cobra.Command{

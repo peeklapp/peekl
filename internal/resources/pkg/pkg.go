@@ -117,6 +117,10 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 		}
 		// Update the installed packages list
 		installedPackages, err = p.Data.installer.ListInstalledPackages()
+		if err != nil {
+			result.Failed = true
+			return result, err
+		}
 
 		// Find any packages without the good version
 		var packagesWithWrongVersion []models.Package

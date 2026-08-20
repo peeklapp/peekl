@@ -27,18 +27,18 @@ func init() {
 }
 
 func isLocked() bool {
-	if utils.FileExist("/tmp/.peekl_run", nil) {
-		return true
+	return utils.FileExist("/tmp/.peekl_run", nil)
+}
+
+func createLockfile() error {
+	if _, err := os.Create("/tmp/.peekl_run"); err != nil {
+		return err
 	}
-	return false
+	return nil
 }
 
-func createLockfile() {
-	os.Create("/tmp/.peekl_run")
-}
-
-func deleteLockFile() {
-	os.Remove("/tmp/.peekl_run")
+func deleteLockFile() error {
+	return os.Remove("/tmp/.peekl_run")
 }
 
 // Verify that a cache is still valid
@@ -53,6 +53,13 @@ func isCacheValid(filePath string, expectedHash string) (bool, error) {
 	}
 
 	return expectedHash == checksum, nil
+}
+
+func deleteExtractDir(extractDirPath string) {
+	err := os.RemoveAll(extractDirPath)
+	if err != nil {
+		logrus.Fatal(err)
+	}
 }
 
 func runAgent(client *client.Client, environment string, cachePath string) {
@@ -126,7 +133,7 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	defer os.RemoveAll(extractDir)
+	defer deleteExtractDir(extractDir)
 
 	logrus.Debug("Extracting the archives")
 	archives := []string{expectedCodeFilePath, expectedNodeFilePath}
@@ -138,18 +145,21 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 		}
 	}
 
+	logrus.Debug("Compiling raw catalog based on extracted archives")
 	rawCatalog.GlobalResources, rawCatalog.Roles, rawCatalog.Tags, rawCatalog.Variables, err = catalog.CompileCatalog(extractDir, rawCatalog.Facts.Hostname)
 	if err != nil {
 		logrus.Fatal(err)
 	}
 	rawCatalog.CodePath = extractDir
 
+	logrus.Debug("Creating catalog from raw catalog")
 	catalog, err := catalog.NewCatalog(rawCatalog)
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
 
+	logrus.Debug("Validating the catalog")
 	valid, err := catalog.Validate()
 	if err != nil {
 		logrus.Fatal(err)
@@ -180,7 +190,7 @@ func performBootstrap(config *config.AgentConfig) error {
 			return err
 		}
 		if !success {
-			return fmt.Errorf("Could not fetch certificate from server")
+			return fmt.Errorf("could not fetch certificate from server")
 		}
 	case bootstrap.BootstrapPendingCert:
 		success, err := bootstrap.TryFetchCertificateFromServer(config)
@@ -188,7 +198,7 @@ func performBootstrap(config *config.AgentConfig) error {
 			return err
 		}
 		if !success {
-			return fmt.Errorf("Could not fetch certificate from server")
+			return fmt.Errorf("could not fetch certificate from server")
 		}
 	}
 
@@ -259,9 +269,13 @@ var RunCmd = &cobra.Command{
 
 			for {
 				if !isLocked() {
-					createLockfile()
+					if err := createLockfile(); err != nil {
+						logrus.Fatalf("Could not create lock due to the following error : %s", err.Error())
+					}
 					runAgent(apiClient, environment, agentConfig.Caching.Path)
-					deleteLockFile()
+					if err := deleteLockFile(); err != nil {
+						logrus.Fatalf("Could not delete lock file due to the following error : %s", err.Error())
+					}
 				} else {
 					logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
 				}
@@ -278,9 +292,14 @@ var RunCmd = &cobra.Command{
 				if err != nil {
 					logrus.Fatal(err)
 				}
-				createLockfile()
+				err = createLockfile()
+				if err != nil {
+					logrus.Fatalf("Could not create lock due to the following error : %s", err.Error())
+				}
 				runAgent(apiClient, environment, agentConfig.Caching.Path)
-				deleteLockFile()
+				if err := deleteLockFile(); err != nil {
+					logrus.Fatalf("Could not delete lock file due to the following error : %s", err.Error())
+				}
 			} else {
 				logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
 			}

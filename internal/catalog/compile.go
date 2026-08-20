@@ -15,7 +15,6 @@ func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, [
 	var rolesToLoad []string
 
 	// Variables
-	nodeVars := map[string]any{}
 	groupsVars := map[string]any{}
 	rolesVars := map[string]any{}
 	var loadedRoles []models.Role
@@ -29,7 +28,7 @@ func CompileCatalog(codeDirectory string, nodeName string) ([]models.Resource, [
 		resources = append(resources, *nodeRes)
 	}
 	tags = append(tags, node.Tags...)
-	nodeVars = node.Variables
+	nodeVars := node.Variables
 
 	for _, nodeCurRole := range node.Roles {
 		if !slices.Contains(rolesToLoad, nodeCurRole) {

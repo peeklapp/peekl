@@ -56,7 +56,10 @@ func (t *TemplateResource) changePermissionsIfNeeded() (bool, error) {
 				stat.Mode(),
 			),
 		)
-		os.Chmod(t.Data.Path, t.Data.Mode)
+		err = os.Chmod(t.Data.Path, t.Data.Mode)
+		if err != nil {
+			return didSomething, err
+		}
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
@@ -118,7 +121,10 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 				groupName,
 			),
 		)
-		os.Chown(t.Data.Path, expectedUid, expectedGid)
+		err = os.Chown(t.Data.Path, expectedUid, expectedGid)
+		if err != nil {
+			return didSomething, err
+		}
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
@@ -137,7 +143,10 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 
 func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext, templ *template.Template) (string, error) {
 	// Build facts map
-	factsMap := facts.FactsToMap(*ctx.Facts)
+	factsMap, err := facts.FactsToMap(*ctx.Facts)
+	if err != nil {
+		return "", err
+	}
 
 	// Create variables for template
 	// 1. First get global variables, from context
@@ -149,7 +158,7 @@ func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext, templ *
 
 	// Build actual template result from variables and template
 	var templateBytesResult bytes.Buffer
-	err := templ.ExecuteTemplate(&templateBytesResult, t.Title, variables)
+	err = templ.ExecuteTemplate(&templateBytesResult, t.Title, variables)
 	if err != nil {
 		return "", err
 	}
@@ -166,13 +175,19 @@ func (t *TemplateResource) create(fileContent string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer utils.CloseWithoutError(file)
 
 	// Get content of file from template, and set it
-	file.Write([]byte(fileContent))
+	_, err = file.Write([]byte(fileContent))
+	if err != nil {
+		return err
+	}
 
 	// Change mode of file
-	file.Chmod(t.Data.Mode)
+	err = file.Chmod(t.Data.Mode)
+	if err != nil {
+		return err
+	}
 
 	// Set owner and group
 	uid, err := utils.GetUserUidFromUsername(t.Data.Owner)
@@ -183,9 +198,13 @@ func (t *TemplateResource) create(fileContent string) error {
 	if err != nil {
 		return err
 	}
-	file.Chown(uid, gid)
 
-	return nil
+	err = file.Chown(uid, gid)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 func (t *TemplateResource) delete() error {
@@ -201,7 +220,7 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 	if err != nil {
 		return didSomething, err
 	}
-	defer file.Close()
+	defer utils.CloseWithoutError(file)
 
 	// Then we create MD5 object of file
 	fileMD5 := md5.New()
@@ -211,7 +230,10 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 
 	// Then we create MD5 object of content
 	contentMD5 := md5.New()
-	io.WriteString(contentMD5, expectedContent)
+	_, err = io.WriteString(contentMD5, expectedContent)
+	if err != nil {
+		return didSomething, err
+	}
 
 	fileMD5Checksum := fmt.Sprintf("%x", fileMD5.Sum(nil))
 	contentMD5Checksum := fmt.Sprintf("%x", contentMD5.Sum(nil))
@@ -239,7 +261,8 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 		)
 		didSomething = true
 	}
-	return didSomething, nil
+
+	return didSomething, err
 }
 
 func (t *TemplateResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
