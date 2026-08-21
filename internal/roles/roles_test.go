@@ -8,7 +8,10 @@ import (
 )
 
 func TestLoadValidRole(t *testing.T) {
-	root, _ := os.OpenRoot("testdata")
+	root, err := os.OpenRoot("testdata")
+	if err != nil {
+		t.Errorf("Could not open root : %s", err)
+	}
 	role, err := LoadRoleFromCode(root, "nginx")
 	if err != nil {
 		t.Errorf("Should not have raised an error : %s", err.Error())
@@ -20,7 +23,10 @@ func TestLoadValidRole(t *testing.T) {
 }
 
 func TestLoadValidRoleWithVars(t *testing.T) {
-	root, _ := os.OpenRoot("testdata")
+	root, err := os.OpenRoot("testdata")
+	if err != nil {
+		t.Errorf("Could not open root : %s", err)
+	}
 	role, _ := LoadRoleFromCode(root, "nginx_vars")
 	assert.Equal(t, role.Name, "nginx_vars")
 	assert.Equal(t, len(role.IncludedResources), 1)
@@ -29,19 +35,28 @@ func TestLoadValidRoleWithVars(t *testing.T) {
 }
 
 func TestLoadUnknowRole(t *testing.T) {
-	root, _ := os.OpenRoot("testdata")
-	_, err := LoadRoleFromCode(root, "apache")
+	root, err := os.OpenRoot("testdata")
+	if err != nil {
+		t.Errorf("Could not open root : %s", err)
+	}
+	_, err = LoadRoleFromCode(root, "apache")
 	assert.Equal(t, err.Error(), "The role apache could not be found in the roles folder")
 }
 
 func TestLoadRoleMissingMain(t *testing.T) {
-	root, _ := os.OpenRoot("testdata")
-	_, err := LoadRoleFromCode(root, "invalid_role")
+	root, err := os.OpenRoot("testdata")
+	if err != nil {
+		t.Errorf("Could not open root : %s", err)
+	}
+	_, err = LoadRoleFromCode(root, "invalid_role")
 	assert.Equal(t, err.Error(), "could not find any main.yml file in the invalid_role role")
 }
 
 func TestLoadRoleMissingInclude(t *testing.T) {
-	root, _ := os.OpenRoot("testdata")
-	_, err := LoadRoleFromCode(root, "missing_include")
+	root, err := os.OpenRoot("testdata")
+	if err != nil {
+		t.Errorf("Could not open root : %s", err)
+	}
+	_, err = LoadRoleFromCode(root, "missing_include")
 	assert.Equal(t, err.Error(), "the include `test` in role `missing_include` could not be found")
 }
