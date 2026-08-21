@@ -8,7 +8,10 @@ import (
 )
 
 func TestLoadNodeFromCode(t *testing.T) {
-	root, _ := os.OpenRoot("testdata/valid_code")
+	root, err := os.OpenRoot("testdata/valid_code")
+	if err != nil {
+		t.Errorf("Could not have open a root : %s", err.Error())
+	}
 	resources, loadedRoles, tags, variables, err := CompileCatalog(root, "dummy")
 	if err != nil {
 		t.Errorf("Could not load catalog from code : %s", err.Error())
@@ -20,7 +23,10 @@ func TestLoadNodeFromCode(t *testing.T) {
 }
 
 func TestNoDuplicateRoles(t *testing.T) {
-	root, _ := os.OpenRoot("testdata/duplicate_role")
+	root, err := os.OpenRoot("testdata/duplicate_role")
+	if err != nil {
+		t.Errorf("Could not have open a root : %s", err.Error())
+	}
 	_, loadedRoles, _, _, err := CompileCatalog(root, "dummy")
 	if err != nil {
 		t.Errorf("Could not load catalog from code : %s", err.Error())
@@ -29,8 +35,11 @@ func TestNoDuplicateRoles(t *testing.T) {
 }
 
 func TestLoadNodeMissingGroup(t *testing.T) {
-	root, _ := os.OpenRoot("testdata/missing_group")
-	_, _, _, _, err := CompileCatalog(root, "dummy")
+	root, err := os.OpenRoot("testdata/missing_group")
+	if err != nil {
+		t.Errorf("Could not have open a root : %s", err.Error())
+	}
+	_, _, _, _, err = CompileCatalog(root, "dummy")
 	if err == nil {
 		t.Errorf("Should have returned an error because a group is missing")
 	}
@@ -38,8 +47,11 @@ func TestLoadNodeMissingGroup(t *testing.T) {
 }
 
 func TestLoadNodeMissingRole(t *testing.T) {
-	root, _ := os.OpenRoot("testdata/missing_role")
-	_, _, _, _, err := CompileCatalog(root, "dummy")
+	root, err := os.OpenRoot("testdata/missing_role")
+	if err != nil {
+		t.Errorf("Could not have open a root : %s", err.Error())
+	}
+	_, _, _, _, err = CompileCatalog(root, "dummy")
 	if err == nil {
 		t.Errorf("Should have returned an error because a role is missing")
 	}
@@ -47,8 +59,11 @@ func TestLoadNodeMissingRole(t *testing.T) {
 }
 
 func TestLoadNodeMissingNode(t *testing.T) {
-	root, _ := os.OpenRoot("testdata/missing_node")
-	_, _, _, _, err := CompileCatalog(root, "dummy")
+	root, err := os.OpenRoot("testdata/missing_node")
+	if err != nil {
+		t.Errorf("Could not have open a root : %s", err.Error())
+	}
+	_, _, _, _, err = CompileCatalog(root, "dummy")
 	if err == nil {
 		t.Errorf("Should have returned an error because a role is missing")
 	}
