@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 
 	yaml "github.com/goccy/go-yaml"
 	"github.com/peeklapp/peekl/internal/models"
@@ -98,9 +97,4 @@ func LoadRoleFromCode(codeRoot *os.Root, roleName string) (*models.Role, error) 
 	}
 
 	return &role, nil
-}
-
-func RoleNameIsValid(roleName string) bool {
-	r, _ := regexp.Compile("^[A-Za-z0-9_]+$")
-	return r.MatchString(roleName)
 }

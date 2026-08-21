@@ -29,14 +29,6 @@ func (e GroupNotFoundError) Error() string {
 	return fmt.Sprintf("The group %s could not be found in the inventory", e.GroupName)
 }
 
-type EnvironmentNotFoundError struct {
-	Environment string
-}
-
-func (e EnvironmentNotFoundError) Error() string {
-	return fmt.Sprintf("The environment %s could not be found in the code folder", e.Environment)
-}
-
 type PendingCertificateNotFound struct {
 	NodeName string
 }

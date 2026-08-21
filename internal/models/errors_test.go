@@ -26,10 +26,3 @@ func TestGroupNotFoundError(t *testing.T) {
 	}
 	assert.Equal(t, "The group my_group could not be found in the inventory", err.Error())
 }
-
-func TestEnvironmentNotFoundError(t *testing.T) {
-	err := EnvironmentNotFoundError{
-		Environment: "my_environment",
-	}
-	assert.Equal(t, "The environment my_environment could not be found in the code folder", err.Error())
-}
