@@ -1,22 +1,26 @@
 package api
 
 import (
+	"os"
+
 	fiber "github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/peeklapp/peekl/internal/api/endpoints"
+	"github.com/peeklapp/peekl/internal/api/middlewares/logger"
 	"github.com/peeklapp/peekl/internal/api/middlewares/mtls"
 	"github.com/peeklapp/peekl/internal/code"
 	"github.com/peeklapp/peekl/internal/config"
 	"github.com/peeklapp/peekl/internal/database"
 	"github.com/peeklapp/peekl/internal/filecache"
-	"os"
+	"github.com/sirupsen/logrus"
 )
 
 func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEngine) (*fiber.App, error) {
 	// Create app instance
 	app := fiber.New()
 
-	loggerMiddleware := logger.New()
+	log := logrus.New()
+	log.SetFormatter(&logrus.JSONFormatter{})
+	loggerMiddleware := logger.NewLogger(log)
 	app.Use(loggerMiddleware)
 
 	// Create mTLS middleware
