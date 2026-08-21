@@ -8,10 +8,6 @@ import (
 	"github.com/peeklapp/peekl/internal/certs"
 )
 
-type MtlsMiddlewareConfig struct {
-	CaCertificatePath string
-}
-
 func New(caPath string) (fiber.Handler, error) {
 	// Load CA cert from path
 	caCert, err := certs.LoadCertificateFromFile(caPath)
