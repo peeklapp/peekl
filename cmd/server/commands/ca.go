@@ -19,19 +19,25 @@ func init() {
 	// List commands
 	caListPendingCmd.Flags().Bool("json", false, "Show output as JSON")
 	caListSignedCmd.Flags().Bool("json", false, "Show output as JSON")
+	caListRevokedCmd.Flags().Bool("json", false, "Show output as JSON")
 	caListCmd.AddCommand(caListPendingCmd)
 	caListCmd.AddCommand(caListSignedCmd)
+	caListCmd.AddCommand(caListRevokedCmd)
 
 	// Main command
 	CaCmd.AddCommand(caListCmd)
 	CaCmd.AddCommand(caSignPendingCmd)
 	CaCmd.AddCommand(caRevokeCertCmd)
+	CaCmd.AddCommand(caClearPendingCmd)
 
 	// Sign command
 	caSignPendingCmd.Flags().StringP("certname", "", "", "Name of the pending certificate to sign")
 
 	// Revoke command
 	caRevokeCertCmd.Flags().StringP("certname", "", "", "Name of the certificate to revoke.")
+
+	// Clear command
+	caClearPendingCmd.Flags().StringP("certname", "", "", "Name of the pending certificate to clear.")
 }
 
 var CaCmd = &cobra.Command{
@@ -185,6 +191,69 @@ var caListSignedCmd = &cobra.Command{
 	},
 }
 
+var caListRevokedCmd = &cobra.Command{
+	Use:   "revoked",
+	Short: "List revoked certificates",
+	Run: func(cmd *cobra.Command, args []string) {
+		// Get verbosity
+		verbose, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
+		}
+
+		// Output mode
+		jsonOutput, err := cmd.Flags().GetBool("json")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		// Load configuration
+		configPath, err := cmd.Flags().GetString("config")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		configStruct, err := config.NewServerConfiguration(configPath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		dbEngine, err := database.NewDatabaseEngine(&configStruct.Database)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		// Get from database
+		revokedCerts, err := dbEngine.ListRevokedCertificates()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		// Output as JSON if asked to
+		if jsonOutput {
+			jsonData, err := json.Marshal(revokedCerts)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			fmt.Println(string(jsonData))
+		} else {
+			table := tablewriter.NewWriter(os.Stdout)
+			table.Header([]string{"Name", "Serial number", "Revocation Date"})
+			for _, p := range revokedCerts {
+				if err := table.Append([]string{p.NodeName, p.SerialNumber, p.RevokedAt.String()}); err != nil {
+					logrus.Fatal(err)
+				}
+			}
+			if err := table.Render(); err != nil {
+				logrus.Fatal(err)
+			}
+		}
+
+	},
+}
+
 var caSignPendingCmd = &cobra.Command{
 	Use:   "sign",
 	Short: "Sign a pending certificate",
@@ -257,10 +326,112 @@ var caSignPendingCmd = &cobra.Command{
 	},
 }
 
+var caClearPendingCmd = &cobra.Command{
+	Use:   "clear",
+	Short: "Clear a certificate",
+	Run: func(cmd *cobra.Command, args []string) {
+		// Get verbosity
+		verbose, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
+		}
+
+		// Load configuration
+		configPath, err := cmd.Flags().GetString("config")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		configStruct, err := config.NewServerConfiguration(configPath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		certname, err := cmd.Flags().GetString("certname")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		if certname == "" {
+			logrus.Fatal("You must specify a certname using the `--certname` parameter")
+		}
+
+		dbEngine, err := database.NewDatabaseEngine(&configStruct.Database)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		err = dbEngine.DeletePendingCertificate(certname)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		logrus.Infof("Cleared pending certificates for node '%s'", certname)
+	},
+}
+
 var caRevokeCertCmd = &cobra.Command{
 	Use:   "revoke",
 	Short: "Revoke a certificate",
 	Run: func(cmd *cobra.Command, args []string) {
-		logrus.Fatal("Command not implemented yet.")
+		// Get verbosity
+		verbose, err := cmd.Flags().GetBool("verbose")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		if verbose {
+			logrus.SetLevel(logrus.DebugLevel)
+		}
+
+		// Load configuration
+		configPath, err := cmd.Flags().GetString("config")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		configStruct, err := config.NewServerConfiguration(configPath)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		certname, err := cmd.Flags().GetString("certname")
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		if certname == "" {
+			logrus.Fatal("You must specify a certname using the `--certname` parameter")
+		}
+
+		dbEngine, err := database.NewDatabaseEngine(&configStruct.Database)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		dbSignedCert, err := dbEngine.GetSignedCertificateByNodeName(certname)
+		if err != nil {
+			if errors.Is(err, models.SignedCertificateNotFoundByNodeName{}) {
+				logrus.Fatalf("No found signed certificate for given certname %s", certname)
+			} else {
+				logrus.Fatal(err)
+			}
+		}
+
+		// Load the certificate
+		signedCert, err := certs.LoadCertificateFromData(dbSignedCert.Data)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		err = dbEngine.InsertRevokedCertificate(dbSignedCert.NodeName, signedCert.SerialNumber.String())
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		err = dbEngine.DeleteSignedCertificate(certname)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		logrus.Infof("Revoked certificate for '%s'", certname)
 	},
 }

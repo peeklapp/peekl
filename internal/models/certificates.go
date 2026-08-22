@@ -14,3 +14,9 @@ type SignedCertificate struct {
 	SignedAt     time.Time `json:"signed_at"`
 	Data         string    `json:"data"`
 }
+
+type RevokedCertificate struct {
+	NodeName     string    `json:"node_name"`
+	SerialNumber string    `json:"serial_number"`
+	RevokedAt    time.Time `json:"revoked_at"`
+}

@@ -37,12 +37,28 @@ func (c PendingCertificateNotFound) Error() string {
 	return fmt.Sprintf("No pending certificate found for node %s", c.NodeName)
 }
 
-type SignedCertificateNotFound struct {
+type SignedCertificateNotFoundByCsrSignature struct {
 	CsrSignature string
 }
 
-func (c SignedCertificateNotFound) Error() string {
+func (c SignedCertificateNotFoundByCsrSignature) Error() string {
 	return fmt.Sprintf("No signed certificate found for node with signature %s", c.CsrSignature)
+}
+
+type SignedCertificateNotFoundByNodeName struct {
+	NodeName string
+}
+
+func (c SignedCertificateNotFoundByNodeName) Error() string {
+	return fmt.Sprintf("No signed certificate found for node with node name %s", c.NodeName)
+}
+
+type RevokedCertificateNotFound struct {
+	SerialNumber string
+}
+
+func (c RevokedCertificateNotFound) Error() string {
+	return fmt.Sprintf("No revoked certificate found for serial number %s", c.SerialNumber)
 }
 
 type ValidationError struct {
