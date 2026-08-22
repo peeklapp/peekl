@@ -27,7 +27,7 @@ func (c *Client) GetRootCA() (string, error) {
 
 func (c *Client) SubmitCertificateRequest(nodeName string, csr string) error {
 	endpoint := "/v1/certificates/submit"
-	body := requests.SubmitCertificateRequest{NodeName: nodeName, CSR: csr}
+	body := requests.SubmitCertificateRequest{CSR: csr}
 	var resp responses.MessageResponse
 
 	err := c.post(endpoint, body, &resp)
