@@ -67,7 +67,7 @@ func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, o
 	}
 
 	// Create CRT file on disk
-	crtOut, err := os.Create(outCertFilePath)
+	crtOut, err := os.OpenFile(outCertFilePath, os.O_CREATE, 0600)
 	if err != nil {
 		return nil
 	}
@@ -85,7 +85,7 @@ func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, o
 	}
 
 	// Create private key file on disk
-	csrKeyOut, err := os.Create(outKeyFilePath)
+	csrKeyOut, err := os.OpenFile(outKeyFilePath, os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func CreateCertificateSigningRequest(nodeName string, keyFileOutput string, csrF
 	}
 
 	// Create private key file on disk
-	csrKeyOut, err := os.Create(keyFileOutput)
+	csrKeyOut, err := os.OpenFile(keyFileOutput, os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func CreateCertificateSigningRequest(nodeName string, keyFileOutput string, csrF
 	}
 
 	// Create CSR file on disk
-	csrOut, err := os.Create(csrFileOutput)
+	csrOut, err := os.OpenFile(csrFileOutput, os.O_CREATE, 0600)
 	if err != nil {
 		return nil
 	}

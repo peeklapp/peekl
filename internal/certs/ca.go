@@ -47,7 +47,7 @@ func CreateCertificateAuthority(params models.CertificateAuthorityParameters, ou
 	if err != nil {
 		return err
 	}
-	caPrivKeyOut, err := os.Create(outKeyFilePath)
+	caPrivKeyOut, err := os.OpenFile(outKeyFilePath, os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func CreateCertificateAuthority(params models.CertificateAuthorityParameters, ou
 	}
 
 	// Save certificate
-	caCertFileOut, err := os.Create(outCertFilePath)
+	caCertFileOut, err := os.OpenFile(outCertFilePath, os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}
