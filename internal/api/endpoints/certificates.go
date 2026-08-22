@@ -54,9 +54,15 @@ func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 		})
 	}
 
+	if len(loadedCsr.DNSNames) < 1 {
+		return ctx.Status(400).JSON(responses.ErrorResponse{
+			Error:   "CSR is not valid",
+			Details: "The sent CSR does not contains any DNS names",
+		})
+	}
+
 	nodeNameUsed, err := dbEngine.IsNodeNameUsed(loadedCsr.DNSNames[0])
 	if err != nil {
-		println(loadedCsr.DNSNames[0])
 		return ctx.Status(500).JSON(responses.ErrorResponse{
 			Error:   "Internal Server Error",
 			Details: err.Error(),
