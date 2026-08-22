@@ -67,6 +67,7 @@ func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEn
 
 	// Data group
 	dataGroup := v1.Group("data")
+	dataGroup.Use(mtlsMiddleware)
 
 	// -- Data group needs access to server configurtion
 	dataGroup.Use(func(c fiber.Ctx) error {
