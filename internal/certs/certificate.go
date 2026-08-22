@@ -235,7 +235,7 @@ func SignCertificateSigningRequest(csrData string, caFilePath string, caKeyPath 
 		Subject:               loadedCsr.Subject,
 		DNSNames:              loadedCsr.DNSNames,
 		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(time.Hour * 24 * 365 * 10),
+		NotAfter:              time.Now().Add(time.Hour * 24 * 365),
 		IsCA:                  false,
 		KeyUsage:              x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
