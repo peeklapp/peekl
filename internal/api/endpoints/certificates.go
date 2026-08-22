@@ -25,7 +25,7 @@ func GetRootCA(ctx fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(500).JSON(responses.ErrorResponse{
 			Error:   "Internal Server Error",
-			Details: err.Error(),
+			Details: "An error happened while trying to access local CA",
 		})
 	}
 
@@ -50,7 +50,7 @@ func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(500).JSON(responses.ErrorResponse{
 			Error:   "Internal Server Error",
-			Details: err.Error(),
+			Details: "An error happened while trying to load the provided CSR",
 		})
 	}
 
@@ -65,7 +65,7 @@ func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(500).JSON(responses.ErrorResponse{
 			Error:   "Internal Server Error",
-			Details: err.Error(),
+			Details: "An error happened while trying to validate the set node name in certificate",
 		})
 	}
 
@@ -83,7 +83,7 @@ func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(500).JSON(responses.ErrorResponse{
 			Error:   "Internal Server Error",
-			Details: err.Error(),
+			Details: "An error happened while trying insert pending certificate in database",
 		})
 	}
 
@@ -107,13 +107,13 @@ func PostRetrieveSignedCertificate(ctx fiber.Ctx) error {
 	if err != nil {
 		if errors.Is(err, models.SignedCertificateNotFound{}) {
 			return ctx.Status(404).JSON(responses.ErrorResponse{
-				Error:   "No signed certificate correspond to given CSR signature",
-				Details: err.Error(),
+				Error:   "No signed certificate",
+				Details: "No signed certificate could be found in database based on provided CSR signature",
 			})
 		} else {
 			return ctx.Status(500).JSON(responses.ErrorResponse{
 				Error:   "Internal Server Error",
-				Details: err.Error(),
+				Details: "An error happened while trying to fetch signed certificate from database",
 			})
 		}
 	}
