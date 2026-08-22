@@ -69,7 +69,7 @@ func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, o
 	// Create CRT file on disk
 	crtOut, err := os.OpenFile(outCertFilePath, os.O_CREATE, 0600)
 	if err != nil {
-		return nil
+		return err
 	}
 	defer utils.CloseWithoutError(crtOut)
 
