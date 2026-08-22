@@ -16,8 +16,6 @@ import (
 	"github.com/peeklapp/peekl/internal/utils"
 )
 
-const SERIAL_NUMBER_LIMIT = 128
-
 func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, outCertFilePath string, outKeyFilePath string) error {
 	// Make sure peekl is in the DNS names
 	dnsNames = append(dnsNames, "peekl")
