@@ -19,7 +19,6 @@ func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEn
 	app := fiber.New()
 
 	log := logrus.New()
-	log.SetFormatter(&logrus.JSONFormatter{})
 	loggerMiddleware := logger.NewLogger(log)
 	app.Use(loggerMiddleware)
 
