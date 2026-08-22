@@ -157,6 +157,20 @@ func CreateCertificateSigningRequest(nodeName string, keyFileOutput string, csrF
 	return nil
 }
 
+func LoadCertificateFromData(data string) (*x509.Certificate, error) {
+	certificatePem, _ := pem.Decode([]byte(data))
+	if certificatePem == nil {
+		return &x509.Certificate{}, fmt.Errorf("could not decode certificate bytes")
+	}
+
+	certificate, err := x509.ParseCertificate(certificatePem.Bytes)
+	if err != nil {
+		return &x509.Certificate{}, err
+	}
+
+	return certificate, nil
+}
+
 func LoadCertificateFromFile(certificateFile string) (*x509.Certificate, error) {
 	certificateBytes, err := os.ReadFile(certificateFile)
 	if err != nil {

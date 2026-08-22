@@ -61,7 +61,7 @@ func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 		})
 	}
 
-	nodeNameUsed, err := dbEngine.IsNodeNameUsed(loadedCsr.DNSNames[0])
+	nodeNameUsedInSigned, err := dbEngine.IsNodeNameUsedInSigned(loadedCsr.DNSNames[0])
 	if err != nil {
 		return ctx.Status(500).JSON(responses.ErrorResponse{
 			Error:   "Internal Server Error",
@@ -69,11 +69,19 @@ func PostSubmitCertificateRequest(ctx fiber.Ctx) error {
 		})
 	}
 
-	if nodeNameUsed {
+	nodeNameUsedInPending, err := dbEngine.IsNodeNameUsedInPending(loadedCsr.DNSNames[0])
+	if err != nil {
+		return ctx.Status(500).JSON(responses.ErrorResponse{
+			Error:   "Internal Server Error",
+			Details: "An error happened while trying to validate the set node name in certificate",
+		})
+	}
+
+	if nodeNameUsedInSigned || nodeNameUsedInPending {
 		return ctx.Status(400).JSON(responses.ErrorResponse{
 			Error: "Node name already used",
 			Details: fmt.Sprintf(
-				"Node name `%s` cannot be used to generate a new certificate, as a similar certificate already exist.",
+				"Node name `%s` cannot be used to generate a new certificate, as a similar certificate or pending certificate already exist.",
 				loadedCsr.DNSNames[0],
 			),
 		})
@@ -103,9 +111,9 @@ func PostRetrieveSignedCertificate(ctx fiber.Ctx) error {
 
 	dbEngine, _ := ctx.Locals("databaseEngine").(*database.DatabaseEngine)
 
-	signedCert, err := dbEngine.GetSignedCertificate(input.CsrSignature)
+	signedCert, err := dbEngine.GetSignedCertificateByCsrSignature(input.CsrSignature)
 	if err != nil {
-		if errors.Is(err, models.SignedCertificateNotFound{}) {
+		if errors.As(err, &models.SignedCertificateNotFoundByCsrSignature{}) {
 			return ctx.Status(404).JSON(responses.ErrorResponse{
 				Error:   "No signed certificate",
 				Details: "No signed certificate could be found in database based on provided CSR signature",

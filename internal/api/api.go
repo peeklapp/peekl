@@ -24,7 +24,7 @@ func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEn
 	app.Use(loggerMiddleware)
 
 	// Create mTLS middleware
-	mtlsMiddleware, err := mtls.New(conf.Certificates.CaCertificateFilePath)
+	mtlsMiddleware, err := mtls.New(conf.Certificates.CaCertificateFilePath, databaseEngine)
 	if err != nil {
 		return nil, err
 	}
