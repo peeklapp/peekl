@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"math/big"
 	"os"
 	"time"
 
@@ -25,9 +24,8 @@ func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, o
 
 	// Create cert values
 	certValues := x509.Certificate{
-		SerialNumber: big.NewInt(2019),
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(time.Hour * 24 * 365 * 10),
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().Add(time.Hour * 24 * 365 * 10),
 		Subject: pkix.Name{
 			Organization:  []string{"Peekl"},
 			Country:       []string{"FR"},
@@ -236,7 +234,6 @@ func SignCertificateSigningRequest(csrData string, caFilePath string, caKeyPath 
 	certTemplate := x509.Certificate{
 		Subject:               loadedCsr.Subject,
 		DNSNames:              loadedCsr.DNSNames,
-		SerialNumber:          big.NewInt(2019),
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().Add(time.Hour * 24 * 365 * 10),
 		IsCA:                  false,
