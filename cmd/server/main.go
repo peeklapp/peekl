@@ -27,6 +27,7 @@ func init() {
 	rootCmd.AddCommand(commands.RunCmd)
 	rootCmd.AddCommand(commands.VersionCmd)
 	rootCmd.AddCommand(commands.CaCmd)
+	rootCmd.AddCommand(commands.EnrollCmd)
 }
 
 func main() {

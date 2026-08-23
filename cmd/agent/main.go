@@ -27,6 +27,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("config", "c", "/etc/peekl/config/agent.yml", "Path to the configuration file for the agent")
 	rootCmd.AddCommand(commands.RunCmd)
 	rootCmd.AddCommand(commands.VersionCmd)
+	rootCmd.AddCommand(commands.EnrollCmd)
 }
 
 func main() {

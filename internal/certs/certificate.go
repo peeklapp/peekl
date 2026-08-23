@@ -65,7 +65,7 @@ func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, o
 	}
 
 	// Create CRT file on disk
-	crtOut, err := os.OpenFile(outCertFilePath, os.O_CREATE, 0600)
+	crtOut, err := os.OpenFile(outCertFilePath, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, o
 	}
 
 	// Create private key file on disk
-	csrKeyOut, err := os.OpenFile(outKeyFilePath, os.O_CREATE, 0600)
+	csrKeyOut, err := os.OpenFile(outKeyFilePath, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
@@ -97,29 +97,30 @@ func CreateCertificate(dnsNames []string, caFilePath string, caKeyPath string, o
 	return nil
 }
 
-func CreateCertificateSigningRequest(nodeName string, keyFileOutput string, csrFileOutput string) error {
+func CreateCertificateSigningRequest(nodeName string, keyFileOutput string, csrFileOutput string) (string, error) {
 	// Generate private key
 	curve := elliptic.P384()
 	csrKey, err := ecdsa.GenerateKey(curve, rand.Reader)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Marshall private key in writable data
 	marshalledCsrKey, err := x509.MarshalPKCS8PrivateKey(csrKey)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Create private key file on disk
-	csrKeyOut, err := os.OpenFile(keyFileOutput, os.O_CREATE, 0600)
+	csrKeyOut, err := os.OpenFile(keyFileOutput, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-		return err
+		return "", err
 	}
+	defer utils.CloseWithoutError(csrKeyOut)
 
 	// Write private key to file
 	if err := pem.Encode(csrKeyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: marshalledCsrKey}); err != nil {
-		return err
+		return "", err
 	}
 
 	// Generate CSR Data
@@ -139,22 +140,25 @@ func CreateCertificateSigningRequest(nodeName string, keyFileOutput string, csrF
 	// Generate actual CSR
 	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, csrKey)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Create CSR file on disk
-	csrOut, err := os.OpenFile(csrFileOutput, os.O_CREATE, 0600)
+	csrOut, err := os.OpenFile(csrFileOutput, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-		return nil
+		return "", err
 	}
 	defer utils.CloseWithoutError(csrOut)
 
+	// Encode CSR
+	encodedCsr := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
+
 	// Write CSR to file
-	if err := pem.Encode(csrOut, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes}); err != nil {
-		return err
+	if _, err := csrOut.Write(encodedCsr); err != nil {
+		return "", err
 	}
 
-	return nil
+	return string(encodedCsr), nil
 }
 
 func LoadCertificateFromData(data string) (*x509.Certificate, error) {
@@ -188,6 +192,25 @@ func LoadCertificateFromFile(certificateFile string) (*x509.Certificate, error) 
 	}
 
 	return certificate, nil
+}
+
+func LoadPKCS8PrivateKeyFromData(privateKeyData string) (*ecdsa.PrivateKey, error) {
+	privPem, _ := pem.Decode([]byte(privateKeyData))
+	if privPem == nil {
+		return &ecdsa.PrivateKey{}, fmt.Errorf("could not decode EC private key bytes")
+	}
+
+	privateKey, err := x509.ParsePKCS8PrivateKey(privPem.Bytes)
+	if err != nil {
+		return &ecdsa.PrivateKey{}, err
+	}
+
+	switch privateKey := privateKey.(type) {
+	case *ecdsa.PrivateKey:
+		return privateKey, nil
+	}
+
+	return &ecdsa.PrivateKey{}, fmt.Errorf("the key was not of type ECDSA")
 }
 
 func LoadPKCS8PrivateKeyFromFile(privateKeyFile string) (*ecdsa.PrivateKey, error) {
@@ -228,17 +251,8 @@ func LoadCertificateSigningRequest(csrData string) (*x509.CertificateRequest, er
 	return certificateRequest, nil
 }
 
-func SignCertificateSigningRequest(csrData string, caFilePath string, caKeyPath string) (string, error) {
+func SignCertificateSigningRequest(csrData string, loadedCa *x509.Certificate, loadedKey *ecdsa.PrivateKey) (string, error) {
 	loadedCsr, err := LoadCertificateSigningRequest(csrData)
-	if err != nil {
-		return "", err
-	}
-
-	loadedCa, err := LoadCertificateFromFile(caFilePath)
-	if err != nil {
-		return "", err
-	}
-	loadedCaKey, err := LoadPKCS8PrivateKeyFromFile(caKeyPath)
 	if err != nil {
 		return "", err
 	}
@@ -254,7 +268,7 @@ func SignCertificateSigningRequest(csrData string, caFilePath string, caKeyPath 
 		BasicConstraintsValid: true,
 	}
 
-	certBytes, err := x509.CreateCertificate(rand.Reader, &certTemplate, loadedCa, loadedCsr.PublicKey, loadedCaKey)
+	certBytes, err := x509.CreateCertificate(rand.Reader, &certTemplate, loadedCa, loadedCsr.PublicKey, loadedKey)
 	if err != nil {
 		return "", err
 	}

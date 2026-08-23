@@ -8,55 +8,20 @@ import (
 	"github.com/peeklapp/peekl/internal/api/responses"
 )
 
-func (c *Client) GetRootCA() (string, error) {
-	endpoint := "/v1/certificates/root"
-	var resp responses.GetRootCA
-
-	err := c.get(endpoint, &resp, "")
-	if err != nil {
-		if errors.As(err, &HttpError{}) {
-			detailedError, _ := err.(HttpError)
-			return "", fmt.Errorf("status code : %d. details : %+v", detailedError.StatusCode, detailedError.ErrorBody)
-		} else {
-			return "", err
-		}
-	}
-
-	return resp.Certificate, nil
-}
-
-func (c *Client) SubmitCertificateRequest(nodeName string, csr string) error {
-	endpoint := "/v1/certificates/submit"
-	body := requests.SubmitCertificateRequest{CSR: csr}
-	var resp responses.MessageResponse
+func (c *Client) EnrollAgent(csr string, token string) (string, string, error) {
+	endpoint := "/v1/certificates/enroll"
+	body := requests.EnrollAgent{CSR: csr, Token: token}
+	var resp responses.EnrollAgent
 
 	err := c.post(endpoint, body, &resp)
 	if err != nil {
 		if errors.As(err, &HttpError{}) {
 			detailedError, _ := err.(HttpError)
-			return fmt.Errorf("status code : %d. details : %+v", detailedError.StatusCode, detailedError.ErrorBody)
+			return "", "", fmt.Errorf("status code : %d. details : %+v", detailedError.StatusCode, detailedError.ErrorBody)
 		} else {
-			return err
+			return "", "", err
 		}
 	}
 
-	return nil
-}
-
-func (c *Client) RetrieveSignedCertificate(csrSignature string) (string, error) {
-	endpoint := "/v1/certificates/retrieve"
-	body := requests.RetrieveSignedCertificate{CsrSignature: csrSignature}
-	var resp responses.RetrieveSignedCertificate
-
-	err := c.post(endpoint, body, &resp)
-	if err != nil {
-		if errors.As(err, &HttpError{}) {
-			detailedError, _ := err.(HttpError)
-			return "", fmt.Errorf("status code : %d. details : %+v", detailedError.StatusCode, detailedError.ErrorBody)
-		} else {
-			return "", err
-		}
-	}
-
-	return resp.Certificate, nil
+	return resp.Certificate, resp.CA, nil
 }
