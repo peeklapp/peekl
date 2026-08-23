@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/peeklapp/peekl/internal/config"
@@ -12,127 +13,37 @@ import (
 )
 
 type DatabaseEngine struct {
-	DB     *sql.DB
-	DBType string
-}
-
-// Pending certificates
-func (c *DatabaseEngine) InsertPendingCertificate(nodeName string, csrData string) error {
-	queries := map[string]string{
-		"sqlite":   "INSERT INTO pending_certs (node_name, data) VALUES (?, ?);",
-		"postgres": "INSERT INTO pending_certs (node_name, data) VALUES ($1, $2);",
-	}
-
-	_, err := c.DB.Exec(queries[c.DBType], nodeName, csrData)
-	if err != nil {
-		return fmt.Errorf("could not insert pending certificate in database : %s", err.Error())
-	}
-	return nil
-}
-
-func (c *DatabaseEngine) GetPendingCertificate(nodeName string) (models.PendingCertificate, error) {
-	queries := map[string]string{
-		"sqlite":   "SELECT node_name, submitted_at, data FROM pending_certs WHERE node_name = ?;",
-		"postgres": "SELECT node_name, submitted_at, data FROM pending_certs WHERE node_name = $1;",
-	}
-
-	var pendingCert models.PendingCertificate
-
-	err := c.DB.QueryRow(
-		queries[c.DBType], nodeName,
-	).Scan(&pendingCert.NodeName, &pendingCert.SubmittedAt, &pendingCert.Data)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return pendingCert, models.PendingCertificateNotFound{NodeName: nodeName}
-		} else {
-			return pendingCert, err
-		}
-	}
-
-	return pendingCert, nil
-}
-
-func (c *DatabaseEngine) ListPendingCertificates() ([]models.PendingCertificate, error) {
-	var pendCerts []models.PendingCertificate
-
-	rows, err := c.DB.Query("SELECT node_name, submitted_at FROM pending_certs;")
-	if err != nil {
-		return pendCerts, err
-	}
-	defer rows.Close() //nolint:errcheck
-
-	for rows.Next() {
-		var s models.PendingCertificate
-		err := rows.Scan(&s.NodeName, &s.SubmittedAt)
-		if err != nil {
-			return pendCerts, err
-		}
-		pendCerts = append(pendCerts, s)
-	}
-
-	return pendCerts, nil
-}
-
-func (c *DatabaseEngine) DeletePendingCertificate(nodeName string) error {
-	queries := map[string]string{
-		"sqlite":   "DELETE FROM pending_certs WHERE node_name = ?;",
-		"postgres": "DELETE FROM pending_certs WHERE node_name = $1;",
-	}
-	_, err := c.DB.Exec(queries[c.DBType], nodeName)
-	if err != nil {
-		return err
-	}
-	return nil
+	db     *sql.DB
+	dbType string
 }
 
 // Signed certificates
-func (c *DatabaseEngine) InsertSignedCertificate(nodeName string, csrSignature string, certificate string) error {
+func (c *DatabaseEngine) InsertSignedCertificate(nodeName string, certificate string) error {
 	queries := map[string]string{
-		"sqlite":   "INSERT INTO signed_certs (node_name, csr_signature, data) VALUES (?, ?, ?);",
-		"postgres": "INSERT INTO signed_certs (node_name, csr_signature, data) VALUES ($1, $2, $3);",
+		"sqlite":   "INSERT INTO signed_certs (node_name, certificate) VALUES (?, ?);",
+		"postgres": "INSERT INTO signed_certs (node_name, certificate) VALUES ($1, $2);",
 	}
-	_, err := c.DB.Exec(queries[c.DBType], nodeName, csrSignature, certificate)
+	_, err := c.db.Exec(queries[c.dbType], nodeName, certificate)
 	if err != nil {
 		return fmt.Errorf("could not insert signed certificate in database : %s", err.Error())
 	}
 	return nil
 }
 
-func (c *DatabaseEngine) GetSignedCertificateByCsrSignature(csrSignature string) (models.SignedCertificate, error) {
-	queries := map[string]string{
-		"sqlite":   "SELECT node_name, csr_signature, signed_at, data FROM signed_certs WHERE csr_signature = ?;",
-		"postgres": "SELECT node_name, csr_signature, signed_at, data FROM signed_certs WHERE csr_signature = $1;",
-	}
-	var signedCert models.SignedCertificate
-	err := c.DB.QueryRow(
-		queries[c.DBType], csrSignature,
-	).Scan(&signedCert.NodeName, &signedCert.CsrSignature, &signedCert.SignedAt, &signedCert.Data)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return signedCert, models.SignedCertificateNotFoundByCsrSignature{CsrSignature: csrSignature}
-		} else {
-			fmt.Println(err)
-			return signedCert, err
-		}
-	}
-	return signedCert, nil
-}
-
 func (c *DatabaseEngine) GetSignedCertificateByNodeName(nodeName string) (models.SignedCertificate, error) {
 	queries := map[string]string{
-		"sqlite":   "SELECT node_name, csr_signature, signed_at, data FROM signed_certs WHERE node_name = ?;",
-		"postgres": "SELECT node_name, csr_signature, signed_at, data FROM signed_certs WHERE node_name = $1;",
+		"sqlite":   "SELECT node_name, signed_at, certificate FROM signed_certs WHERE node_name = ?;",
+		"postgres": "SELECT node_name, signed_at, certificate FROM signed_certs WHERE node_name = $1;",
 	}
 	var signedCert models.SignedCertificate
-	err := c.DB.QueryRow(
-		queries[c.DBType], nodeName,
-	).Scan(&signedCert.NodeName, &signedCert.CsrSignature, &signedCert.SignedAt, &signedCert.Data)
+	err := c.db.QueryRow(
+		queries[c.dbType], nodeName,
+	).Scan(&signedCert.NodeName, &signedCert.SignedAt, &signedCert.Certificate)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return signedCert, models.SignedCertificateNotFoundByNodeName{NodeName: nodeName}
-		} else {
-			return signedCert, err
 		}
+		return signedCert, err
 	}
 	return signedCert, nil
 }
@@ -140,7 +51,7 @@ func (c *DatabaseEngine) GetSignedCertificateByNodeName(nodeName string) (models
 func (c *DatabaseEngine) ListSignedCertificates() ([]models.SignedCertificate, error) {
 	var signedCerts []models.SignedCertificate
 
-	rows, err := c.DB.Query("SELECT node_name, signed_at FROM signed_certs")
+	rows, err := c.db.Query("SELECT node_name, signed_at FROM signed_certs")
 	if err != nil {
 		return signedCerts, err
 	}
@@ -164,7 +75,7 @@ func (c *DatabaseEngine) DeleteSignedCertificate(nodeName string) error {
 		"sqlite":   "DELETE FROM signed_certs WHERE node_name = ?;",
 		"postgres": "DELETE FROM signed_certs WHERE node_name = $1;",
 	}
-	_, err := c.DB.Exec(queries[c.DBType], nodeName)
+	_, err := c.db.Exec(queries[c.dbType], nodeName)
 	if err != nil {
 		return err
 	}
@@ -176,7 +87,7 @@ func (c *DatabaseEngine) InsertRevokedCertificate(nodeName string, serialNumber 
 		"sqlite":   "INSERT INTO revoked_certs (node_name, serial_number) VALUES (?, ?);",
 		"postgres": "INSERT INTO revoked_certs (node_name, serial_number) VALUES ($1, $2);",
 	}
-	_, err := c.DB.Exec(queries[c.DBType], nodeName, serialNumber)
+	_, err := c.db.Exec(queries[c.dbType], nodeName, serialNumber)
 	if err != nil {
 		return fmt.Errorf("could not insert revoked certificate in database : %s", err.Error())
 	}
@@ -186,7 +97,7 @@ func (c *DatabaseEngine) InsertRevokedCertificate(nodeName string, serialNumber 
 func (c *DatabaseEngine) ListRevokedCertificates() ([]models.RevokedCertificate, error) {
 	var revokedCerts []models.RevokedCertificate
 
-	rows, err := c.DB.Query("SELECT node_name, serial_number, revoked_at FROM revoked_certs")
+	rows, err := c.db.Query("SELECT node_name, serial_number, revoked_at FROM revoked_certs")
 	if err != nil {
 		return revokedCerts, err
 	}
@@ -210,15 +121,14 @@ func (c *DatabaseEngine) GetRevokedCertificate(serialNumber string) (models.Revo
 		"postgres": "SELECT node_name, serial_number, revoked_at FROM revoked_certs WHERE serial_number = $1;",
 	}
 	var revokedCert models.RevokedCertificate
-	err := c.DB.QueryRow(
-		queries[c.DBType], serialNumber,
+	err := c.db.QueryRow(
+		queries[c.dbType], serialNumber,
 	).Scan(&revokedCert.NodeName, &revokedCert.SerialNumber, &revokedCert.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return revokedCert, models.RevokedCertificateNotFound{SerialNumber: serialNumber}
-		} else {
-			return revokedCert, err
 		}
+		return revokedCert, err
 	}
 
 	return revokedCert, nil
@@ -229,7 +139,7 @@ func (c *DatabaseEngine) IsNodeNameUsedInSigned(nodeName string) (bool, error) {
 		"sqlite":   "SELECT node_name FROM signed_certs WHERE node_name = ?;",
 		"postgres": "SELECT node_name FROM signed_certs WHERE node_name = $1;",
 	}
-	err := c.DB.QueryRow(queries[c.DBType], nodeName).Scan(&nodeName)
+	err := c.db.QueryRow(queries[c.dbType], nodeName).Scan(&nodeName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
@@ -244,7 +154,7 @@ func (c *DatabaseEngine) IsNodeNameUsedInPending(nodeName string) (bool, error) 
 		"sqlite":   "SELECT node_name FROM pending_certs WHERE node_name = ?;",
 		"postgres": "SELECT node_name FROM pending_certs WHERE node_name = $1;",
 	}
-	err := c.DB.QueryRow(queries[c.DBType], nodeName).Scan(&nodeName)
+	err := c.db.QueryRow(queries[c.dbType], nodeName).Scan(&nodeName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
@@ -254,23 +164,99 @@ func (c *DatabaseEngine) IsNodeNameUsedInPending(nodeName string) (bool, error) 
 	return true, nil
 }
 
+func (c *DatabaseEngine) InsertEnrollmentToken(tokenHash string, ip string, valid_until time.Time) error {
+	queries := map[string]string{
+		"sqlite":   "INSERT INTO enrollment_tokens (ip, token_hash, valid_until) VALUES (?, ?, ?);",
+		"postgres": "INSERT INTO enrollment_tokens (ip, token_hash, valid_until) VALUES ($1, $2, $3);",
+	}
+	_, err := c.db.Exec(queries[c.dbType], ip, tokenHash, valid_until)
+	if err != nil {
+		return fmt.Errorf("could not insert enrollment token in database : %s", err.Error())
+	}
+	return nil
+}
+
+func (c *DatabaseEngine) GetEnrollmentToken(ip string) (models.EnrollmentToken, error) {
+	queries := map[string]string{
+		"sqlite":   "SELECT ip, token_hash, created_at, valid_until FROM enrollment_tokens WHERE ip = ?;",
+		"postgres": "SELECT ip, token_hash, created_at, valid_until FROM enrollment_tokens WHERE ip = $1;",
+	}
+	var enrollmentToken models.EnrollmentToken
+	err := c.db.QueryRow(
+		queries[c.dbType], ip,
+	).Scan(&enrollmentToken.Ip, &enrollmentToken.TokenHash, &enrollmentToken.CreatedAt, &enrollmentToken.ValidUntil)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return enrollmentToken, models.EnrollmentTokenNotFound{}
+		}
+		return enrollmentToken, err
+	}
+	return enrollmentToken, nil
+}
+
+func (c *DatabaseEngine) DeleteEnrollmentToken(ip string) error {
+	queries := map[string]string{
+		"sqlite":   "DELETE FROM enrollment_tokens WHERE ip = ?;",
+		"postgres": "DELETE FROM enrollment_tokens WHERE ip = $1;",
+	}
+	_, err := c.db.Exec(queries[c.dbType], ip)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.EnrollmentTokenNotFound{}
+		}
+		return err
+	}
+	return nil
+}
+
+func (c *DatabaseEngine) ListEnrollmentToken() ([]models.EnrollmentToken, error) {
+	var enrollmentTokens []models.EnrollmentToken
+
+	rows, err := c.db.Query("SELECT ip, token_hash, created_at, valid_until FROM enrollment_tokens WHERE valid_until < CURRENT_TIMESTAMP;")
+	if err != nil {
+		return enrollmentTokens, err
+	}
+	defer rows.Close() //nolint:errcheck
+
+	for rows.Next() {
+		var t models.EnrollmentToken
+		err := rows.Scan(&t.Ip, &t.TokenHash, &t.CreatedAt, &t.ValidUntil)
+		if err != nil {
+			return enrollmentTokens, err
+		}
+		enrollmentTokens = append(enrollmentTokens, t)
+	}
+	return enrollmentTokens, nil
+}
+
+func (c *DatabaseEngine) DoesATokenExistAndIsValid(ip string) (bool, error) {
+	queries := map[string]string{
+		"sqlite":   "SELECT COUNT(*) FROM enrollment_tokens WHERE ip = ? AND valid_until < ?;",
+		"postgres": "SELECT COUNT(*) FROM enrollment_tokens WHERE ip = $1 AND valid_until < $2;",
+	}
+	currentTime := time.Now()
+
+	var tokenFound int
+	err := c.db.QueryRow(queries[c.dbType], ip, currentTime).Scan(&tokenFound)
+	if err != nil {
+		return false, err
+	}
+
+	if tokenFound > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
 func databaseSchema(dbType string) string {
 	switch dbType {
 	case "sqlite":
 		return `
-    CREATE TABLE IF NOT EXISTS pending_certs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      node_name TEXT NOT NULL UNIQUE,
-      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    	data TEXT NOT NULL UNIQUE
-    );
-
     CREATE TABLE IF NOT EXISTS signed_certs (
     	id INTEGER PRIMARY KEY AUTOINCREMENT,
     	node_name TEXT NOT NULL UNIQUE,
-    	csr_signature TEXT NOT NULL UNIQUE,
     	signed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    	data TEXT NOT NULL UNIQUE
+    	certificate TEXT NOT NULL UNIQUE
     );
 
     CREATE TABLE IF NOT EXISTS revoked_certs (
@@ -279,22 +265,21 @@ func databaseSchema(dbType string) string {
 			serial_number TEXT NOT NULL UNIQUE,
 			revoked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+		CREATE TABLE IF NOT EXISTS enrollment_tokens (
+			ip TEXT NOT NULL PRIMARY KEY,
+			token_hash TEXT NOT NULL,
+			valid_until TIMESTAMP NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
 		`
 	case "postgres":
 		return `
-		CREATE TABLE IF NOT EXISTS pending_certs (
-			id SERIAL PRIMARY KEY,
-			node_name TEXT NOT NULL UNIQUE,
-			submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			data TEXT NOT NULL UNIQUE
-		);
-
 		CREATE TABLE IF NOT EXISTS signed_certs (
 			id SERIAL PRIMARY KEY,
 			node_name TEXT NOT NULL UNIQUE,
-			csr_signature TEXT UNIQUE,
 			signed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			data TEXT NOT NULL UNIQUE
+			certificate TEXT NOT NULL UNIQUE
 		);
 
 		CREATE TABLE IF NOT EXISTS revoked_certs (
@@ -302,6 +287,13 @@ func databaseSchema(dbType string) string {
 			node_name TEXT NOT NULL,
 			serial_number TEXT NOT NULL UNIQUE,
 			revoked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+
+		CREATE TABLE IF NOT EXISTS enrollment_tokens (
+			ip TEXT NOT NULL PRIMARY KEY,
+			token_hash TEXT NOT NULL,
+			valid_until TIMESTAMP NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 		`
 	}
@@ -323,8 +315,8 @@ func NewDatabaseEngine(databaseConfig *config.DatabaseConfig) (*DatabaseEngine, 
 		return &engine, err
 	}
 
-	engine.DB = db
-	engine.DBType = databaseConfig.Type
+	engine.db = db
+	engine.dbType = databaseConfig.Type
 
 	return &engine, nil
 }

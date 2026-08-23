@@ -7,3 +7,8 @@ type RetrieveSignedCertificate struct {
 type GetRootCA struct {
 	Certificate string `json:"certificate"`
 }
+
+type EnrollAgent struct {
+	Certificate string `json:"certificate"`
+	CA          string `json:"ca"`
+}

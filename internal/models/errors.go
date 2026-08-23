@@ -61,6 +61,12 @@ func (c RevokedCertificateNotFound) Error() string {
 	return fmt.Sprintf("No revoked certificate found for serial number %s", c.SerialNumber)
 }
 
+type EnrollmentTokenNotFound struct{}
+
+func (c EnrollmentTokenNotFound) Error() string {
+	return "Provided enrollment token could not be found"
+}
+
 type ValidationError struct {
 	FieldName    string `json:"field_name"`
 	ViolatedRule string `json:"violated_rule"`

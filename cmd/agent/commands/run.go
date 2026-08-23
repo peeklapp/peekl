@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/peeklapp/peekl/internal/bootstrap"
 	"github.com/peeklapp/peekl/internal/catalog"
 	"github.com/peeklapp/peekl/internal/code"
 	"github.com/peeklapp/peekl/internal/environments"
@@ -182,35 +181,6 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 	}
 }
 
-func performBootstrap(config *config.AgentConfig) error {
-	state := bootstrap.GetAgentBootstrapState(config)
-
-	switch state {
-	case bootstrap.BootstrapNone:
-		err := bootstrap.BootstrapAgent(config)
-		if err != nil {
-			return err
-		}
-		success, err := bootstrap.TryFetchCertificateFromServer(config)
-		if err != nil {
-			return err
-		}
-		if !success {
-			return fmt.Errorf("could not fetch certificate from server")
-		}
-	case bootstrap.BootstrapPendingCert:
-		success, err := bootstrap.TryFetchCertificateFromServer(config)
-		if err != nil {
-			return err
-		}
-		if !success {
-			return fmt.Errorf("could not fetch certificate from server")
-		}
-	}
-
-	return nil
-}
-
 var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Run the agent",
@@ -257,17 +227,6 @@ var RunCmd = &cobra.Command{
 		}
 
 		if daemon {
-			for {
-				err = performBootstrap(agentConfig)
-				if err != nil {
-					logrus.Error(err)
-				} else {
-					break
-				}
-				logrus.Info("Retrying in 60 seconds")
-				time.Sleep(time.Duration(60) * time.Second)
-			}
-
 			apiClient, err := client.NewApiClient(*agentConfig, false, nil)
 			if err != nil {
 				logrus.Fatal(err)
@@ -289,10 +248,6 @@ var RunCmd = &cobra.Command{
 				time.Sleep(time.Duration(agentConfig.Daemon.LoopTime) * time.Second)
 			}
 		} else {
-			err = performBootstrap(agentConfig)
-			if err != nil {
-				logrus.Fatal(err)
-			}
 			if !isLocked() {
 				apiClient, err := client.NewApiClient(*agentConfig, false, nil)
 				if err != nil {

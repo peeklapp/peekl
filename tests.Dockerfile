@@ -1,4 +1,4 @@
-FROM golang:1.26.0-trixie
+FROM golang:1.27.0-trixie
 
 WORKDIR /peekl
 

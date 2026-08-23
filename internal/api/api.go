@@ -17,6 +17,7 @@ import (
 func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEngine) (*fiber.App, error) {
 	// Create app instance
 	app := fiber.New()
+	v1 := app.Group("v1")
 
 	log := logrus.New()
 	loggerMiddleware := logger.NewLogger(log)
@@ -28,28 +29,33 @@ func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEn
 		return nil, err
 	}
 
-	// Create v1 group
-	v1 := app.Group("v1")
+	// Get raw CA certificate
+	caCert, err := os.ReadFile(conf.Certificates.CaCertificateFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get raw CA key
+	caKey, err := os.ReadFile(conf.Certificates.CaCertificateKeyPath)
+	if err != nil {
+		return nil, err
+	}
 
 	// Certificates group
 	certificatesGroup := v1.Group("certificates")
-
-	// -- Certificates group needs access to certificate database engine
 	certificatesGroup.Use(func(c fiber.Ctx) error {
 		c.Locals("databaseEngine", databaseEngine)
 		return c.Next()
 	})
-
-	// -- Certificates group needs access to server configuration
 	certificatesGroup.Use(func(c fiber.Ctx) error {
 		c.Locals("config", conf)
 		return c.Next()
 	})
-
-	// -- Certificates group endpoints
-	certificatesGroup.Get("/root", endpoints.GetRootCA)
-	certificatesGroup.Post("/submit", endpoints.PostSubmitCertificateRequest)
-	certificatesGroup.Post("/retrieve", endpoints.PostRetrieveSignedCertificate)
+	enrollEndpoint, err := endpoints.NewPostEnrollAgent(string(caCert), string(caKey))
+	if err != nil {
+		return nil, err
+	}
+	certificatesGroup.Post("/enroll", enrollEndpoint)
 
 	// Create data root
 	dataRoot, err := os.OpenRoot(conf.Code.Directory)
@@ -61,20 +67,15 @@ func NewApiEngine(conf *config.ServerConfig, databaseEngine *database.DatabaseEn
 	catalogsGroup := v1.Group("catalogs")
 	catalogsGroup.Use(mtlsMiddleware)
 	catalogsFilecache := filecache.New()
-
-	// -- Catalogs group endpoints
 	catalogsGroup.Post("/catalog", endpoints.NewPostGetCatalog(dataRoot, catalogsFilecache))
 
 	// Data group
 	dataGroup := v1.Group("data")
 	dataGroup.Use(mtlsMiddleware)
-
-	// -- Data group needs access to server configurtion
 	dataGroup.Use(func(c fiber.Ctx) error {
 		c.Locals("config", conf)
 		return c.Next()
 	})
-
 	dataGroup.Get("/:environment/:id/nodes/:name", endpoints.NewGetNodeData(dataRoot))
 	dataGroup.Get("/:environment/:id/"+code.CodeTarballName, endpoints.NewGetCodeData(dataRoot))
 
