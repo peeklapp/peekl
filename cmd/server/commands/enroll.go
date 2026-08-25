@@ -3,8 +3,8 @@ package commands
 import (
 	"os"
 	"time"
-	"uuid"
 
+	"github.com/google/uuid"
 	"github.com/olekukonko/tablewriter"
 	"github.com/peeklapp/peekl/internal/config"
 	"github.com/peeklapp/peekl/internal/database"
@@ -105,7 +105,7 @@ var createEnrollCmd = &cobra.Command{
 		validUntil := time.Now().Add(timeDuration)
 
 		// Generate token
-		tokenUuid := uuid.NewV4().String()
+		tokenUuid := uuid.New().String()
 
 		// Hash token
 		hashingParams := utils.DefaultParams()

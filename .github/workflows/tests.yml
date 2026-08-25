@@ -10,7 +10,7 @@ jobs:
         run: go test -coverprofile=coverage.out ./...
   lint:
     runs-on: ubuntu-latest
-    container: golang:1.27.0-trixie
+    container: golang:1.26.0-trixie
     steps:
       - uses: actions/checkout@v6
       - name: golangci-lint
