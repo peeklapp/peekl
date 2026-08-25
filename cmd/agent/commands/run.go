@@ -36,8 +36,8 @@ func createLockfile() error {
 	return nil
 }
 
-func deleteLockFile() error {
-	return os.Remove("/tmp/.peekl_run")
+func deleteLockFile() {
+	_ = os.Remove("/tmp/.peekl_run")
 }
 
 // Verify that a cache is still valid
@@ -55,13 +55,10 @@ func isCacheValid(filePath string, expectedHash string) (bool, error) {
 }
 
 func deleteExtractDir(extractDirPath string) {
-	err := os.RemoveAll(extractDirPath)
-	if err != nil {
-		logrus.Fatal(err)
-	}
+	_ = os.RemoveAll(extractDirPath)
 }
 
-func runAgent(client *client.Client, environment string, cachePath string) {
+func runAgent(client *client.Client, environment string, cachePath string) error {
 	var rawCatalog models.RawCatalog
 	rawCatalog.Environment = environment
 	rawCatalog.ApiClient = client
@@ -71,27 +68,31 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 	logrus.Debug("Collecting facts")
 	rawCatalog.Facts, err = facter.Collect()
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
+		return err
 	}
 
 	// Getting what to download
 	logrus.Debug("Getting URL path for tarballs")
 	nodeTarballUrl, nodeTarballHash, codeTarballUrl, codeTarballHash, err := client.GetCatalog(environment)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
+		return err
 	}
 
 	logrus.Debug("Creating global cache folder if it doesn't exist")
 	if !utils.FileExist(cachePath, nil) {
 		if err := os.MkdirAll(cachePath, 0750); err != nil {
-			logrus.Fatal(err)
+			logrus.Error(err)
+			return err
 		}
 	}
 
 	logrus.Debug("Creating environment cache folder if it doesn't exist")
 	if !utils.FileExist(filepath.Join(cachePath, environment), nil) {
 		if err := os.Mkdir(filepath.Join(cachePath, environment), 0750); err != nil {
-			logrus.Fatal(err)
+			logrus.Error(err)
+			return err
 		}
 	}
 
@@ -99,19 +100,22 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 	expectedNodeFilePath := filepath.Join(cachePath, environment, "node"+code.TarballExtension)
 	nodeFileCacheValid, err := isCacheValid(expectedNodeFilePath, nodeTarballHash)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
+		return err
 	}
 	expectedCodeFilePath := filepath.Join(cachePath, environment, code.CodeTarballName)
 	codeFileCacheValid, err := isCacheValid(expectedCodeFilePath, codeTarballHash)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
+		return err
 	}
 
 	if !nodeFileCacheValid {
 		logrus.Debugf("Local node cache is not valid, downloading with path : %s", nodeTarballUrl)
 		err = client.DownloadFile(nodeTarballUrl, expectedNodeFilePath)
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Error(err)
+			return err
 		}
 	} else {
 		logrus.Debug("Local node cache is valid, not downloading.")
@@ -121,7 +125,8 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 		logrus.Debugf("Local code cache is not valid, downloading with path : %s", codeTarballUrl)
 		err = client.DownloadFile(codeTarballUrl, expectedCodeFilePath)
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Error(err)
+			return err
 		}
 	} else {
 		logrus.Debug("Local code cache is valid, not downloading.")
@@ -130,14 +135,16 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 	logrus.Debug("Creating tarball temporary extraction directory")
 	extractDir, err := os.MkdirTemp("", "peekl")
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
+		return err
 	}
 	defer deleteExtractDir(extractDir)
 
 	logrus.Debug("Opening root to extraction directory")
 	extractDirRoot, err := os.OpenRoot(extractDir)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
+		return err
 	}
 
 	logrus.Debug("Extracting the archives")
@@ -146,14 +153,16 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 		logrus.Debugf("Extracting first archive at path '%s' into '%s'", arch, extractDir)
 		err := code.DecompressArchive(arch, extractDir)
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Error(err)
+			return err
 		}
 	}
 
 	logrus.Debug("Compiling raw catalog based on extracted archives")
 	rawCatalog.GlobalResources, rawCatalog.Roles, rawCatalog.Tags, rawCatalog.Variables, err = catalog.CompileCatalog(extractDirRoot, rawCatalog.Facts.Hostname)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
+		return err
 	}
 	rawCatalog.CodePath = extractDir
 
@@ -161,24 +170,29 @@ func runAgent(client *client.Client, environment string, cachePath string) {
 	catalog, err := catalog.NewCatalog(rawCatalog)
 	if err != nil {
 		logrus.Error(err)
-		return
+		return err
 	}
 
 	logrus.Debug("Validating the catalog")
 	valid, err := catalog.Validate()
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Error(err)
+		return err
 	}
 
 	if valid {
 		logrus.Info("Catalog is valid, running")
 		err = catalog.Process()
 		if err != nil {
-			logrus.Fatal(err)
+			logrus.Error(err)
+			return err
 		}
 	} else {
-		logrus.Fatal("Catalog is not valid. Not running.")
+		logrus.Error("Catalog is not valid. Not running.")
+		return err
 	}
+
+	return nil
 }
 
 var RunCmd = &cobra.Command{
@@ -237,9 +251,9 @@ var RunCmd = &cobra.Command{
 					if err := createLockfile(); err != nil {
 						logrus.Fatalf("Could not create lock due to the following error : %s", err.Error())
 					}
-					runAgent(apiClient, environment, agentConfig.Caching.Path)
-					if err := deleteLockFile(); err != nil {
-						logrus.Fatalf("Could not delete lock file due to the following error : %s", err.Error())
+					if err := runAgent(apiClient, environment, agentConfig.Caching.Path); err != nil {
+						deleteLockFile()
+						os.Exit(1)
 					}
 				} else {
 					logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
@@ -257,9 +271,9 @@ var RunCmd = &cobra.Command{
 				if err != nil {
 					logrus.Fatalf("Could not create lock due to the following error : %s", err.Error())
 				}
-				runAgent(apiClient, environment, agentConfig.Caching.Path)
-				if err := deleteLockFile(); err != nil {
-					logrus.Fatalf("Could not delete lock file due to the following error : %s", err.Error())
+				if err := runAgent(apiClient, environment, agentConfig.Caching.Path); err != nil {
+					deleteLockFile()
+					os.Exit(1)
 				}
 			} else {
 				logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
