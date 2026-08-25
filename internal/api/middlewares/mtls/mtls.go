@@ -54,8 +54,15 @@ func New(caPath string, databaseEngine *database.DatabaseEngine) (fiber.Handler,
 			})
 		}
 
-		// Check if the certificate is revoked
-		if _, err := databaseEngine.GetRevokedCertificate(peerCertificates[0].SerialNumber.String()); err == nil {
+		// Check if certificate has been revoked
+		certificateIsRevoked, err := databaseEngine.IsCertificateRevoked(peerCertificates[0].SerialNumber.String())
+		if err != nil {
+			return ctx.Status(500).JSON(responses.ErrorResponse{
+				Error:   "Internal Server Error",
+				Details: "An error happened while trying to find certificate in database",
+			})
+		}
+		if certificateIsRevoked {
 			return ctx.Status(403).JSON(responses.ErrorResponse{
 				Error:   "Certificate has been revoked",
 				Details: "The certificate that has been set is revoked.",

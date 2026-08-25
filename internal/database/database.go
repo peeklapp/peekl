@@ -134,25 +134,25 @@ func (c *DatabaseEngine) GetRevokedCertificate(serialNumber string) (models.Revo
 	return revokedCert, nil
 }
 
+func (c *DatabaseEngine) IsCertificateRevoked(serialNumber string) (bool, error) {
+	queries := map[string]string{
+		"sqlite":   "SELECT EXISTS(SELECT 1 FROM revoked_certs WHERE serial_number = ?);",
+		"postgres": "SELECT EXISTS(SELECT 1 FROM revoked_certs WHERE serial_number = $1);",
+	}
+	var revoked bool
+	err := c.db.QueryRow(
+		queries[c.dbType], serialNumber,
+	).Scan(&revoked)
+	if err != nil {
+		return revoked, err
+	}
+	return revoked, nil
+}
+
 func (c *DatabaseEngine) IsNodeNameUsedInSigned(nodeName string) (bool, error) {
 	queries := map[string]string{
 		"sqlite":   "SELECT node_name FROM signed_certs WHERE node_name = ?;",
 		"postgres": "SELECT node_name FROM signed_certs WHERE node_name = $1;",
-	}
-	err := c.db.QueryRow(queries[c.dbType], nodeName).Scan(&nodeName)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-func (c *DatabaseEngine) IsNodeNameUsedInPending(nodeName string) (bool, error) {
-	queries := map[string]string{
-		"sqlite":   "SELECT node_name FROM pending_certs WHERE node_name = ?;",
-		"postgres": "SELECT node_name FROM pending_certs WHERE node_name = $1;",
 	}
 	err := c.db.QueryRow(queries[c.dbType], nodeName).Scan(&nodeName)
 	if err != nil {
