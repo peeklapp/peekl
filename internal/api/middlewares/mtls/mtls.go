@@ -2,7 +2,6 @@ package mtls
 
 import (
 	"crypto/x509"
-	"time"
 
 	fiber "github.com/gofiber/fiber/v3"
 	"github.com/peeklapp/peekl/internal/api/responses"
@@ -43,14 +42,6 @@ func New(caPath string, databaseEngine *database.DatabaseEngine) (fiber.Handler,
 			return ctx.Status(403).JSON(responses.ErrorResponse{
 				Error:   "Certificate invalid",
 				Details: "The certificate that has been sent is not valid.",
-			})
-		}
-
-		// Check if certificate is not expire
-		if peerCertificates[0].NotAfter.Before(time.Now()) {
-			return ctx.Status(403).JSON(responses.ErrorResponse{
-				Error:   "Certificate is expired",
-				Details: "The certificate that has been set is expired.",
 			})
 		}
 
