@@ -19,11 +19,11 @@ func TestCommand(t *testing.T) {
 			When:     "",
 			Register: "",
 		}
-		data := map[string]any{
+		parameters := map[string]any{
 			"command": "echo test > /tmp/testing_file",
 		}
 
-		commandRes, err := NewCommandResource(&rawRes, data, nil)
+		commandRes, err := NewCommandResource(&rawRes, parameters, nil)
 		if err != nil {
 			t.Errorf("No error should happen at that stage")
 		}
@@ -51,12 +51,12 @@ func TestCommand(t *testing.T) {
 			When:     "",
 			Register: "",
 		}
-		data := map[string]any{
+		parameters := map[string]any{
 			"command": "echo test2 > /tmp/testing_file",
 			"creates": "/tmp/testing_file",
 		}
 
-		commandRes, err := NewCommandResource(&rawRes, data, nil)
+		commandRes, err := NewCommandResource(&rawRes, parameters, nil)
 		if err != nil {
 			t.Errorf("No error should happen at that stage")
 		}

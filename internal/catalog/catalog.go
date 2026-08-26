@@ -321,7 +321,7 @@ func (c *Catalog) loadRoles(roles []models.Role) error {
 	return nil
 }
 
-func (c *Catalog) loadSingleResource(resource models.Resource, dataField map[string]any, roleContext *models.RoleContext) (models.LoadedResource, error) {
+func (c *Catalog) loadSingleResource(resource models.Resource, parametersField map[string]any, roleContext *models.RoleContext) (models.LoadedResource, error) {
 	if resource.Present == nil {
 		defaultPresentValue := true
 		resource.Present = &defaultPresentValue
@@ -329,27 +329,27 @@ func (c *Catalog) loadSingleResource(resource models.Resource, dataField map[str
 
 	switch resource.Type {
 	case "builtin.user":
-		return user.NewUserResource(&resource, dataField, roleContext)
+		return user.NewUserResource(&resource, parametersField, roleContext)
 	case "builtin.group":
-		return group.NewGroupResource(&resource, dataField, roleContext)
+		return group.NewGroupResource(&resource, parametersField, roleContext)
 	case "builtin.file":
-		return file.NewFileResource(&resource, dataField, roleContext)
+		return file.NewFileResource(&resource, parametersField, roleContext)
 	case "builtin.directory":
-		return directory.NewDirectoryResource(&resource, dataField, roleContext)
+		return directory.NewDirectoryResource(&resource, parametersField, roleContext)
 	case "builtin.pkg":
-		return pkg.NewPackageResource(&resource, dataField, roleContext)
+		return pkg.NewPackageResource(&resource, parametersField, roleContext)
 	case "builtin.template":
-		return template.NewTemplateResource(&resource, dataField, roleContext)
+		return template.NewTemplateResource(&resource, parametersField, roleContext)
 	case "builtin.systemd_service":
-		return systemdService.NewSystemdServiceResource(&resource, dataField, roleContext)
+		return systemdService.NewSystemdServiceResource(&resource, parametersField, roleContext)
 	case "builtin.systemd_daemon":
-		return systemdDaemon.NewSystemdDaemonResource(&resource, dataField, roleContext)
+		return systemdDaemon.NewSystemdDaemonResource(&resource, parametersField, roleContext)
 	case "builtin.debug":
-		return debug.NewDebugResource(&resource, dataField, roleContext)
+		return debug.NewDebugResource(&resource, parametersField, roleContext)
 	case "builtin.command":
-		return command.NewCommandResource(&resource, dataField, roleContext)
+		return command.NewCommandResource(&resource, parametersField, roleContext)
 	case "builtin.cron":
-		return cron.NewCronResource(&resource, dataField, roleContext)
+		return cron.NewCronResource(&resource, parametersField, roleContext)
 	}
 	return nil, fmt.Errorf("unknown resource type : %s", resource.Type)
 }
@@ -358,8 +358,8 @@ func (c *Catalog) loadResources(resources []models.Resource, roleContext *models
 	var loadedResources []models.LoadedResource
 	for _, res := range resources {
 		if len(res.With) > 0 {
-			for dataFieldId := range res.With {
-				loadedRes, err := c.loadSingleResource(res, res.With[dataFieldId], roleContext)
+			for parametersFieldId := range res.With {
+				loadedRes, err := c.loadSingleResource(res, res.With[parametersFieldId], roleContext)
 				if err != nil {
 					return loadedResources, fmt.Errorf(
 						"an error happened while trying to load resource '%s' of type '%s' : %s",
@@ -371,7 +371,7 @@ func (c *Catalog) loadResources(resources []models.Resource, roleContext *models
 				loadedResources = append(loadedResources, loadedRes)
 			}
 		} else {
-			loadedRes, err := c.loadSingleResource(res, res.Data, roleContext)
+			loadedRes, err := c.loadSingleResource(res, res.Parameters, roleContext)
 			if err != nil {
 				return loadedResources, fmt.Errorf(
 					"an error happened while trying to load resource '%s' of type '%s' : %s",

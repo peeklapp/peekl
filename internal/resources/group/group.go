@@ -12,13 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type GroupData struct {
+type GroupParameters struct {
 	Name string `mapstructure:"name"`
 }
 
 type GroupResource struct {
 	resources.CommonFieldResource
-	Data GroupData
+	Parameters GroupParameters
 }
 
 func (g *GroupResource) exist() bool {
@@ -26,29 +26,29 @@ func (g *GroupResource) exist() bool {
 		fmt.Sprintf(
 			"[%s] Checking if group (%s) exist using the builtin Go package `os/user`",
 			g.String(),
-			g.Data.Name,
+			g.Parameters.Name,
 		),
 	)
 
-	_, err := user.LookupGroup(g.Data.Name)
+	_, err := user.LookupGroup(g.Parameters.Name)
 	if err != nil {
-		logrus.Debug(fmt.Sprintf("[%s] Group (%s) does not exist", g.String(), g.Data.Name))
+		logrus.Debug(fmt.Sprintf("[%s] Group (%s) does not exist", g.String(), g.Parameters.Name))
 		return false
 	}
 
-	logrus.Debug(fmt.Sprintf("[%s] Group (%s) exist", g.String(), g.Data.Name))
+	logrus.Debug(fmt.Sprintf("[%s] Group (%s) exist", g.String(), g.Parameters.Name))
 	return true
 }
 
 func (g *GroupResource) create() error {
 	command := "addgroup"
-	args := []string{g.Data.Name}
+	args := []string{g.Parameters.Name}
 
 	logrus.Debug(
 		fmt.Sprintf(
 			"[%s] Creating group (%s) using the following command : %s %s",
 			g.String(),
-			g.Data.Name,
+			g.Parameters.Name,
 			command,
 			strings.Join(args, " "),
 		),
@@ -68,13 +68,13 @@ func (g *GroupResource) create() error {
 
 func (g *GroupResource) delete() error {
 	command := "delgroup"
-	args := []string{g.Data.Name}
+	args := []string{g.Parameters.Name}
 
 	logrus.Debug(
 		fmt.Sprintf(
 			"[%s] Deleting group (%s) using the following command : %s %s",
 			g.String(),
-			g.Data.Name,
+			g.Parameters.Name,
 			command,
 			strings.Join(args, " "),
 		),
@@ -99,26 +99,26 @@ func (g *GroupResource) Process(context *models.ResourceContext) (models.Resourc
 
 	if !exist && g.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] Group (%s) does not exist but should", g.String(), g.Data.Name),
+			fmt.Sprintf("[%s] Group (%s) does not exist but should", g.String(), g.Parameters.Name),
 		)
 		err := g.create()
 		if err != nil {
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] Group (%s) created", g.String(), g.Data.Name),
+			fmt.Sprintf("[%s] Group (%s) created", g.String(), g.Parameters.Name),
 		)
 		result.Created = true
 	} else if exist && !g.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] Group (%s) exist but should not", g.String(), g.Data.Name),
+			fmt.Sprintf("[%s] Group (%s) exist but should not", g.String(), g.Parameters.Name),
 		)
 		err := g.delete()
 		if err != nil {
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] Group (%s) deleted", g.String(), g.Data.Name),
+			fmt.Sprintf("[%s] Group (%s) deleted", g.String(), g.Parameters.Name),
 		)
 		result.Deleted = true
 	}
@@ -142,7 +142,7 @@ func (g *GroupResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
 	// Check if the provided name is not empty
-	if g.Data.Name == "" {
+	if g.Parameters.Name == "" {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -164,7 +164,7 @@ func (g *GroupResource) Validate() error {
 	return nil
 }
 
-func NewGroupResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*GroupResource, error) {
+func NewGroupResource(resource *models.Resource, parametersField any, roleContext *models.RoleContext) (*GroupResource, error) {
 	var groupResource GroupResource
 
 	groupResource.Title = resource.Title
@@ -173,7 +173,7 @@ func NewGroupResource(resource *models.Resource, dataField any, roleContext *mod
 	groupResource.WhenCondition = resource.When
 	groupResource.RegisterVariable = resource.Register
 
-	err := mapstructure.Decode(dataField, &groupResource.Data)
+	err := mapstructure.Decode(parametersField, &groupResource.Parameters)
 	if err != nil {
 		return &groupResource, err
 	}

@@ -11,13 +11,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type SystemdDaemonData struct {
+type SystemdDaemonParameters struct {
 	Reload bool `mapstructure:"reload"`
 }
 
 type SystemdDaemonResource struct {
 	resources.CommonFieldResource
-	Data SystemdDaemonData
+	Parameters SystemdDaemonParameters
 }
 
 func (s *SystemdDaemonResource) reloadSystemdDaemon() error {
@@ -49,7 +49,7 @@ func (s *SystemdDaemonResource) reloadSystemdDaemon() error {
 func (s *SystemdDaemonResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
-	if s.Data.Reload {
+	if s.Parameters.Reload {
 		logrus.Info(
 			fmt.Sprintf(
 				"[%s] Systemd daemon should be reloaded",
@@ -90,21 +90,21 @@ func (s *SystemdDaemonResource) Validate() error {
 	return nil
 }
 
-func NewSystemdDaemonResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*SystemdDaemonResource, error) {
+func NewSystemdDaemonResource(resource *models.Resource, parametersField any, roleContext *models.RoleContext) (*SystemdDaemonResource, error) {
 	var systemdDaemonResource SystemdDaemonResource
 
 	defaults := map[string]any{
 		"reload": true,
 	}
 
-	var systemdDaemonData SystemdDaemonData
+	var systemdDaemonParameters SystemdDaemonParameters
 
-	err := mapstructure.Decode(defaults, &systemdDaemonData)
+	err := mapstructure.Decode(defaults, &systemdDaemonParameters)
 	if err != nil {
 		return &systemdDaemonResource, err
 	}
 
-	err = mapstructure.Decode(dataField, &systemdDaemonData)
+	err = mapstructure.Decode(parametersField, &systemdDaemonParameters)
 	if err != nil {
 		return &systemdDaemonResource, err
 	}
@@ -114,7 +114,7 @@ func NewSystemdDaemonResource(resource *models.Resource, dataField any, roleCont
 	systemdDaemonResource.Present = *resource.Present
 	systemdDaemonResource.WhenCondition = resource.When
 	systemdDaemonResource.RegisterVariable = resource.Register
-	systemdDaemonResource.Data = systemdDaemonData
+	systemdDaemonResource.Parameters = systemdDaemonParameters
 
 	return &systemdDaemonResource, nil
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type FileData struct {
+type FileParameters struct {
 	Path        string      `mapstructure:"path"`
 	Owner       string      `mapstructure:"owner"`
 	Group       string      `mapstructure:"group"`
@@ -29,38 +29,38 @@ type FileData struct {
 
 type FileResource struct {
 	resources.CommonFieldResource
-	Data FileData
+	Parameters FileParameters
 }
 
 func (f *FileResource) changePermissionsIfNeeded() (bool, error) {
 	var didSomething bool
 
 	// Get stat for the file
-	stat, err := os.Stat(f.Data.Path)
+	stat, err := os.Stat(f.Parameters.Path)
 	if err != nil {
 		return didSomething, err
 	}
 
 	// Update file permission if needed
-	if stat.Mode() != f.Data.Mode {
+	if stat.Mode() != f.Parameters.Mode {
 		logrus.Info(
 			fmt.Sprintf(
 				"Mode for file (%s) should be (%s) but is (%s)",
-				f.Data.Path,
-				f.Data.Mode,
+				f.Parameters.Path,
+				f.Parameters.Mode,
 				stat.Mode(),
 			),
 		)
-		if err := os.Chmod(f.Data.Path, f.Data.Mode); err != nil {
+		if err := os.Chmod(f.Parameters.Path, f.Parameters.Mode); err != nil {
 			return didSomething, err
 		}
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
 				"Mode for file (%s) has been updated from (%s) to (%s)",
-				f.Data.Path,
+				f.Parameters.Path,
 				stat.Mode(),
-				f.Data.Mode,
+				f.Parameters.Mode,
 			),
 		)
 	}
@@ -71,7 +71,7 @@ func (f *FileResource) changePermissionsIfNeeded() (bool, error) {
 func (f *FileResource) changeOwnershipIfNeeded() (bool, error) {
 	var didSomething bool
 
-	stat, err := os.Stat(f.Data.Path)
+	stat, err := os.Stat(f.Parameters.Path)
 	if err != nil {
 		return didSomething, err
 	}
@@ -84,11 +84,11 @@ func (f *FileResource) changeOwnershipIfNeeded() (bool, error) {
 		foundGid = int(stat.Gid)
 	}
 
-	expectedUid, err := utils.GetUserUidFromUsername(f.Data.Owner)
+	expectedUid, err := utils.GetUserUidFromUsername(f.Parameters.Owner)
 	if err != nil {
 		return didSomething, err
 	}
-	expectedGid, err := utils.GetGroupGidFromName(f.Data.Group)
+	expectedGid, err := utils.GetGroupGidFromName(f.Parameters.Group)
 	if err != nil {
 		return didSomething, err
 	}
@@ -106,25 +106,25 @@ func (f *FileResource) changeOwnershipIfNeeded() (bool, error) {
 		logrus.Info(
 			fmt.Sprintf(
 				"Ownership for file (%s) should (%s:%s) but is (%s:%s)",
-				f.Data.Path,
-				f.Data.Owner,
-				f.Data.Group,
+				f.Parameters.Path,
+				f.Parameters.Owner,
+				f.Parameters.Group,
 				username,
 				groupName,
 			),
 		)
-		if err := os.Chown(f.Data.Path, expectedUid, expectedGid); err != nil {
+		if err := os.Chown(f.Parameters.Path, expectedUid, expectedGid); err != nil {
 			return didSomething, err
 		}
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
 				"Ownership for file (%s) updated from (%s:%s) to (%s:%s)",
-				f.Data.Path,
+				f.Parameters.Path,
 				username,
 				groupName,
-				f.Data.Owner,
-				f.Data.Group,
+				f.Parameters.Owner,
+				f.Parameters.Group,
 			),
 		)
 	}
@@ -136,7 +136,7 @@ func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 	var didSomething bool
 
 	// First we open the file
-	file, err := os.Open(f.Data.Path)
+	file, err := os.Open(f.Parameters.Path)
 	if err != nil {
 		return didSomething, err
 	}
@@ -168,12 +168,12 @@ func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 			fmt.Sprintf(
 				"[%s] Checksum for file (%s) should be (%s) but is (%s)",
 				f.String(),
-				f.Data.Path,
+				f.Parameters.Path,
 				contentMD5Value,
 				localFileMD5Value,
 			),
 		)
-		err := os.WriteFile(f.Data.Path, []byte(content), f.Data.Mode)
+		err := os.WriteFile(f.Parameters.Path, []byte(content), f.Parameters.Mode)
 		if err != nil {
 			return didSomething, err
 		}
@@ -181,7 +181,7 @@ func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 			fmt.Sprintf(
 				"[%s] File (%s) content has been updated",
 				f.String(),
-				f.Data.Path,
+				f.Parameters.Path,
 			),
 		)
 		didSomething = true
@@ -191,11 +191,11 @@ func (f *FileResource) changeContentIfNeeded(content string) (bool, error) {
 }
 
 func (f *FileResource) exist() bool {
-	return utils.FileExist(f.Data.Path, nil)
+	return utils.FileExist(f.Parameters.Path, nil)
 }
 
 func (f *FileResource) create(content string) error {
-	file, err := os.Create(f.Data.Path)
+	file, err := os.Create(f.Parameters.Path)
 	if err != nil {
 		return err
 	}
@@ -208,17 +208,17 @@ func (f *FileResource) create(content string) error {
 	}
 
 	// Change mode of file
-	err = file.Chmod(f.Data.Mode)
+	err = file.Chmod(f.Parameters.Mode)
 	if err != nil {
 		return err
 	}
 
 	// Set owner and group
-	uid, err := utils.GetUserUidFromUsername(f.Data.Owner)
+	uid, err := utils.GetUserUidFromUsername(f.Parameters.Owner)
 	if err != nil {
 		return err
 	}
-	gid, err := utils.GetGroupGidFromName(f.Data.Group)
+	gid, err := utils.GetGroupGidFromName(f.Parameters.Group)
 	if err != nil {
 		return err
 	}
@@ -232,7 +232,7 @@ func (f *FileResource) create(content string) error {
 }
 
 func (f *FileResource) delete() error {
-	err := os.Remove(f.Data.Path)
+	err := os.Remove(f.Parameters.Path)
 	return err
 }
 
@@ -241,14 +241,14 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 
 	var fileContent string
 
-	if f.Data.Source != "" {
-		fullFilePath := filepath.Join(context.CodePath, "roles", f.Data.roleContext.RoleName, "files", f.Data.Source)
+	if f.Parameters.Source != "" {
+		fullFilePath := filepath.Join(context.CodePath, "roles", f.Parameters.roleContext.RoleName, "files", f.Parameters.Source)
 		if !utils.FileExist(fullFilePath, nil) {
 			result.Failed = true
 			return result, fmt.Errorf(
 				"[%s] The file doesn't exist in role : %s",
 				f.String(),
-				filepath.Join(context.CodePath, "roles", f.Data.roleContext.RoleName, "files", f.Data.Source),
+				filepath.Join(context.CodePath, "roles", f.Parameters.roleContext.RoleName, "files", f.Parameters.Source),
 			)
 		}
 		rawFileContent, err := os.ReadFile(fullFilePath)
@@ -258,12 +258,12 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 		}
 		fileContent = string(rawFileContent)
 	} else {
-		fileContent = f.Data.Content
+		fileContent = f.Parameters.Content
 	}
 
 	if !f.exist() && f.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] File (%s) does not exist, but should", f.String(), f.Data.Path),
+			fmt.Sprintf("[%s] File (%s) does not exist, but should", f.String(), f.Parameters.Path),
 		)
 		err := f.create(fileContent)
 		if err != nil {
@@ -271,12 +271,12 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] File (%s) created", f.String(), f.Data.Path),
+			fmt.Sprintf("[%s] File (%s) created", f.String(), f.Parameters.Path),
 		)
 		result.Created = true
 	} else if f.exist() && !f.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] File (%s) exist, but should not", f.String(), f.Data.Path),
+			fmt.Sprintf("[%s] File (%s) exist, but should not", f.String(), f.Parameters.Path),
 		)
 		err := f.delete()
 		if err != nil {
@@ -284,7 +284,7 @@ func (f *FileResource) Process(context *models.ResourceContext) (models.Resource
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] File (%s) deleted", f.String(), f.Data.Path),
+			fmt.Sprintf("[%s] File (%s) deleted", f.String(), f.Parameters.Path),
 		)
 		result.Deleted = true
 	}
@@ -339,9 +339,9 @@ func (f *FileResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
 	fieldsThatCannotBeEmpty := [][]string{
-		{f.Data.Path, "path"},
-		{f.Data.Owner, "owner"},
-		{f.Data.Group, "group"},
+		{f.Parameters.Path, "path"},
+		{f.Parameters.Owner, "owner"},
+		{f.Parameters.Group, "group"},
 	}
 	for _, fieldToCheck := range fieldsThatCannotBeEmpty {
 		if fieldToCheck[0] == "" {
@@ -355,7 +355,7 @@ func (f *FileResource) Validate() error {
 		}
 	}
 
-	if f.Data.Source != "" && f.Data.Content != "" {
+	if f.Parameters.Source != "" && f.Parameters.Content != "" {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -365,7 +365,7 @@ func (f *FileResource) Validate() error {
 		)
 	}
 
-	if f.Data.Source != "" && f.Data.roleContext == nil {
+	if f.Parameters.Source != "" && f.Parameters.roleContext == nil {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -386,7 +386,7 @@ func (f *FileResource) Validate() error {
 	return nil
 }
 
-func NewFileResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*FileResource, error) {
+func NewFileResource(resource *models.Resource, parametersField any, roleContext *models.RoleContext) (*FileResource, error) {
 	var fileResource FileResource
 
 	// Define defaults value
@@ -396,17 +396,17 @@ func NewFileResource(resource *models.Resource, dataField any, roleContext *mode
 		"mode":  0755,
 	}
 
-	// Define data struct
-	var fileData FileData
+	// Define parameters struct
+	var fileParameters FileParameters
 
 	// First we set defaults values
-	err := mapstructure.Decode(defaults, &fileData)
+	err := mapstructure.Decode(defaults, &fileParameters)
 	if err != nil {
 		return &fileResource, err
 	}
 
 	// Then we override with actual values
-	err = mapstructure.Decode(dataField, &fileData)
+	err = mapstructure.Decode(parametersField, &fileParameters)
 	if err != nil {
 		return &fileResource, err
 	}
@@ -416,8 +416,8 @@ func NewFileResource(resource *models.Resource, dataField any, roleContext *mode
 	fileResource.Present = *resource.Present
 	fileResource.WhenCondition = resource.When
 	fileResource.RegisterVariable = resource.Register
-	fileResource.Data = fileData
-	fileResource.Data.roleContext = roleContext
+	fileResource.Parameters = fileParameters
+	fileResource.Parameters.roleContext = roleContext
 
 	return &fileResource, nil
 }

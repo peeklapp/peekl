@@ -1,7 +1,7 @@
 resources:
   - title: "install_package_nginx"
     type: "builtin.pkg"
-    data:
+    parameters:
       names:
         - "nginx"
 
