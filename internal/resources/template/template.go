@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type TemplateData struct {
+type TemplateParameters struct {
 	Source      string         `mapstructure:"source"`
 	Path        string         `mapstructure:"path"`
 	Owner       string         `mapstructure:"owner"`
@@ -33,30 +33,30 @@ type TemplateData struct {
 
 type TemplateResource struct {
 	resources.CommonFieldResource
-	Data TemplateData
+	Parameters TemplateParameters
 }
 
 func (t *TemplateResource) changePermissionsIfNeeded() (bool, error) {
 	var didSomething bool
 
 	// Get stat for the file
-	stat, err := os.Stat(t.Data.Path)
+	stat, err := os.Stat(t.Parameters.Path)
 	if err != nil {
 		return didSomething, err
 	}
 
 	// Update file permissions if needed
-	if stat.Mode() != t.Data.Mode {
+	if stat.Mode() != t.Parameters.Mode {
 		logrus.Info(
 			fmt.Sprintf(
 				"[%s] Mode for the template file (%s) should be (%s) but is (%s)",
 				t.String(),
-				t.Data.Path,
-				t.Data.Mode,
+				t.Parameters.Path,
+				t.Parameters.Mode,
 				stat.Mode(),
 			),
 		)
-		err = os.Chmod(t.Data.Path, t.Data.Mode)
+		err = os.Chmod(t.Parameters.Path, t.Parameters.Mode)
 		if err != nil {
 			return didSomething, err
 		}
@@ -65,9 +65,9 @@ func (t *TemplateResource) changePermissionsIfNeeded() (bool, error) {
 			fmt.Sprintf(
 				"[%s] Mode for the template file (%s) has been updated from (%s) to (%s)",
 				t.String(),
-				t.Data.Path,
+				t.Parameters.Path,
 				stat.Mode(),
-				t.Data.Mode,
+				t.Parameters.Mode,
 			),
 		)
 	}
@@ -78,7 +78,7 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 	var didSomething bool
 
 	// Get stat for the file
-	stat, err := os.Stat(t.Data.Path)
+	stat, err := os.Stat(t.Parameters.Path)
 	if err != nil {
 		return didSomething, err
 	}
@@ -91,11 +91,11 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 		foundGid = int(stat.Gid)
 	}
 
-	expectedUid, err := utils.GetUserUidFromUsername(t.Data.Owner)
+	expectedUid, err := utils.GetUserUidFromUsername(t.Parameters.Owner)
 	if err != nil {
 		return didSomething, err
 	}
-	expectedGid, err := utils.GetGroupGidFromName(t.Data.Group)
+	expectedGid, err := utils.GetGroupGidFromName(t.Parameters.Group)
 	if err != nil {
 		return didSomething, err
 	}
@@ -114,14 +114,14 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 			fmt.Sprintf(
 				"[%s] Ownership of the template file (%s) should be (%s:%s) but is (%s:%s)",
 				t.String(),
-				t.Data.Path,
-				t.Data.Owner,
-				t.Data.Group,
+				t.Parameters.Path,
+				t.Parameters.Owner,
+				t.Parameters.Group,
 				username,
 				groupName,
 			),
 		)
-		err = os.Chown(t.Data.Path, expectedUid, expectedGid)
+		err = os.Chown(t.Parameters.Path, expectedUid, expectedGid)
 		if err != nil {
 			return didSomething, err
 		}
@@ -130,11 +130,11 @@ func (t *TemplateResource) changeOwnershipIfNeeded() (bool, error) {
 			fmt.Sprintf(
 				"[%s] Ownership of the template file (%s) updated from (%s:%s) to (%s:%s)",
 				t.String(),
-				t.Data.Path,
+				t.Parameters.Path,
 				username,
 				groupName,
-				t.Data.Owner,
-				t.Data.Group,
+				t.Parameters.Owner,
+				t.Parameters.Group,
 			),
 		)
 	}
@@ -153,7 +153,7 @@ func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext, templ *
 	// 2. Copy variables, and override at the same time, with resource scoped variables
 	// 3. Set facts in variables
 	variables := ctx.Variables
-	maps.Copy(variables, t.Data.Variables)
+	maps.Copy(variables, t.Parameters.Variables)
 	variables["facts"] = factsMap
 
 	// Build actual template result from variables and template
@@ -167,11 +167,11 @@ func (t *TemplateResource) generateTemplate(ctx *models.ResourceContext, templ *
 }
 
 func (t *TemplateResource) exist() bool {
-	return utils.FileExist(t.Data.Path, nil)
+	return utils.FileExist(t.Parameters.Path, nil)
 }
 
 func (t *TemplateResource) create(fileContent string) error {
-	file, err := os.Create(t.Data.Path)
+	file, err := os.Create(t.Parameters.Path)
 	if err != nil {
 		return err
 	}
@@ -184,17 +184,17 @@ func (t *TemplateResource) create(fileContent string) error {
 	}
 
 	// Change mode of file
-	err = file.Chmod(t.Data.Mode)
+	err = file.Chmod(t.Parameters.Mode)
 	if err != nil {
 		return err
 	}
 
 	// Set owner and group
-	uid, err := utils.GetUserUidFromUsername(t.Data.Owner)
+	uid, err := utils.GetUserUidFromUsername(t.Parameters.Owner)
 	if err != nil {
 		return err
 	}
-	gid, err := utils.GetGroupGidFromName(t.Data.Group)
+	gid, err := utils.GetGroupGidFromName(t.Parameters.Group)
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func (t *TemplateResource) create(fileContent string) error {
 }
 
 func (t *TemplateResource) delete() error {
-	err := os.Remove(t.Data.Path)
+	err := os.Remove(t.Parameters.Path)
 	return err
 }
 
@@ -216,7 +216,7 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 	var didSomething bool
 
 	// First we open the file
-	file, err := os.Open(t.Data.Path)
+	file, err := os.Open(t.Parameters.Path)
 	if err != nil {
 		return didSomething, err
 	}
@@ -243,12 +243,12 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 			fmt.Sprintf(
 				"[%s] Checksum for file (%s) should be (%s) but is (%s)",
 				t.String(),
-				t.Data.Path,
+				t.Parameters.Path,
 				contentMD5Checksum,
 				fileMD5Checksum,
 			),
 		)
-		err := os.WriteFile(t.Data.Path, []byte(expectedContent), t.Data.Mode)
+		err := os.WriteFile(t.Parameters.Path, []byte(expectedContent), t.Parameters.Mode)
 		if err != nil {
 			return didSomething, err
 		}
@@ -256,7 +256,7 @@ func (t *TemplateResource) changeContentIfNeeded(expectedContent string) (bool, 
 			fmt.Sprintf(
 				"[%s] File (%s) content has been updated",
 				t.String(),
-				t.Data.Path,
+				t.Parameters.Path,
 			),
 		)
 		didSomething = true
@@ -271,8 +271,8 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 	var templateContent string
 	var err error
 
-	if t.Data.Source != "" {
-		fullTemplatePath := filepath.Join(context.CodePath, "roles", t.Data.roleContext.RoleName, "templates", t.Data.Source)
+	if t.Parameters.Source != "" {
+		fullTemplatePath := filepath.Join(context.CodePath, "roles", t.Parameters.roleContext.RoleName, "templates", t.Parameters.Source)
 		if !utils.FileExist(fullTemplatePath, nil) {
 			result.Failed = true
 			return result, fmt.Errorf("[%s] The template doesn't exist in role : %s", t.String(), fullTemplatePath)
@@ -284,7 +284,7 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 		}
 		templateContent = string(rawTemplateContent)
 	} else {
-		templateContent = t.Data.Content
+		templateContent = t.Parameters.Content
 	}
 
 	templ, err := template.New(t.Title).Parse(templateContent)
@@ -301,7 +301,7 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 
 	if !t.exist() && t.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] Template file (%s) does not exist, but should", t.String(), t.Data.Path),
+			fmt.Sprintf("[%s] Template file (%s) does not exist, but should", t.String(), t.Parameters.Path),
 		)
 		err := t.create(templateResult)
 		if err != nil {
@@ -309,12 +309,12 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] Template file (%s) created", t.String(), t.Data.Path),
+			fmt.Sprintf("[%s] Template file (%s) created", t.String(), t.Parameters.Path),
 		)
 		result.Created = true
 	} else if t.exist() && !t.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] Template file (%s) exist, but should not", t.String(), t.Data.Path),
+			fmt.Sprintf("[%s] Template file (%s) exist, but should not", t.String(), t.Parameters.Path),
 		)
 		err := t.delete()
 		if err != nil {
@@ -322,7 +322,7 @@ func (t *TemplateResource) Process(context *models.ResourceContext) (models.Reso
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] Template file (%s) deleted", t.String(), t.Data.Path),
+			fmt.Sprintf("[%s] Template file (%s) deleted", t.String(), t.Parameters.Path),
 		)
 		result.Deleted = true
 	}
@@ -375,9 +375,9 @@ func (t *TemplateResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
 	fieldsThatCannotBeEmpty := [][]string{
-		{t.Data.Path, "path"},
-		{t.Data.Owner, "owner"},
-		{t.Data.Group, "group"},
+		{t.Parameters.Path, "path"},
+		{t.Parameters.Owner, "owner"},
+		{t.Parameters.Group, "group"},
 	}
 	for _, fieldToCheck := range fieldsThatCannotBeEmpty {
 		if fieldToCheck[0] == "" {
@@ -391,7 +391,7 @@ func (t *TemplateResource) Validate() error {
 		}
 	}
 
-	if t.Data.Source != "" && t.Data.Content != "" {
+	if t.Parameters.Source != "" && t.Parameters.Content != "" {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -401,7 +401,7 @@ func (t *TemplateResource) Validate() error {
 		)
 	}
 
-	if t.Data.Source != "" && t.Data.roleContext == nil {
+	if t.Parameters.Source != "" && t.Parameters.roleContext == nil {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -422,7 +422,7 @@ func (t *TemplateResource) Validate() error {
 	return nil
 }
 
-func NewTemplateResource(resource *models.Resource, dataField map[string]any, roleContext *models.RoleContext) (*TemplateResource, error) {
+func NewTemplateResource(resource *models.Resource, parametersField map[string]any, roleContext *models.RoleContext) (*TemplateResource, error) {
 	var templateResource TemplateResource
 
 	defaults := map[string]any{
@@ -431,17 +431,17 @@ func NewTemplateResource(resource *models.Resource, dataField map[string]any, ro
 		"mode":  0755,
 	}
 
-	// Declare data struct
-	var templateData TemplateData
+	// Declare parameters struct
+	var templateParameters TemplateParameters
 
 	// First we set default values
-	err := mapstructure.Decode(defaults, &templateData)
+	err := mapstructure.Decode(defaults, &templateParameters)
 	if err != nil {
 		return &templateResource, err
 	}
 
 	// Then we override with actual values
-	err = mapstructure.Decode(dataField, &templateData)
+	err = mapstructure.Decode(parametersField, &templateParameters)
 	if err != nil {
 		return &templateResource, err
 	}
@@ -451,12 +451,12 @@ func NewTemplateResource(resource *models.Resource, dataField map[string]any, ro
 	templateResource.Present = *resource.Present
 	templateResource.WhenCondition = resource.When
 	templateResource.RegisterVariable = resource.Register
-	templateResource.Data = templateData
-	templateResource.Data.roleContext = roleContext
+	templateResource.Parameters = templateParameters
+	templateResource.Parameters.roleContext = roleContext
 
 	// In the case that we didn't have any variables
-	if templateResource.Data.Variables == nil {
-		templateResource.Data.Variables = map[string]any{}
+	if templateResource.Parameters.Variables == nil {
+		templateResource.Parameters.Variables = map[string]any{}
 	}
 
 	return &templateResource, nil

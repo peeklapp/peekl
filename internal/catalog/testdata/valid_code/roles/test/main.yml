@@ -1,5 +1,5 @@
 resources:
   - title: "test_debug"
     type: "builtin.debug"
-    data:
+    parameters:
       message: "test"

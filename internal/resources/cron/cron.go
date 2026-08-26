@@ -28,7 +28,7 @@ var (
 	validWeekdayRangeRegex = regexp.MustCompile("^((MON|TUE|WED|THU|FRI|SAT|SUN)|[0-6])-((MON|TUE|WED|THU|FRI|SAT|SUN)|[0-6])$")
 )
 
-type CronData struct {
+type CronParameters struct {
 	Name       string `mapstructure:"name"`
 	Command    string `mapstructure:"command"`
 	User       string `mapstructure:"user"`
@@ -42,39 +42,39 @@ type CronData struct {
 
 type CronResource struct {
 	resources.CommonFieldResource
-	Data CronData
+	Parameters CronParameters
 }
 
 func (c *CronResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
 	var result models.ResourceResult
 
-	if !utils.FileExist(c.Data.CronFolder, nil) {
+	if !utils.FileExist(c.Parameters.CronFolder, nil) {
 		result.Failed = true
 		return result, fmt.Errorf(
 			"the cron folder provided does not seem to exist : %s",
-			c.Data.CronFolder,
+			c.Parameters.CronFolder,
 		)
 	}
 
-	cronFilePath := path.Join(c.Data.CronFolder, c.Data.Name)
+	cronFilePath := path.Join(c.Parameters.CronFolder, c.Parameters.Name)
 
 	if c.Present {
 		fileContent := []byte("# MANAGED BY PEEKL\n")
 		fileContent = fmt.Appendf(
 			fileContent,
 			"%s %s %s %s %s %s %s\n",
-			c.Data.Minute,
-			c.Data.Hour,
-			c.Data.Day,
-			c.Data.Month,
-			c.Data.Weekday,
-			c.Data.User,
-			c.Data.Command,
+			c.Parameters.Minute,
+			c.Parameters.Hour,
+			c.Parameters.Day,
+			c.Parameters.Month,
+			c.Parameters.Weekday,
+			c.Parameters.User,
+			c.Parameters.Command,
 		)
 
 		if !utils.FileExist(cronFilePath, nil) {
 			logrus.Info(
-				fmt.Sprintf("[%s] Cron (%s) does not exist but should", c.String(), c.Data.Name),
+				fmt.Sprintf("[%s] Cron (%s) does not exist but should", c.String(), c.Parameters.Name),
 			)
 			err := os.WriteFile(cronFilePath, fileContent, 0644)
 			if err != nil {
@@ -82,7 +82,7 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 				return result, err
 			}
 			logrus.Info(
-				fmt.Sprintf("[%s] Cron (%s) has been created", c.String(), c.Data.Name),
+				fmt.Sprintf("[%s] Cron (%s) has been created", c.String(), c.Parameters.Name),
 			)
 			result.Created = true
 			return result, nil
@@ -94,7 +94,7 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 			}
 			if !slices.Equal(fileContent, oldFileContent) {
 				logrus.Info(
-					fmt.Sprintf("[%s] Cron (%s) does not have the correct value", c.String(), c.Data.Name),
+					fmt.Sprintf("[%s] Cron (%s) does not have the correct value", c.String(), c.Parameters.Name),
 				)
 				err := os.WriteFile(cronFilePath, fileContent, 0644)
 				if err != nil {
@@ -102,7 +102,7 @@ func (c *CronResource) Process(context *models.ResourceContext) (models.Resource
 					return result, err
 				}
 				logrus.Info(
-					fmt.Sprintf("[%s] Cron (%s) values have been updated", c.String(), c.Data.Name),
+					fmt.Sprintf("[%s] Cron (%s) values have been updated", c.String(), c.Parameters.Name),
 				)
 				result.Updated = true
 				return result, nil
@@ -136,11 +136,11 @@ func (c *CronResource) Register() string {
 
 func (c *CronResource) validateMinuteField() bool {
 	minuteValid := false
-	if c.Data.Minute == "*" {
+	if c.Parameters.Minute == "*" {
 		minuteValid = true
-	} else if validMinuteRegex.MatchString(c.Data.Minute) {
+	} else if validMinuteRegex.MatchString(c.Parameters.Minute) {
 		minuteValid = true
-	} else if validMinuteRangeRegex.MatchString(c.Data.Minute) {
+	} else if validMinuteRangeRegex.MatchString(c.Parameters.Minute) {
 		minuteValid = true
 	}
 	return minuteValid
@@ -148,11 +148,11 @@ func (c *CronResource) validateMinuteField() bool {
 
 func (c *CronResource) validateHourField() bool {
 	hourValid := false
-	if c.Data.Hour == "*" {
+	if c.Parameters.Hour == "*" {
 		hourValid = true
-	} else if validHourRegex.MatchString(c.Data.Hour) {
+	} else if validHourRegex.MatchString(c.Parameters.Hour) {
 		hourValid = true
-	} else if validHourRangeRegex.MatchString(c.Data.Hour) {
+	} else if validHourRangeRegex.MatchString(c.Parameters.Hour) {
 		hourValid = true
 	}
 	return hourValid
@@ -160,11 +160,11 @@ func (c *CronResource) validateHourField() bool {
 
 func (c *CronResource) validateDayField() bool {
 	dayValid := false
-	if c.Data.Day == "*" {
+	if c.Parameters.Day == "*" {
 		dayValid = true
-	} else if validDayRegex.MatchString(c.Data.Day) {
+	} else if validDayRegex.MatchString(c.Parameters.Day) {
 		dayValid = true
-	} else if validDayRangeRegex.MatchString(c.Data.Day) {
+	} else if validDayRangeRegex.MatchString(c.Parameters.Day) {
 		dayValid = true
 	}
 	return dayValid
@@ -172,11 +172,11 @@ func (c *CronResource) validateDayField() bool {
 
 func (c *CronResource) validateMonthField() bool {
 	monthValid := false
-	if c.Data.Month == "*" {
+	if c.Parameters.Month == "*" {
 		monthValid = true
-	} else if validMonthRegex.MatchString(c.Data.Month) {
+	} else if validMonthRegex.MatchString(c.Parameters.Month) {
 		monthValid = true
-	} else if validMonthRangeRegex.MatchString(c.Data.Month) {
+	} else if validMonthRangeRegex.MatchString(c.Parameters.Month) {
 		monthValid = true
 	}
 	return monthValid
@@ -184,11 +184,11 @@ func (c *CronResource) validateMonthField() bool {
 
 func (c *CronResource) validateWeekdayField() bool {
 	weekdayValid := false
-	if c.Data.Weekday == "*" {
+	if c.Parameters.Weekday == "*" {
 		weekdayValid = true
-	} else if validWeekdayRegex.MatchString(c.Data.Weekday) {
+	} else if validWeekdayRegex.MatchString(c.Parameters.Weekday) {
 		weekdayValid = true
-	} else if validWeekdayRangeRegex.MatchString(c.Data.Weekday) {
+	} else if validWeekdayRangeRegex.MatchString(c.Parameters.Weekday) {
 		weekdayValid = true
 	}
 	return weekdayValid
@@ -197,7 +197,7 @@ func (c *CronResource) validateWeekdayField() bool {
 func (c *CronResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
-	if c.Data.Command == "" {
+	if c.Parameters.Command == "" {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -207,7 +207,7 @@ func (c *CronResource) Validate() error {
 		)
 	}
 
-	if c.Data.Name == "" {
+	if c.Parameters.Name == "" {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -216,7 +216,7 @@ func (c *CronResource) Validate() error {
 			},
 		)
 	} else {
-		if !validNameRegex.MatchString(c.Data.Name) {
+		if !validNameRegex.MatchString(c.Parameters.Name) {
 			validationErrors = append(
 				validationErrors,
 				models.ValidationError{
@@ -227,7 +227,7 @@ func (c *CronResource) Validate() error {
 		}
 	}
 
-	if c.Data.User == "" {
+	if c.Parameters.User == "" {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -298,7 +298,7 @@ func (c *CronResource) Validate() error {
 	return nil
 }
 
-func NewCronResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*CronResource, error) {
+func NewCronResource(resource *models.Resource, parametersField any, roleContext *models.RoleContext) (*CronResource, error) {
 	var cronResource CronResource
 
 	defaults := map[string]any{
@@ -311,14 +311,14 @@ func NewCronResource(resource *models.Resource, dataField any, roleContext *mode
 		"cron_folder": "/etc/cron.d",
 	}
 
-	var cronData CronData
+	var cronParameters CronParameters
 
-	err := mapstructure.Decode(defaults, &cronData)
+	err := mapstructure.Decode(defaults, &cronParameters)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mapstructure.Decode(dataField, &cronData)
+	err = mapstructure.Decode(parametersField, &cronParameters)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +328,7 @@ func NewCronResource(resource *models.Resource, dataField any, roleContext *mode
 	cronResource.Present = *resource.Present
 	cronResource.WhenCondition = resource.When
 	cronResource.RegisterVariable = resource.Register
-	cronResource.Data = cronData
+	cronResource.Parameters = cronParameters
 
 	return &cronResource, nil
 }

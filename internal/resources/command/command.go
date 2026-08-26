@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type CommandData struct {
+type CommandParameters struct {
 	Command        string   `mapstructure:"command"`
 	Args           []string `mapstructure:"args"`
 	Creates        string   `mapstructure:"creates"`
@@ -23,11 +23,11 @@ type CommandData struct {
 
 type CommandResource struct {
 	resources.CommonFieldResource
-	Data CommandData
+	Parameters CommandParameters
 }
 
 func (c *CommandResource) createsAlreadyExist() bool {
-	return utils.FileExist(c.Data.Creates, nil)
+	return utils.FileExist(c.Parameters.Creates, nil)
 }
 
 func (c *CommandResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
@@ -39,8 +39,8 @@ func (c *CommandResource) Process(context *models.ResourceContext) (models.Resou
 		return result, nil
 	}
 
-	commandWithArgs := fmt.Sprintf("%s %s", c.Data.Command, strings.Join(c.Data.Args, " "))
-	cmd := exec.Command(c.Data.Shell, "-c", commandWithArgs)
+	commandWithArgs := fmt.Sprintf("%s %s", c.Parameters.Command, strings.Join(c.Parameters.Args, " "))
+	cmd := exec.Command(c.Parameters.Shell, "-c", commandWithArgs)
 
 	var stdoutBuff bytes.Buffer
 	var stderrBuff bytes.Buffer
@@ -55,7 +55,7 @@ func (c *CommandResource) Process(context *models.ResourceContext) (models.Resou
 		if exitError, ok := err.(*exec.ExitError); ok {
 			logrus.WithFields(
 				logrus.Fields{
-					"command":   fmt.Sprintf("%s %s", c.Data.Command, strings.Join(c.Data.Args, " ")),
+					"command":   fmt.Sprintf("%s %s", c.Parameters.Command, strings.Join(c.Parameters.Args, " ")),
 					"stderr":    stderrBuff.String(),
 					"exit_code": exitError.ExitCode(),
 				},
@@ -67,8 +67,8 @@ func (c *CommandResource) Process(context *models.ResourceContext) (models.Resou
 		}
 	}
 
-	if c.Data.RegisterOutput != "" {
-		context.Variables[c.Data.RegisterOutput] = stdoutBuff.String()
+	if c.Parameters.RegisterOutput != "" {
+		context.Variables[c.Parameters.RegisterOutput] = stdoutBuff.String()
 	}
 
 	result.Created = true
@@ -91,8 +91,8 @@ func (c *CommandResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
 	fieldsThatCannotBeEmpty := [][]string{
-		{c.Data.Command, "command"},
-		{c.Data.Shell, "shell"},
+		{c.Parameters.Command, "command"},
+		{c.Parameters.Shell, "shell"},
 	}
 	for _, fieldToCheck := range fieldsThatCannotBeEmpty {
 		if fieldToCheck[0] == "" {
@@ -106,8 +106,8 @@ func (c *CommandResource) Validate() error {
 		}
 	}
 
-	if c.Data.Shell != "" {
-		switch c.Data.Shell {
+	if c.Parameters.Shell != "" {
+		switch c.Parameters.Shell {
 		case "bash":
 			break
 		default:
@@ -115,7 +115,7 @@ func (c *CommandResource) Validate() error {
 				validationErrors,
 				models.ValidationError{
 					FieldName:    "shell",
-					ViolatedRule: fmt.Sprintf("'%s' is not a valid shell", c.Data.Shell),
+					ViolatedRule: fmt.Sprintf("'%s' is not a valid shell", c.Parameters.Shell),
 				},
 			)
 		}
@@ -132,7 +132,7 @@ func (c *CommandResource) Validate() error {
 	return nil
 }
 
-func NewCommandResource(resource *models.Resource, dataField map[string]any, roleContext *models.RoleContext) (*CommandResource, error) {
+func NewCommandResource(resource *models.Resource, parametersField map[string]any, roleContext *models.RoleContext) (*CommandResource, error) {
 	var commandResource CommandResource
 
 	// Define defaults
@@ -140,16 +140,16 @@ func NewCommandResource(resource *models.Resource, dataField map[string]any, rol
 		"shell": "bash",
 	}
 
-	// Define data struct
-	var commandData CommandData
+	// Define parameters struct
+	var commandParameters CommandParameters
 
 	// Set default values
-	err := mapstructure.Decode(defaults, &commandData)
+	err := mapstructure.Decode(defaults, &commandParameters)
 	if err != nil {
 		return &commandResource, err
 	}
 
-	err = mapstructure.Decode(dataField, &commandData)
+	err = mapstructure.Decode(parametersField, &commandParameters)
 	if err != nil {
 		return &commandResource, err
 	}
@@ -159,7 +159,7 @@ func NewCommandResource(resource *models.Resource, dataField map[string]any, rol
 	commandResource.Present = *resource.Present
 	commandResource.WhenCondition = resource.When
 	commandResource.RegisterVariable = resource.Register
-	commandResource.Data = commandData
+	commandResource.Parameters = commandParameters
 
 	return &commandResource, nil
 }

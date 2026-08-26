@@ -6,14 +6,14 @@ type ResourceRequire struct {
 }
 
 type Resource struct {
-	Title    string           `yaml:"title" json:"title"`
-	Type     string           `yaml:"type" json:"type"`
-	Data     map[string]any   `yaml:"data" json:"data"`
-	Present  *bool            `yaml:"present" json:"present"`
-	Require  ResourceRequire  `yaml:"require" json:"require"`
-	When     string           `yaml:"when" json:"when"`
-	Register string           `yaml:"register" json:"register"`
-	With     []map[string]any `yaml:"with" json:"with"`
+	Title      string           `yaml:"title" json:"title"`
+	Type       string           `yaml:"type" json:"type"`
+	Parameters map[string]any   `yaml:"parameters" json:"parameters"`
+	Present    *bool            `yaml:"present" json:"present"`
+	Require    ResourceRequire  `yaml:"require" json:"require"`
+	When       string           `yaml:"when" json:"when"`
+	Register   string           `yaml:"register" json:"register"`
+	With       []map[string]any `yaml:"with" json:"with"`
 }
 
 type ResourceResult struct {

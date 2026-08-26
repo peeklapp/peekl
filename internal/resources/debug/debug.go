@@ -12,13 +12,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type DebugData struct {
+type DebugParameters struct {
 	Message string `mapstructure:"message"`
 }
 
 type DebugResource struct {
 	resources.CommonFieldResource
-	Data DebugData
+	Parameters DebugParameters
 }
 
 func (d *DebugResource) Process(context *models.ResourceContext) (models.ResourceResult, error) {
@@ -32,7 +32,7 @@ func (d *DebugResource) Process(context *models.ResourceContext) (models.Resourc
 	variables := context.Variables
 	variables["facts"] = factsMap
 
-	tmpl, err := template.New(d.Title).Parse(d.Data.Message)
+	tmpl, err := template.New(d.Title).Parse(d.Parameters.Message)
 	if err != nil {
 		result.Failed = true
 		return result, err
@@ -65,7 +65,7 @@ func (d *DebugResource) Register() string {
 func (d *DebugResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
-	if d.Data.Message == "" {
+	if d.Parameters.Message == "" {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -75,7 +75,7 @@ func (d *DebugResource) Validate() error {
 		)
 	}
 
-	_, err := template.New(d.Title).Parse(d.Data.Message)
+	_, err := template.New(d.Title).Parse(d.Parameters.Message)
 	if err != nil {
 		validationErrors = append(
 			validationErrors,
@@ -97,7 +97,7 @@ func (d *DebugResource) Validate() error {
 	return nil
 }
 
-func NewDebugResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*DebugResource, error) {
+func NewDebugResource(resource *models.Resource, parametersField any, roleContext *models.RoleContext) (*DebugResource, error) {
 	var debugResource DebugResource
 
 	debugResource.Title = resource.Title
@@ -106,7 +106,7 @@ func NewDebugResource(resource *models.Resource, dataField any, roleContext *mod
 	debugResource.WhenCondition = resource.When
 	debugResource.RegisterVariable = resource.Register
 
-	err := mapstructure.Decode(dataField, &debugResource.Data)
+	err := mapstructure.Decode(parametersField, &debugResource.Parameters)
 	if err != nil {
 		return &debugResource, err
 	}

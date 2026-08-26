@@ -15,7 +15,7 @@ import (
 
 // Ability to create the resources
 
-type UserData struct {
+type UserParameters struct {
 	Username   string   `mapstructure:"username"`
 	Groups     []string `mapstructure:"groups"`
 	ManageHome bool     `mapstructure:"manage_home"`
@@ -24,7 +24,7 @@ type UserData struct {
 
 type UserResource struct {
 	resources.CommonFieldResource
-	Data UserData
+	Parameters UserParameters
 }
 
 func (u *UserResource) exist() bool {
@@ -32,17 +32,17 @@ func (u *UserResource) exist() bool {
 		fmt.Sprintf(
 			"[%s] Checking if user (%s) exist using builtin Go package `os/user`",
 			u.String(),
-			u.Data.Username,
+			u.Parameters.Username,
 		),
 	)
 
-	_, err := user.Lookup(u.Data.Username)
+	_, err := user.Lookup(u.Parameters.Username)
 	if err != nil {
-		logrus.Debug(fmt.Sprintf("[%s] User (%s) does not exist", u.String(), u.Data.Username))
+		logrus.Debug(fmt.Sprintf("[%s] User (%s) does not exist", u.String(), u.Parameters.Username))
 		return false
 	}
 
-	logrus.Debug(fmt.Sprintf("[%s] User (%s) exist", u.String(), u.Data.Username))
+	logrus.Debug(fmt.Sprintf("[%s] User (%s) exist", u.String(), u.Parameters.Username))
 	return true
 }
 
@@ -50,13 +50,13 @@ func (u *UserResource) getCurrentGroups() ([]string, error) {
 	var groups []string
 
 	command := "id"
-	args := []string{"-nG", u.Data.Username}
+	args := []string{"-nG", u.Parameters.Username}
 
 	logrus.Debug(
 		fmt.Sprintf(
 			"[%s] Getting user (%s) group using the following command : %s %s",
 			u.String(),
-			u.Data.Username,
+			u.Parameters.Username,
 			command,
 			strings.Join(args, " "),
 		),
@@ -81,13 +81,13 @@ func (u *UserResource) getCurrentGroups() ([]string, error) {
 
 func (u *UserResource) addToGroup(group string) error {
 	command := "adduser"
-	args := []string{u.Data.Username, group}
+	args := []string{u.Parameters.Username, group}
 
 	logrus.Debug(
 		fmt.Sprintf(
 			"[%s] Adding user (%s) to group (%s) using the following command : %s %s",
 			u.String(),
-			u.Data.Username,
+			u.Parameters.Username,
 			group,
 			command,
 			strings.Join(args, " "),
@@ -115,13 +115,13 @@ func (u *UserResource) addUserToGroupsIfNeeded() (bool, error) {
 		return didSomething, err
 	}
 
-	for _, group := range u.Data.Groups {
+	for _, group := range u.Parameters.Groups {
 		if !slices.Contains(groups, group) {
 			logrus.Info(
 				fmt.Sprintf(
 					"[%s] User (%s) is not a member of group (%s) but should be",
 					u.String(),
-					u.Data.Username,
+					u.Parameters.Username,
 					group,
 				),
 			)
@@ -133,7 +133,7 @@ func (u *UserResource) addUserToGroupsIfNeeded() (bool, error) {
 				fmt.Sprintf(
 					"[%s] User (%s) added to group (%s)",
 					u.String(),
-					u.Data.Username,
+					u.Parameters.Username,
 					group,
 				),
 			)
@@ -146,13 +146,13 @@ func (u *UserResource) addUserToGroupsIfNeeded() (bool, error) {
 
 func (u *UserResource) getCurrentShell() (string, error) {
 	command := "getent"
-	args := []string{"passwd", u.Data.Username}
+	args := []string{"passwd", u.Parameters.Username}
 
 	logrus.Debug(
 		fmt.Sprintf(
 			"[%s] Getting user (%s) shell using the following command : %s %s",
 			u.String(),
-			u.Data.Username,
+			u.Parameters.Username,
 			command,
 			strings.Join(args, " "),
 		),
@@ -171,20 +171,20 @@ func (u *UserResource) getCurrentShell() (string, error) {
 	shell := strings.Trim(strings.Split(executionOutput.Stdout, ":")[6], "\n")
 
 	logrus.Debug(
-		fmt.Sprintf("[%s] Found shell (%s) for user (%s)", shell, u.String(), u.Data.Username),
+		fmt.Sprintf("[%s] Found shell (%s) for user (%s)", shell, u.String(), u.Parameters.Username),
 	)
 	return shell, nil
 }
 
 func (u *UserResource) setShell() error {
 	command := "chsh"
-	args := []string{"-s", u.Data.Shell, u.Data.Username}
+	args := []string{"-s", u.Parameters.Shell, u.Parameters.Username}
 
 	logrus.Debug(
 		fmt.Sprintf(
 			"[%s] Updating user (%s) shell using the following command : %s %s",
 			u.String(),
-			u.Data.Username,
+			u.Parameters.Username,
 			command,
 			strings.Join(args, " "),
 		),
@@ -211,13 +211,13 @@ func (u *UserResource) updateShellIfNeeded() (bool, error) {
 		return didSomething, err
 	}
 
-	if userShell != u.Data.Shell {
+	if userShell != u.Parameters.Shell {
 		logrus.Info(
 			fmt.Sprintf(
 				"[%s] Shell for user (%s) should be (%s) but is (%s)",
 				u.String(),
-				u.Data.Username,
-				u.Data.Shell,
+				u.Parameters.Username,
+				u.Parameters.Shell,
 				userShell,
 			),
 		)
@@ -229,9 +229,9 @@ func (u *UserResource) updateShellIfNeeded() (bool, error) {
 			fmt.Sprintf(
 				"[%s] Shell for user (%s) has been updated from (%s) to (%s)",
 				u.String(),
-				u.Data.Username,
+				u.Parameters.Username,
 				userShell,
-				u.Data.Shell,
+				u.Parameters.Shell,
 			),
 		)
 		didSomething = true
@@ -242,22 +242,22 @@ func (u *UserResource) updateShellIfNeeded() (bool, error) {
 
 func (u *UserResource) create() error {
 	command := "useradd"
-	args := []string{u.Data.Username}
+	args := []string{u.Parameters.Username}
 
 	// Whether or not to create home directory
-	if !u.Data.ManageHome {
+	if !u.Parameters.ManageHome {
 		args = append(args, "--no-create-home")
 	}
 
 	// Add shell parameter to command
 	args = append(args, "--shell")
-	args = append(args, u.Data.Shell)
+	args = append(args, u.Parameters.Shell)
 
 	logrus.Debug(
 		fmt.Sprintf(
 			"[%s] Creating user (%s) using the following command : %s %s",
 			u.String(),
-			u.Data.Username,
+			u.Parameters.Username,
 			command,
 			strings.Join(args, " "),
 		),
@@ -277,13 +277,13 @@ func (u *UserResource) create() error {
 
 func (u *UserResource) delete() error {
 	command := "deluser"
-	args := []string{u.Data.Username}
+	args := []string{u.Parameters.Username}
 
 	logrus.Debug(
 		fmt.Sprintf(
 			"[%s] Deleting user (%s) using the following command : %s %s",
 			u.String(),
-			u.Data.Username,
+			u.Parameters.Username,
 			command,
 			strings.Join(args, " "),
 		),
@@ -307,7 +307,7 @@ func (u *UserResource) Process(context *models.ResourceContext) (models.Resource
 	// Handle user creation of deletion if needed
 	if !u.exist() && u.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] User (%s) does not exist but should", u.String(), u.Data.Username),
+			fmt.Sprintf("[%s] User (%s) does not exist but should", u.String(), u.Parameters.Username),
 		)
 		err := u.create()
 		if err != nil {
@@ -315,12 +315,12 @@ func (u *UserResource) Process(context *models.ResourceContext) (models.Resource
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] User (%s) created", u.String(), u.Data.Username),
+			fmt.Sprintf("[%s] User (%s) created", u.String(), u.Parameters.Username),
 		)
 		result.Created = true
 	} else if u.exist() && !u.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] User (%s) exist but should not", u.String(), u.Data.Username),
+			fmt.Sprintf("[%s] User (%s) exist but should not", u.String(), u.Parameters.Username),
 		)
 		err := u.delete()
 		if err != nil {
@@ -328,7 +328,7 @@ func (u *UserResource) Process(context *models.ResourceContext) (models.Resource
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] User (%s) deleted", u.String(), u.Data.Username),
+			fmt.Sprintf("[%s] User (%s) deleted", u.String(), u.Parameters.Username),
 		)
 		result.Deleted = true
 	}
@@ -373,7 +373,7 @@ func (u *UserResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
 	// Check if the provided username is not empty
-	if u.Data.Username == "" {
+	if u.Parameters.Username == "" {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -395,7 +395,7 @@ func (u *UserResource) Validate() error {
 	return nil
 }
 
-func NewUserResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*UserResource, error) {
+func NewUserResource(resource *models.Resource, parametersField any, roleContext *models.RoleContext) (*UserResource, error) {
 	var userResource UserResource
 
 	defaults := map[string]any{
@@ -403,17 +403,17 @@ func NewUserResource(resource *models.Resource, dataField any, roleContext *mode
 		"manage_home": true,
 	}
 
-	// Define data struct
-	var userData UserData
+	// Define parameters struct
+	var userParameters UserParameters
 
 	// First we set default values
-	err := mapstructure.Decode(defaults, &userData)
+	err := mapstructure.Decode(defaults, &userParameters)
 	if err != nil {
 		return &userResource, err
 	}
 
 	// Then we override with actual values
-	err = mapstructure.Decode(dataField, &userData)
+	err = mapstructure.Decode(parametersField, &userParameters)
 	if err != nil {
 		return &userResource, err
 	}
@@ -423,7 +423,7 @@ func NewUserResource(resource *models.Resource, dataField any, roleContext *mode
 	userResource.Present = *resource.Present
 	userResource.WhenCondition = resource.When
 	userResource.RegisterVariable = resource.Register
-	userResource.Data = userData
+	userResource.Parameters = userParameters
 
 	return &userResource, nil
 }

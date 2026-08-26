@@ -18,7 +18,7 @@ import (
 // You can find their original code by following this link to Github :
 // https://github.com/ansible/ansible/blob/devel/lib/ansible/modules/systemd_service.py
 
-type SystemdServiceData struct {
+type SystemdServiceParameters struct {
 	Name    string `mapstructure:"name"`
 	Enabled bool   `mapstructure:"enabled"`
 	Masked  bool   `mapstructure:"masked"`
@@ -27,7 +27,7 @@ type SystemdServiceData struct {
 
 type SystemdServiceResource struct {
 	resources.CommonFieldResource
-	Data SystemdServiceData
+	Parameters SystemdServiceParameters
 }
 
 func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string) (bool, error) {
@@ -41,7 +41,7 @@ func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string
 	}
 
 	command := "systemctl"
-	args := []string{"is-enabled", s.Data.Name}
+	args := []string{"is-enabled", s.Parameters.Name}
 
 	logrus.Debug(
 		fmt.Sprintf(
@@ -71,7 +71,7 @@ func (s *SystemdServiceResource) checkIfServiceIsEnabledOrMasked(checking string
 
 func (s *SystemdServiceResource) getServiceDetails() (map[string]string, error) {
 	command := "systemctl"
-	args := []string{"show", s.Data.Name}
+	args := []string{"show", s.Parameters.Name}
 
 	logrus.Debug(
 		fmt.Sprintf(
@@ -127,14 +127,14 @@ func (s *SystemdServiceResource) doActionOnService(action string) error {
 	}
 
 	command := "systemctl"
-	args := []string{action, s.Data.Name}
+	args := []string{action, s.Parameters.Name}
 
 	logrus.Debug(
 		fmt.Sprintf(
 			"[%s] Performing action (%s) on service (%s) with following command : %s %s",
 			s.String(),
 			action,
-			s.Data.Name,
+			s.Parameters.Name,
 			command,
 			strings.Join(args, " "),
 		),
@@ -157,8 +157,8 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 	var result models.ResourceResult
 
 	// Append .service at end of name if not already present
-	if !strings.HasSuffix(s.Data.Name, ".service") {
-		s.Data.Name = fmt.Sprintf("%s.service", s.Data.Name)
+	if !strings.HasSuffix(s.Parameters.Name, ".service") {
+		s.Parameters.Name = fmt.Sprintf("%s.service", s.Parameters.Name)
 	}
 
 	// Get raw details of our specific unit
@@ -175,8 +175,8 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		return result, err
 	}
 
-	if serviceMasked != s.Data.Masked {
-		if s.Data.Masked {
+	if serviceMasked != s.Parameters.Masked {
+		if s.Parameters.Masked {
 			err := s.doActionOnService("mask")
 			if err != nil {
 				result.Failed = true
@@ -192,12 +192,12 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 	}
 
 	acceptableRunningStates := []string{"active", "activating"}
-	switch s.Data.State {
+	switch s.Parameters.State {
 	case "running":
 		// Check if the service active state is considered running
 		if !slices.Contains(acceptableRunningStates, serviceDetails["ActiveState"]) {
 			logrus.Info(
-				fmt.Sprintf("[%s] Service (%s) is not running but should", s.String(), s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s) is not running but should", s.String(), s.Parameters.Name),
 			)
 			// Start the service
 			err := s.doActionOnService("start")
@@ -207,13 +207,13 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 			}
 			result.Updated = true
 			logrus.Info(
-				fmt.Sprintf("[%s] Service (%s) started", s.String(), s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s) started", s.String(), s.Parameters.Name),
 			)
 		}
 	case "stopped":
 		if slices.Contains(acceptableRunningStates, serviceDetails["ActiveState"]) && serviceDetails["ActiveState"] != "deactivating" {
 			logrus.Info(
-				fmt.Sprintf("[%s] Service (%s) is running but should not", s.String(), s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s) is running but should not", s.String(), s.Parameters.Name),
 			)
 			// Stop the service
 			err := s.doActionOnService("stop")
@@ -223,7 +223,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 			}
 			result.Updated = true
 			logrus.Info(
-				fmt.Sprintf("[%s] Service (%s) stopped", s.String(), s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s) stopped", s.String(), s.Parameters.Name),
 			)
 		}
 	case "restarted":
@@ -231,7 +231,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		// to bother for any previous status of the service,
 		// we simply send a restart action to the service
 		logrus.Info(
-			fmt.Sprintf("[%s] Service (%s) should be restarted", s.String(), s.Data.Name),
+			fmt.Sprintf("[%s] Service (%s) should be restarted", s.String(), s.Parameters.Name),
 		)
 		err := s.doActionOnService("restart")
 		if err != nil {
@@ -240,11 +240,11 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		}
 		result.Updated = true
 		logrus.Info(
-			fmt.Sprintf("[%s] Service (%s) restarted", s.String(), s.Data.Name),
+			fmt.Sprintf("[%s] Service (%s) restarted", s.String(), s.Parameters.Name),
 		)
 	case "reloaded":
 		logrus.Info(
-			fmt.Sprintf("[%s] Service (%s) should be reloaded", s.String(), s.Data.Name),
+			fmt.Sprintf("[%s] Service (%s) should be reloaded", s.String(), s.Parameters.Name),
 		)
 		err := s.doActionOnService("reload")
 		if err != nil {
@@ -253,7 +253,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		}
 		result.Updated = true
 		logrus.Info(
-			fmt.Sprintf("[%s] Service (%s) reloaded", s.String(), s.Data.Name),
+			fmt.Sprintf("[%s] Service (%s) reloaded", s.String(), s.Parameters.Name),
 		)
 	}
 
@@ -263,10 +263,10 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 		result.Failed = true
 		return result, err
 	}
-	if enabled != s.Data.Enabled {
-		if s.Data.Enabled {
+	if enabled != s.Parameters.Enabled {
+		if s.Parameters.Enabled {
 			logrus.Info(
-				fmt.Sprintf("[%s] Service (%s) is not enabled but should", s.String(), s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s) is not enabled but should", s.String(), s.Parameters.Name),
 			)
 			err := s.doActionOnService("enable")
 			if err != nil {
@@ -275,11 +275,11 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 			}
 			result.Updated = true
 			logrus.Info(
-				fmt.Sprintf("[%s] Service (%s) enabled", s.String(), s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s) enabled", s.String(), s.Parameters.Name),
 			)
 		} else {
 			logrus.Info(
-				fmt.Sprintf("[%s] Service (%s) enabled but should not", s.String(), s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s) enabled but should not", s.String(), s.Parameters.Name),
 			)
 			err := s.doActionOnService("disable")
 			if err != nil {
@@ -288,7 +288,7 @@ func (s *SystemdServiceResource) Process(context *models.ResourceContext) (model
 			}
 			result.Updated = true
 			logrus.Info(
-				fmt.Sprintf("[%s] Service (%s) disabled", s.String(), s.Data.Name),
+				fmt.Sprintf("[%s] Service (%s) disabled", s.String(), s.Parameters.Name),
 			)
 		}
 	}
@@ -312,8 +312,8 @@ func (s *SystemdServiceResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
 	fieldsThatCannotBeEmpty := [][]string{
-		{s.Data.Name, "name"},
-		{s.Data.State, "state"},
+		{s.Parameters.Name, "name"},
+		{s.Parameters.State, "state"},
 	}
 	for _, fieldToCheck := range fieldsThatCannotBeEmpty {
 		if fieldToCheck[0] == "" {
@@ -327,8 +327,8 @@ func (s *SystemdServiceResource) Validate() error {
 		}
 	}
 
-	if s.Data.State != "" {
-		switch s.Data.State {
+	if s.Parameters.State != "" {
+		switch s.Parameters.State {
 		case "running":
 			break
 		case "stopped":
@@ -342,7 +342,7 @@ func (s *SystemdServiceResource) Validate() error {
 				validationErrors,
 				models.ValidationError{
 					FieldName:    "state",
-					ViolatedRule: fmt.Sprintf("'%s' is not a valid state", s.Data.State),
+					ViolatedRule: fmt.Sprintf("'%s' is not a valid state", s.Parameters.State),
 				},
 			)
 		}
@@ -359,7 +359,7 @@ func (s *SystemdServiceResource) Validate() error {
 	return nil
 }
 
-func NewSystemdServiceResource(resource *models.Resource, dataField map[string]any, roleContext *models.RoleContext) (*SystemdServiceResource, error) {
+func NewSystemdServiceResource(resource *models.Resource, parametersField map[string]any, roleContext *models.RoleContext) (*SystemdServiceResource, error) {
 	var systemdServiceResource SystemdServiceResource
 
 	defaults := map[string]any{
@@ -367,16 +367,16 @@ func NewSystemdServiceResource(resource *models.Resource, dataField map[string]a
 		"masked":  false,
 	}
 
-	var systemdServiceData SystemdServiceData
+	var systemdServiceParameters SystemdServiceParameters
 
 	// First we set default values
-	err := mapstructure.Decode(defaults, &systemdServiceData)
+	err := mapstructure.Decode(defaults, &systemdServiceParameters)
 	if err != nil {
 		return &systemdServiceResource, err
 	}
 
 	// Then we override with the actual values
-	err = mapstructure.Decode(dataField, &systemdServiceData)
+	err = mapstructure.Decode(parametersField, &systemdServiceParameters)
 	if err != nil {
 		return &systemdServiceResource, err
 	}
@@ -386,7 +386,7 @@ func NewSystemdServiceResource(resource *models.Resource, dataField map[string]a
 	systemdServiceResource.Present = *resource.Present
 	systemdServiceResource.WhenCondition = resource.When
 	systemdServiceResource.RegisterVariable = resource.Register
-	systemdServiceResource.Data = systemdServiceData
+	systemdServiceResource.Parameters = systemdServiceParameters
 
 	return &systemdServiceResource, nil
 }

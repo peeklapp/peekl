@@ -4,7 +4,7 @@ roles:
 resources:
   - title: "install_package_cowsay"
     type: "builtin.pkg"
-    data:
+    parameters:
       names:
         - "cowsay"
 tags:

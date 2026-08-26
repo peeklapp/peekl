@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type DirectoryData struct {
+type DirectoryParameters struct {
 	Path        string      `mapstructure:"path"`
 	Owner       string      `mapstructure:"owner"`
 	Group       string      `mapstructure:"group"`
@@ -23,38 +23,38 @@ type DirectoryData struct {
 
 type DirectoryResource struct {
 	resources.CommonFieldResource
-	Data DirectoryData
+	Parameters DirectoryParameters
 }
 
 func (d *DirectoryResource) changePermissionsIfNeeded() (bool, error) {
 	var didSomething bool
 
 	// Get stat for the file
-	stat, err := os.Stat(d.Data.Path)
+	stat, err := os.Stat(d.Parameters.Path)
 	if err != nil {
 		return didSomething, err
 	}
 
-	updatedMode := d.Data.Mode | os.ModeDir
+	updatedMode := d.Parameters.Mode | os.ModeDir
 
 	// Update file permission if needed
 	if stat.Mode() != updatedMode {
 		logrus.Info(
 			fmt.Sprintf(
 				"Mode for directory (%s) should be (%s) but is (%s)",
-				d.Data.Path,
+				d.Parameters.Path,
 				updatedMode,
 				stat.Mode(),
 			),
 		)
-		if err := os.Chmod(d.Data.Path, d.Data.Mode); err != nil {
+		if err := os.Chmod(d.Parameters.Path, d.Parameters.Mode); err != nil {
 			return didSomething, err
 		}
 		didSomething = true
 		logrus.Info(
 			fmt.Sprintf(
 				"Mode for directory (%s) has been updated from (%s) to (%s)",
-				d.Data.Path,
+				d.Parameters.Path,
 				stat.Mode(),
 				updatedMode,
 			),
@@ -67,7 +67,7 @@ func (d *DirectoryResource) changePermissionsIfNeeded() (bool, error) {
 func (d *DirectoryResource) changeOwnershipIfNeeded() (bool, error) {
 	var didSomething bool
 
-	stat, err := os.Stat(d.Data.Path)
+	stat, err := os.Stat(d.Parameters.Path)
 	if err != nil {
 		return didSomething, err
 	}
@@ -80,11 +80,11 @@ func (d *DirectoryResource) changeOwnershipIfNeeded() (bool, error) {
 		foundGid = int(stat.Gid)
 	}
 
-	expectedUid, err := utils.GetUserUidFromUsername(d.Data.Owner)
+	expectedUid, err := utils.GetUserUidFromUsername(d.Parameters.Owner)
 	if err != nil {
 		return didSomething, err
 	}
-	expectedGid, err := utils.GetGroupGidFromName(d.Data.Group)
+	expectedGid, err := utils.GetGroupGidFromName(d.Parameters.Group)
 	if err != nil {
 		return didSomething, err
 	}
@@ -103,14 +103,14 @@ func (d *DirectoryResource) changeOwnershipIfNeeded() (bool, error) {
 			fmt.Sprintf(
 				"[%s] Ownership for directory (%s) should (%s:%s) but is (%s:%s)",
 				d.String(),
-				d.Data.Path,
-				d.Data.Owner,
-				d.Data.Group,
+				d.Parameters.Path,
+				d.Parameters.Owner,
+				d.Parameters.Group,
 				username,
 				groupName,
 			),
 		)
-		if err := os.Chown(d.Data.Path, expectedUid, expectedGid); err != nil {
+		if err := os.Chown(d.Parameters.Path, expectedUid, expectedGid); err != nil {
 			return didSomething, err
 		}
 		didSomething = true
@@ -118,11 +118,11 @@ func (d *DirectoryResource) changeOwnershipIfNeeded() (bool, error) {
 			fmt.Sprintf(
 				"[%s] Ownership for directory (%s) updated from (%s:%s) to (%s:%s)",
 				d.String(),
-				d.Data.Path,
+				d.Parameters.Path,
 				username,
 				groupName,
-				d.Data.Owner,
-				d.Data.Group,
+				d.Parameters.Owner,
+				d.Parameters.Group,
 			),
 		)
 	}
@@ -131,11 +131,11 @@ func (d *DirectoryResource) changeOwnershipIfNeeded() (bool, error) {
 }
 
 func (d *DirectoryResource) exist() bool {
-	return utils.FileExist(d.Data.Path, nil)
+	return utils.FileExist(d.Parameters.Path, nil)
 }
 
 func (d *DirectoryResource) create() error {
-	err := os.Mkdir(d.Data.Path, d.Data.Mode)
+	err := os.Mkdir(d.Parameters.Path, d.Parameters.Mode)
 	if err != nil {
 		return err
 	}
@@ -144,11 +144,11 @@ func (d *DirectoryResource) create() error {
 }
 
 func (d *DirectoryResource) delete() error {
-	if d.Data.ForceDelete {
-		err := os.RemoveAll(d.Data.Path)
+	if d.Parameters.ForceDelete {
+		err := os.RemoveAll(d.Parameters.Path)
 		return err
 	}
-	err := os.Remove(d.Data.Path)
+	err := os.Remove(d.Parameters.Path)
 	return err
 }
 
@@ -157,7 +157,7 @@ func (d *DirectoryResource) Process(context *models.ResourceContext) (models.Res
 
 	if !d.exist() && d.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] Directory (%s) does not exist, but should", d.String(), d.Data.Path),
+			fmt.Sprintf("[%s] Directory (%s) does not exist, but should", d.String(), d.Parameters.Path),
 		)
 		err := d.create()
 		if err != nil {
@@ -165,12 +165,12 @@ func (d *DirectoryResource) Process(context *models.ResourceContext) (models.Res
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] Directory (%s) created", d.String(), d.Data.Path),
+			fmt.Sprintf("[%s] Directory (%s) created", d.String(), d.Parameters.Path),
 		)
 		result.Created = true
 	} else if d.exist() && !d.Present {
 		logrus.Info(
-			fmt.Sprintf("[%s] Directory (%s) exist, but should not", d.String(), d.Data.Path),
+			fmt.Sprintf("[%s] Directory (%s) exist, but should not", d.String(), d.Parameters.Path),
 		)
 		err := d.delete()
 		if err != nil {
@@ -178,7 +178,7 @@ func (d *DirectoryResource) Process(context *models.ResourceContext) (models.Res
 			return result, err
 		}
 		logrus.Info(
-			fmt.Sprintf("[%s] Directory (%s) deleted", d.String(), d.Data.Path),
+			fmt.Sprintf("[%s] Directory (%s) deleted", d.String(), d.Parameters.Path),
 		)
 		result.Deleted = true
 	}
@@ -225,9 +225,9 @@ func (d *DirectoryResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
 	fieldsThatCannotBeEmpty := [][]string{
-		{d.Data.Path, "path"},
-		{d.Data.Owner, "owner"},
-		{d.Data.Group, "group"},
+		{d.Parameters.Path, "path"},
+		{d.Parameters.Owner, "owner"},
+		{d.Parameters.Group, "group"},
 	}
 	for _, fieldToCheck := range fieldsThatCannotBeEmpty {
 		if fieldToCheck[0] == "" {
@@ -253,7 +253,7 @@ func (d *DirectoryResource) Validate() error {
 	return nil
 }
 
-func NewDirectoryResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*DirectoryResource, error) {
+func NewDirectoryResource(resource *models.Resource, parametersField any, roleContext *models.RoleContext) (*DirectoryResource, error) {
 	var directoryResource DirectoryResource
 
 	// Define defaults value
@@ -264,17 +264,17 @@ func NewDirectoryResource(resource *models.Resource, dataField any, roleContext 
 		"force_delete": false,
 	}
 
-	// Define data struct
-	var directoryData DirectoryData
+	// Define parameters struct
+	var directoryParameters DirectoryParameters
 
 	// First we set defaults values
-	err := mapstructure.Decode(defaults, &directoryData)
+	err := mapstructure.Decode(defaults, &directoryParameters)
 	if err != nil {
 		return &directoryResource, err
 	}
 
 	// Then we override with actual values
-	err = mapstructure.Decode(dataField, &directoryData)
+	err = mapstructure.Decode(parametersField, &directoryParameters)
 	if err != nil {
 		return &directoryResource, err
 	}
@@ -284,7 +284,7 @@ func NewDirectoryResource(resource *models.Resource, dataField any, roleContext 
 	directoryResource.Present = *resource.Present
 	directoryResource.WhenCondition = resource.When
 	directoryResource.RegisterVariable = resource.Register
-	directoryResource.Data = directoryData
+	directoryResource.Parameters = directoryParameters
 
 	return &directoryResource, nil
 }

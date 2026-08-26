@@ -28,7 +28,7 @@ func pkgInListWithoutVersion(pkgToFindInList models.Package, pkgs []models.Packa
 	return false
 }
 
-type PackageData struct {
+type PackageParameters struct {
 	Names             []string `mapstructure:"names"`
 	Provider          string   `mapstructure:"provider"`
 	installer         installerInterface
@@ -37,11 +37,11 @@ type PackageData struct {
 
 type PackageResource struct {
 	resources.CommonFieldResource
-	Data PackageData
+	Parameters PackageParameters
 }
 
 func (p *PackageResource) ProcessPackageList() {
-	for _, pkg := range p.Data.Names {
+	for _, pkg := range p.Parameters.Names {
 		var name string
 		var version string
 
@@ -57,13 +57,13 @@ func (p *PackageResource) ProcessPackageList() {
 		pkg.Name = name
 		pkg.Version = version
 
-		p.Data.processedPackages = append(p.Data.processedPackages, pkg)
+		p.Parameters.processedPackages = append(p.Parameters.processedPackages, pkg)
 	}
 }
 
 func (p *PackageResource) FilterPackagesStatus(installed []models.Package) []models.Package {
 	var filteredPackages []models.Package
-	for _, pkg := range p.Data.processedPackages {
+	for _, pkg := range p.Parameters.processedPackages {
 		if p.Present {
 			if !pkgInListWithoutVersion(pkg, installed) {
 				filteredPackages = append(filteredPackages, pkg)
@@ -81,7 +81,7 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 	var result models.ResourceResult
 	p.ProcessPackageList()
 
-	installedPackages, err := p.Data.installer.ListInstalledPackages()
+	installedPackages, err := p.Parameters.installer.ListInstalledPackages()
 	if err != nil {
 		result.Failed = true
 		return result, err
@@ -101,7 +101,7 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 					strings.Join(nonInstalledPackagesThatShouldBeNames, " "),
 				),
 			)
-			err := p.Data.installer.Install(nonInstalledPackagesThatShouldBe)
+			err := p.Parameters.installer.Install(nonInstalledPackagesThatShouldBe)
 			if err != nil {
 				result.Failed = true
 				return result, err
@@ -116,7 +116,7 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 			)
 		}
 		// Update the installed packages list
-		installedPackages, err = p.Data.installer.ListInstalledPackages()
+		installedPackages, err = p.Parameters.installer.ListInstalledPackages()
 		if err != nil {
 			result.Failed = true
 			return result, err
@@ -124,7 +124,7 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 
 		// Find any packages without the good version
 		var packagesWithWrongVersion []models.Package
-		for _, pkg := range p.Data.processedPackages {
+		for _, pkg := range p.Parameters.processedPackages {
 			// Skip any package for which version is not specified
 			if pkg.Version != "" && !slices.Contains(installedPackages, pkg) {
 				packagesWithWrongVersion = append(packagesWithWrongVersion, pkg)
@@ -146,7 +146,7 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 					strings.Join(packagesWithWrongVersionNames, " "),
 				),
 			)
-			err := p.Data.installer.Upgrade(packagesWithWrongVersion)
+			err := p.Parameters.installer.Upgrade(packagesWithWrongVersion)
 			if err != nil {
 				result.Failed = true
 				return result, err
@@ -168,7 +168,7 @@ func (p *PackageResource) Process(context *models.ResourceContext) (models.Resou
 					fmt.Sprintf("[%s] Package (%s) is installed but should not", p.String(), pkg.Name),
 				)
 			}
-			err := p.Data.installer.Remove(installedPackagesThatShouldNot)
+			err := p.Parameters.installer.Remove(installedPackagesThatShouldNot)
 			if err != nil {
 				result.Failed = true
 				return result, err
@@ -200,7 +200,7 @@ func (p *PackageResource) Register() string {
 func (p *PackageResource) Validate() error {
 	validationErrors := []models.ValidationError{}
 
-	if len(p.Data.Names) == 0 {
+	if len(p.Parameters.Names) == 0 {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -210,7 +210,7 @@ func (p *PackageResource) Validate() error {
 		)
 	}
 
-	if p.Data.Provider == "" {
+	if p.Parameters.Provider == "" {
 		validationErrors = append(
 			validationErrors,
 			models.ValidationError{
@@ -231,7 +231,7 @@ func (p *PackageResource) Validate() error {
 	return nil
 }
 
-func NewPackageResource(resource *models.Resource, dataField any, roleContext *models.RoleContext) (*PackageResource, error) {
+func NewPackageResource(resource *models.Resource, parametersField any, roleContext *models.RoleContext) (*PackageResource, error) {
 	var packageResource PackageResource
 
 	providersPerDistribution := map[string]string{
@@ -252,33 +252,33 @@ func NewPackageResource(resource *models.Resource, dataField any, roleContext *m
 		"provider": providersPerDistribution[distributionData.Id],
 	}
 
-	var packageData PackageData
+	var packageParameters PackageParameters
 
-	err = mapstructure.Decode(defaults, &packageData)
+	err = mapstructure.Decode(defaults, &packageParameters)
 	if err != nil {
 		return &packageResource, err
 	}
 
-	err = mapstructure.Decode(dataField, &packageData)
+	err = mapstructure.Decode(parametersField, &packageParameters)
 	if err != nil {
 		return &packageResource, err
 	}
 
 	var installer installerInterface
-	switch packageData.Provider {
+	switch packageParameters.Provider {
 	case "apt":
 		installer = AptInstaller{}
 	case "dnf":
 		installer = DnfInstaller{}
 	}
-	packageData.installer = installer
+	packageParameters.installer = installer
 
 	packageResource.Title = resource.Title
 	packageResource.Type = resource.Type
 	packageResource.Present = *resource.Present
 	packageResource.WhenCondition = resource.When
 	packageResource.RegisterVariable = resource.Register
-	packageResource.Data = packageData
+	packageResource.Parameters = packageParameters
 
 	return &packageResource, nil
 }
