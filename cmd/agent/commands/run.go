@@ -255,6 +255,7 @@ var RunCmd = &cobra.Command{
 						deleteLockFile()
 						os.Exit(1)
 					}
+					deleteLockFile()
 				} else {
 					logrus.Error("Could not run agent, it's locked. (/tmp/.peekl_run exist)")
 				}
@@ -267,10 +268,10 @@ var RunCmd = &cobra.Command{
 				if err != nil {
 					logrus.Fatal(err)
 				}
-				err = createLockfile()
-				if err != nil {
+				if err := createLockfile(); err != nil {
 					logrus.Fatalf("Could not create lock due to the following error : %s", err.Error())
 				}
+				defer deleteLockFile()
 				if err := runAgent(apiClient, environment, agentConfig.Caching.Path); err != nil {
 					deleteLockFile()
 					os.Exit(1)
