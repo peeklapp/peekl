@@ -88,19 +88,19 @@ The agent should be up and running at this point.
 systemctl status peekl-agent.service
 ```
 
-But you will still have to sign the certificate on the server side
+But you will still have to enroll it against the server before it can fetch a catalog.
 
-Start by listing the pending certificates, your agent should be there
+On the server, generate a one-time enrollment token bound to the agent's IP address
 ```bash
-peekl-server ca list pending
+peekl-server enroll create --ip 192.168.121.20
 ```
 
-And use the found name to sign the certificate
+Then, on the agent, use that token to complete the enrollment
 ```bash
-peekl-server ca sign --certname name_of_the_node
+peekl-agent enroll <token>
 ```
 
-After a little bit of time the agent should download it's certificate. You can go faster by running it by hand
+Once enrolled, you can force the agent to run immediately
 
 ```bash
 peekl-agent run
