@@ -1,7 +1,6 @@
 package models
 
 type NodeInventory struct {
-	Name      string         `yaml:"name" json:"name" mapstructure:"name"`
 	Roles     []string       `yaml:"roles" json:"roles" mapstructure:"roles"`
 	Resources []*Resource    `yaml:"resources" json:"resources" mapstructure:"resources"`
 	Groups    []string       `yaml:"groups" json:"groups" mapstructure:"groups"`
@@ -10,7 +9,6 @@ type NodeInventory struct {
 }
 
 type GroupInventory struct {
-	Name      string         `yaml:"name" json:"name" mapstructure:"name"`
 	Roles     []string       `yaml:"roles" json:"roles" mapstructure:"roles"`
 	Resources []*Resource    `yaml:"resources" json:"resources" mapstructure:"resources"`
 	Tags      []string       `yaml:"tags" json:"tags" mapstructure:"tags"`
