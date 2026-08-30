@@ -1,7 +1,5 @@
 # Peekl
 
-![Logo of Peekl](media/peekl_logo.jpg)
-
 > [!CAUTION]
 > This project is still under active development. Expect breaking changes at any time. Use on your servers at your own risk.
 
