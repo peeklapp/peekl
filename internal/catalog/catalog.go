@@ -52,9 +52,11 @@ func orderRoles(roles []models.Role) ([]models.Role, error) {
 
 		visitingRole[name] = true
 
-		for _, dependency := range role.DependsOn {
-			if err := visitRole(dependency); err != nil {
-				return err
+		if role.Entrypoint.Meta != nil {
+			for _, dependency := range role.Entrypoint.Meta.Requires {
+				if err := visitRole(dependency); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -74,9 +76,9 @@ func orderRoles(roles []models.Role) ([]models.Role, error) {
 	return result, nil
 }
 
-func shouldNotSkipResource(res models.LoadedResource, resContext *models.ResourceContext) (bool, error) {
+func evalWhen(when string, subject string, resContext *models.ResourceContext) (bool, error) {
 	// If no when is specified, then we always run
-	if res.When() == "" {
+	if when == "" {
 		return true, nil
 	}
 
@@ -87,20 +89,24 @@ func shouldNotSkipResource(res models.LoadedResource, resContext *models.Resourc
 	env["tags"] = resContext.Tags
 
 	// Compile the when request, and then execute it
-	compiledWhen, err := expr.Compile(res.When(), expr.Env(env))
+	compiledWhen, err := expr.Compile(when, expr.Env(env))
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("'when' condition for %s is invalid : %w", subject, err)
 	}
 	output, err := expr.Run(compiledWhen, env)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("'when' condition for %s failed : %w", subject, err)
 	}
 
 	// Check if output is bool, if it is return it, else return error
 	if b, ok := output.(bool); ok {
 		return b, nil
 	}
-	return false, fmt.Errorf("'when' condition for res '%s' did not return a boolean", res.String())
+	return false, fmt.Errorf("'when' condition for %s did not return a boolean", subject)
+}
+
+func shouldNotSkipResource(res models.LoadedResource, resContext *models.ResourceContext) (bool, error) {
+	return evalWhen(res.When(), fmt.Sprintf("resource '%s'", res.String()), resContext)
 }
 
 func processResources(resources []models.LoadedResource, resContext *models.ResourceContext, catalogResult *CatalogResult) error {
@@ -126,7 +132,8 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 		if err != nil {
 			logrus.Error(finishedOutputLog + "Failed")
 			logrus.Error(fmt.Sprintf("[%s] %s", res.String(), err.Error()))
-			return err
+			catalogResult.Failed = catalogResult.Failed + 1
+			return fmt.Errorf("resource '%s': %w", res.String(), err)
 		}
 
 		// Process 'register' field of resource
@@ -175,7 +182,6 @@ func processResources(resources []models.LoadedResource, resContext *models.Reso
 }
 
 type Catalog struct {
-	resources   []models.LoadedResource
 	variables   map[string]any
 	facts       *models.Facts
 	tags        []string
@@ -208,33 +214,41 @@ func (c *Catalog) Process() error {
 
 	logrus.Info(
 		fmt.Sprintf(
-			"Starting process of catalog with %d global resources and %d roles.",
-			len(c.resources),
+			"Starting process of catalog with %d roles.",
 			len(c.roles),
 		),
 	)
 
-	// Handle global resources
-	err := processResources(c.resources, &resContext, &catalogResult)
-	if err != nil {
-		return nil
-	}
+	var processErr error
 
-	// Handle roles
+roles:
 	for _, role := range c.roles {
 		logrus.Debug(fmt.Sprintf("[%s] Process the role", role.Name))
 
 		// Handle main of role
-		err := processResources(role.LoadedResources, &resContext, &catalogResult)
-		if err != nil {
-			break
+		if err := processResources(role.Entrypoint.LoadedResources, &resContext, &catalogResult); err != nil {
+			processErr = fmt.Errorf("role '%s': %w", role.Name, err)
+			break roles
 		}
 
 		// Handle included of role
-		for _, included := range role.IncludedResources {
-			err := processResources(included.LoadedResources, &resContext, &catalogResult)
+		for _, entry := range role.Entrypoint.Includes {
+			included := role.Included[entry.Name]
+			run, err := evalWhen(entry.When, fmt.Sprintf("include '%s'", entry.Name), &resContext)
 			if err != nil {
-				break
+				processErr = fmt.Errorf("role '%s': %w", role.Name, err)
+				break roles
+			}
+
+			if !run {
+				logrus.Debug(fmt.Sprintf("[%s] Include '%s' has been skipped", role.Name, entry.Name))
+				catalogResult.Skipped = catalogResult.Skipped + len(included.LoadedResources)
+				continue
+			}
+
+			if err := processResources(included.LoadedResources, &resContext, &catalogResult); err != nil {
+				processErr = fmt.Errorf("role '%s': %w", role.Name, err)
+				break roles
 			}
 		}
 
@@ -253,29 +267,15 @@ func (c *Catalog) Process() error {
 		),
 	)
 
-	return nil
+	return processErr
 }
 
 // Validate that the catalog is valid
 func (c *Catalog) Validate() (bool, error) {
 	valid := true
 
-	// Validate global catalog resources
-	for _, res := range c.resources {
-		err := res.Validate()
-		if err != nil {
-			if errors.As(err, &models.ResourceValidationError{}) {
-				valid = false
-				logrus.Error(err)
-			} else {
-				return false, err
-			}
-		}
-	}
-
-	// Validates roles
 	for _, role := range c.roles {
-		for _, res := range role.LoadedResources {
+		for _, res := range role.Entrypoint.LoadedResources {
 			err := res.Validate()
 			if err != nil {
 				if errors.As(err, &models.ResourceValidationError{}) {
@@ -286,39 +286,22 @@ func (c *Catalog) Validate() (bool, error) {
 				}
 			}
 		}
+		for _, included := range role.Included {
+			for _, res := range included.LoadedResources {
+				err := res.Validate()
+				if err != nil {
+					if errors.As(err, &models.ResourceValidationError{}) {
+						valid = false
+						logrus.Error(err)
+					} else {
+						return false, err
+					}
+				}
+			}
+		}
 	}
 
 	return valid, nil
-}
-
-func (c *Catalog) loadRoles(roles []models.Role) error {
-	// Order the roles based on dependencies
-	roles, err := orderRoles(roles)
-	if err != nil {
-		return err
-	}
-
-	for _, role := range roles {
-		// Handle main resources
-		loadedMainResources, err := c.loadResources(role.Resources, &models.RoleContext{RoleName: role.Name})
-		if err != nil {
-			return fmt.Errorf("failed loading resource in role %s : %s", role.Name, err.Error())
-		}
-		role.LoadedResources = loadedMainResources
-
-		// Handle each included
-		for key, include := range role.IncludedResources {
-			loadedIncludedResources, err := c.loadResources(include.Resources, &models.RoleContext{RoleName: role.Name})
-			if err != nil {
-				return fmt.Errorf("failed loading resource in role %s : %s", role.Name, err.Error())
-			}
-			include.LoadedResources = loadedIncludedResources
-			role.IncludedResources[key] = include
-		}
-		c.roles = append(c.roles, role)
-	}
-
-	return nil
 }
 
 func (c *Catalog) loadSingleResource(resource models.Resource, parametersField map[string]any, roleContext *models.RoleContext) (models.LoadedResource, error) {
@@ -357,56 +340,69 @@ func (c *Catalog) loadSingleResource(resource models.Resource, parametersField m
 func (c *Catalog) loadResources(resources []models.Resource, roleContext *models.RoleContext) ([]models.LoadedResource, error) {
 	var loadedResources []models.LoadedResource
 	for _, res := range resources {
-		if len(res.With) > 0 {
-			for parametersFieldId := range res.With {
-				loadedRes, err := c.loadSingleResource(res, res.With[parametersFieldId], roleContext)
-				if err != nil {
-					return loadedResources, fmt.Errorf(
-						"an error happened while trying to load resource '%s' of type '%s' : %s",
-						res.Title,
-						res.Type,
-						err.Error(),
-					)
-				}
-				loadedResources = append(loadedResources, loadedRes)
-			}
-		} else {
-			loadedRes, err := c.loadSingleResource(res, res.Parameters, roleContext)
-			if err != nil {
-				return loadedResources, fmt.Errorf(
-					"an error happened while trying to load resource '%s' of type '%s' : %s",
-					res.Title,
-					res.Type,
-					err.Error(),
-				)
-			}
-			loadedResources = append(loadedResources, loadedRes)
+		// TODO: ADD HANDLE FOR `WITH`
+		loadedRes, err := c.loadSingleResource(res, res.Parameters, roleContext)
+		if err != nil {
+			return loadedResources, fmt.Errorf(
+				"an error happened while trying to load resource '%s' of type '%s' : %s",
+				res.Title,
+				res.Type,
+				err.Error(),
+			)
 		}
+		loadedResources = append(loadedResources, loadedRes)
 	}
 	return loadedResources, nil
+}
+
+func (c *Catalog) loadRoles(roles []models.Role) error {
+	// Order the roles based on their dependencies
+	orderedRoles, err := orderRoles(roles)
+	if err != nil {
+		return err
+	}
+
+	// Load all the resources inside every role. Iterate by index so that
+	// the loaded resources are stored on the role itself, not on a copy.
+	for i := range orderedRoles {
+		role := &orderedRoles[i]
+		roleContext := &models.RoleContext{RoleName: role.Name}
+
+		// Handle the entrypoint
+		loadedResources, err := c.loadResources(role.Entrypoint.Resources, roleContext)
+		if err != nil {
+			return fmt.Errorf("failed loading resource in role %s : %w", role.Name, err)
+		}
+		role.Entrypoint.LoadedResources = loadedResources
+
+		// Handle the included files
+		for key, included := range role.Included {
+			loadedResources, err := c.loadResources(included.Resources, roleContext)
+			if err != nil {
+				return fmt.Errorf("failed loading resource in role %s : %w", role.Name, err)
+			}
+			included.LoadedResources = loadedResources
+			role.Included[key] = included
+		}
+	}
+
+	c.roles = orderedRoles
+	return nil
 }
 
 func NewCatalog(rawCatalog models.RawCatalog) (*Catalog, error) {
 	var catalog Catalog
 
-	// Add facts and catalog context
 	catalog.variables = rawCatalog.Variables
 	catalog.facts = rawCatalog.Facts
 	catalog.environment = rawCatalog.Environment
 	catalog.apiClient = rawCatalog.ApiClient
 	catalog.codePath = rawCatalog.CodePath
+	catalog.tags = rawCatalog.Tags
 
-	// Load global resources
-	globalLoadedResources, err := catalog.loadResources(rawCatalog.GlobalResources, nil)
+	err := catalog.loadRoles(rawCatalog.Roles)
 	if err != nil {
-		return &catalog, err
-	}
-	catalog.resources = globalLoadedResources
-
-	// Handle roles
-	err = catalog.loadRoles(rawCatalog.Roles)
-	if err != nil {
-		return &catalog, err
+		return nil, err
 	}
 
 	return &catalog, nil

@@ -1,0 +1,3 @@
+group "common" {
+  role "nginx" {}
+}

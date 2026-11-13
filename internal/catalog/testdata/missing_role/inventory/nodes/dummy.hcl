@@ -1,0 +1,3 @@
+node "dummy" {
+  role "test" {}
+}

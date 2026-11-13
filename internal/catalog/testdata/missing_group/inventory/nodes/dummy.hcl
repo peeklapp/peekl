@@ -1,0 +1,3 @@
+node "dummy" {
+  groups = ["web"]
+}

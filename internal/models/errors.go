@@ -10,7 +10,15 @@ type RoleNotFoundError struct {
 }
 
 func (e RoleNotFoundError) Error() string {
-	return fmt.Sprintf("The role %s could not be found in the roles folder", e.RoleName)
+	return fmt.Sprintf("role '%s' could not be found in the roles folder", e.RoleName)
+}
+
+type RoleEntrypointNotFoundError struct {
+	RoleName string
+}
+
+func (e RoleEntrypointNotFoundError) Error() string {
+	return fmt.Sprintf("could not find any main.hcl file in the '%s' role", e.RoleName)
 }
 
 type NodeNotFoundError struct {
@@ -18,7 +26,7 @@ type NodeNotFoundError struct {
 }
 
 func (e NodeNotFoundError) Error() string {
-	return fmt.Sprintf("The node %s could not be found in the inventory", e.NodeName)
+	return fmt.Sprintf("node '%s' could not be found in the inventory", e.NodeName)
 }
 
 type GroupNotFoundError struct {
@@ -26,7 +34,7 @@ type GroupNotFoundError struct {
 }
 
 func (e GroupNotFoundError) Error() string {
-	return fmt.Sprintf("The group %s could not be found in the inventory", e.GroupName)
+	return fmt.Sprintf("group '%s' could not be found in the inventory", e.GroupName)
 }
 
 type PendingCertificateNotFound struct {

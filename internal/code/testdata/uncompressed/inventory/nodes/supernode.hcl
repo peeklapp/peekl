@@ -1,0 +1,3 @@
+node "supernode" {
+  groups = ["common"]
+}

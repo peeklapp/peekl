@@ -7,9 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"github.com/klauspost/compress/zstd"
+	"github.com/peeklapp/peekl/internal/inventory"
+	"github.com/peeklapp/peekl/internal/models"
 	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/sirupsen/logrus"
 )
@@ -17,7 +18,7 @@ import (
 func createArchive(path string) (*tar.Writer, *zstd.Encoder, *os.File, error) {
 	f, err := os.OpenFile(
 		path,
-		os.O_RDWR|os.O_CREATE,
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
 		0644,
 	)
 	if err != nil {
@@ -119,61 +120,112 @@ func GenerateCodeArchive(codeFolder string, outputFolder string) error {
 	defer utils.CloseWithoutError(zstdWriter)
 	defer utils.CloseWithoutError(archiveWriter)
 
+	// Only roles are shared by every node. Inventory groups and their
+	// variables are shipped in each node archive, for the groups that
+	// node belongs to (see generateNodeArchive).
 	logrus.Debug("Generating global tarball")
-	includedDirRegex := regexp.MustCompile("^(inventory/groups|roles|variables/groups).+")
-	return addDirectoryToArchive(codeFolder, archiveWriter, includedDirRegex)
+	includedDirRegex := regexp.MustCompile("^roles/.+")
+	if err := addDirectoryToArchive(codeFolder, archiveWriter, includedDirRegex); err != nil {
+		return err
+	}
+
+	return closeArchive(archiveWriter, zstdWriter, file)
 }
 
-func GenerateNodesArchives(codeFolder, outputFolder string) error {
+// closeArchive flushes and closes the archive writers in order, so that
+// a failed flush is reported instead of leaving a truncated archive.
+func closeArchive(archiveWriter *tar.Writer, zstdWriter *zstd.Encoder, file *os.File) error {
+	if err := archiveWriter.Close(); err != nil {
+		return err
+	}
+	if err := zstdWriter.Close(); err != nil {
+		return err
+	}
+	return file.Close()
+}
+
+// entityDirectoryRegex matches everything under `<prefix>/<name>/`, and
+// nothing under a directory that merely starts with name.
+func entityDirectoryRegex(prefix string, name string) *regexp.Regexp {
+	return regexp.MustCompile("^" + regexp.QuoteMeta(prefix+"/"+name) + "(/|$)")
+}
+
+// addEntityToArchive adds an inventory file and, when it exists, the
+// matching variables directory (e.g. `variables/nodes/<name>`).
+func addEntityToArchive(codeFolder string, archiveWriter *tar.Writer, sourcePath string, variablesPrefix string, name string) error {
+	sourceFullPath := filepath.Join(codeFolder, sourcePath)
+	sourceStat, err := os.Stat(sourceFullPath)
+	if err != nil {
+		return err
+	}
+	if err := addFileToArchive(codeFolder, sourceFullPath, archiveWriter, sourceStat); err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(filepath.Join(codeFolder, variablesPrefix, name)); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	return addDirectoryToArchive(codeFolder, archiveWriter, entityDirectoryRegex(variablesPrefix, name))
+}
+
+func generateNodeArchive(
+	codeFolder string,
+	outputFolder string,
+	node models.NodeInventory,
+	groups map[string]models.GroupInventory,
+) error {
+	archiveWriter, zstdWriter, file, err := createArchive(filepath.Join(outputFolder, node.Name+TarballExtension))
+	if err != nil {
+		return err
+	}
+	defer utils.CloseWithoutError(file)
+	defer utils.CloseWithoutError(zstdWriter)
+	defer utils.CloseWithoutError(archiveWriter)
+
+	if err := addEntityToArchive(codeFolder, archiveWriter, node.SourcePath, "variables/nodes", node.Name); err != nil {
+		return err
+	}
+
+	for _, groupName := range node.Groups {
+		group, present := groups[groupName]
+		if !present {
+			return fmt.Errorf("node '%s' : %w", node.Name, models.GroupNotFoundError{GroupName: groupName})
+		}
+		if err := addEntityToArchive(codeFolder, archiveWriter, group.SourcePath, "variables/groups", group.Name); err != nil {
+			return err
+		}
+	}
+
+	return closeArchive(archiveWriter, zstdWriter, file)
+}
+
+func GenerateNodesArchives(codeFolder string, outputFolder string) error {
 	err := os.MkdirAll(outputFolder, 0755)
 	if err != nil {
 		return err
 	}
 
-	logrus.Debug("Getting list of node in the inventory")
-	nodesInventoryFile, err := os.ReadDir(filepath.Join(codeFolder, "inventory/nodes"))
+	logrus.Debug("Open code in root folder")
+	codeRoot, err := os.OpenRoot(codeFolder)
+	if err != nil {
+		return err
+	}
+	defer utils.CloseWithoutError(codeRoot)
+
+	logrus.Debug("Loading entire inventory")
+	nodes, groups, err := inventory.LoadInventory(codeRoot)
 	if err != nil {
 		return err
 	}
 
-	logrus.Debug("Starting process of generating tarball for each nodes")
-	for _, nodeInvFile := range nodesInventoryFile {
-		nodeFileInfo, err := nodeInvFile.Info()
-		if err != nil {
-			return err
+	for _, node := range nodes {
+		if err := generateNodeArchive(codeFolder, outputFolder, node, groups); err != nil {
+			return fmt.Errorf("could not generate archive for node '%s' : %w", node.Name, err)
 		}
-
-		cleanNodeName := strings.TrimSuffix(nodeInvFile.Name(), filepath.Ext(nodeInvFile.Name()))
-		logrus.Debugf("Generating node tarball for node '%s'", cleanNodeName)
-
-		archiveWriter, zstdWriter, file, err := createArchive(filepath.Join(outputFolder, cleanNodeName+TarballExtension))
-		if err != nil {
-			return err
-		}
-		defer utils.CloseWithoutError(file)
-		defer utils.CloseWithoutError(zstdWriter)
-		defer utils.CloseWithoutError(archiveWriter)
-
-		err = addFileToArchive(codeFolder, filepath.Join(codeFolder, "inventory/nodes", nodeInvFile.Name()), archiveWriter, nodeFileInfo)
-		if err != nil {
-			return err
-		}
-
-		if _, err := os.Stat(filepath.Join(codeFolder, "variables", cleanNodeName)); os.IsNotExist(err) {
-			continue
-		}
-
-		err = addDirectoryToArchive(
-			codeFolder,
-			archiveWriter,
-			regexp.MustCompile(fmt.Sprintf("^variables/nodes/%s", cleanNodeName)),
-		)
-		if err != nil {
-			return err
-		}
-		logrus.Debugf("Finished generating node tarball for node '%s'", cleanNodeName)
 	}
-	logrus.Debug("Finished process of generating tarball for each nodes")
 
 	return nil
 }

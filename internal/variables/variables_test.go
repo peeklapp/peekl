@@ -13,8 +13,8 @@ func TestImportRoleVariables(t *testing.T) {
 		if err != nil {
 			t.Errorf("Coult not open root : %s", err.Error())
 		}
-		variables, err := LoadRoleVariables(root, "test_role")
-		if err != nil {
+		variables := map[string]any{}
+		if err := LoadRoleVariables(root, "test_role", &variables); err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
 		assert.Equal(t, map[string]any{"test": "test", "dict": map[string]any{"bonjour": "hello", "hola": "bonjour"}}, variables)
@@ -25,8 +25,8 @@ func TestImportRoleVariables(t *testing.T) {
 		if err != nil {
 			t.Errorf("Coult not open root : %s", err.Error())
 		}
-		variables, err := LoadRoleVariables(root, "test_empty_role")
-		if err != nil {
+		variables := map[string]any{}
+		if err := LoadRoleVariables(root, "test_empty_role", &variables); err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
 		assert.Equal(t, map[string]any{}, variables)
@@ -39,8 +39,8 @@ func TestImportGroupVariables(t *testing.T) {
 		if err != nil {
 			t.Errorf("Coult not open root : %s", err.Error())
 		}
-		variables, err := LoadGroupVariables(root, "test_group")
-		if err != nil {
+		variables := map[string]any{}
+		if err := LoadGroupVariables(root, "test_group", &variables); err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
 		assert.Equal(t, map[string]any{"test": "test", "dict": map[string]any{"bonjour": "hello", "hola": "bonjour"}}, variables)
@@ -51,8 +51,8 @@ func TestImportGroupVariables(t *testing.T) {
 		if err != nil {
 			t.Errorf("Coult not open root : %s", err.Error())
 		}
-		variables, err := LoadGroupVariables(root, "test_empty_group")
-		if err != nil {
+		variables := map[string]any{}
+		if err := LoadGroupVariables(root, "test_empty_group", &variables); err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
 		assert.Equal(t, map[string]any{}, variables)
@@ -65,8 +65,8 @@ func TestImportNodeVariables(t *testing.T) {
 		if err != nil {
 			t.Errorf("Coult not open root : %s", err.Error())
 		}
-		variables, err := LoadNodeVariables(root, "test_node")
-		if err != nil {
+		variables := map[string]any{}
+		if err := LoadNodeVariables(root, "test_node", &variables); err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
 		assert.Equal(t, map[string]any{"test": "test", "dict": map[string]any{"bonjour": "hello", "hola": "bonjour"}}, variables)
@@ -77,8 +77,8 @@ func TestImportNodeVariables(t *testing.T) {
 		if err != nil {
 			t.Errorf("Coult not open root : %s", err.Error())
 		}
-		variables, err := LoadNodeVariables(root, "test_empty_node")
-		if err != nil {
+		variables := map[string]any{}
+		if err := LoadNodeVariables(root, "test_empty_node", &variables); err != nil {
 			t.Errorf("Should not raise any error : %s", err.Error())
 		}
 		assert.Equal(t, map[string]any{}, variables)
