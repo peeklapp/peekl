@@ -1,110 +1,82 @@
 package inventory
 
 import (
-	"errors"
 	"fmt"
+	"io/fs"
 	"os"
-	"path/filepath"
+	"path"
 
-	yaml "github.com/goccy/go-yaml"
+	"github.com/hashicorp/hcl/v2/hclsimple"
 	"github.com/peeklapp/peekl/internal/models"
-	"github.com/peeklapp/peekl/internal/variables"
 )
 
-// Inventory
-//
-// The inventory is composed of two different
-// main directory: the `nodes` directory and
-// the `groups` directory.
-//
-// A node declaration contains information about
-// the node. Such as the groups he's a member of,
-// the roles that should apply to it.
-//
-// A group otherwise correspond to a list of
-// roles that are getting applied only. A group
-// is not aware of his members. Only a node knows
-// of which group he's a member of.
-//
-// eg:
-//    code/
-//      nodes/
-//        node-1.yml
-//        ...
-//      groups/
-//        web.yml
-//        ...
-//      roles/
-//        nginx/
-//        ...
-
-// Load an host from inventory
-func LoadNodeFromInventory(codeRoot *os.Root, nodeName string) (*models.NodeInventory, error) {
-	var node models.NodeInventory
-
-	// Determine node file path
-	nodeFile := filepath.Join(
-		"inventory",
-		"nodes",
-		fmt.Sprintf("%s.yml", nodeName),
-	)
-
-	// Open file, handle case where it does not exist
-	f, err := codeRoot.ReadFile(nodeFile)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return &node, models.NodeNotFoundError{NodeName: nodeName}
-		} else {
-			return &node, err
-		}
-	}
-
-	// Load from YAML
-	err = yaml.Unmarshal(f, &node)
-	if err != nil {
-		return &node, err
-	}
-
-	// Load variables
-	node.Variables, err = variables.LoadNodeVariables(codeRoot, nodeName)
-	if err != nil {
-		return &node, err
-	}
-
-	return &node, nil
+type entity interface {
+	GetName() string
+	Resolve() error
+	SetSourcePath(string)
 }
 
-func LoadGroupFromInventory(codeRoot *os.Root, groupName string) (*models.GroupInventory, error) {
-	var group models.GroupInventory
+func loadEntities[T any, PT interface {
+	*T
+	entity
+}](codeRoot *os.Root, dir string, decode func(filename string, src []byte) (T, error)) (map[string]T, error) {
+	entities := map[string]T{}
 
-	// Determine group file path
-	groupFile := filepath.Join(
-		"inventory",
-		"groups",
-		fmt.Sprintf("%s.yml", groupName),
-	)
-
-	// Open file, handle case where it does not exist
-	f, err := codeRoot.ReadFile(groupFile)
+	entitiesFiles, err := fs.Glob(codeRoot.FS(), path.Join(dir, "*.hcl"))
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return &group, models.GroupNotFoundError{GroupName: groupName}
-		} else {
-			return &group, err
+		return nil, err
+	}
+
+	for _, entityFile := range entitiesFiles {
+		entityInventoryFileRaw, err := codeRoot.ReadFile(entityFile)
+		if err != nil {
+			return nil, err
 		}
+
+		value, err := decode(entityFile, entityInventoryFileRaw)
+		if err != nil {
+			return nil, err
+		}
+		e := PT(&value)
+
+		expectedFileName := path.Join(dir, e.GetName()+".hcl")
+		if entityFile != expectedFileName {
+			return nil, fmt.Errorf("'%s' found in file '%s'. The file should be named '%s'", e.GetName(), entityFile, expectedFileName)
+		}
+
+		if err := e.Resolve(); err != nil {
+			return nil, err
+		}
+		e.SetSourcePath(entityFile)
+
+		entities[e.GetName()] = value
 	}
 
-	// Load from YAML
-	err = yaml.Unmarshal(f, &group)
+	return entities, nil
+}
+
+func decodeNode(filename string, src []byte) (models.NodeInventory, error) {
+	var n models.NodeInventoryFile
+	err := hclsimple.Decode(filename, src, nil, &n)
+	return n.Node, err
+}
+
+func decodeGroup(filename string, src []byte) (models.GroupInventory, error) {
+	var g models.GroupInventoryFile
+	err := hclsimple.Decode(filename, src, nil, &g)
+	return g.Group, err
+}
+
+func LoadInventory(codeRoot *os.Root) (map[string]models.NodeInventory, map[string]models.GroupInventory, error) {
+	nodes, err := loadEntities(codeRoot, "inventory/nodes", decodeNode)
 	if err != nil {
-		return &group, err
+		return nil, nil, err
 	}
 
-	// Load variables
-	group.Variables, err = variables.LoadGroupVariables(codeRoot, groupName)
+	groups, err := loadEntities(codeRoot, "inventory/groups", decodeGroup)
 	if err != nil {
-		return &group, err
+		return nil, nil, err
 	}
 
-	return &group, nil
+	return nodes, groups, nil
 }

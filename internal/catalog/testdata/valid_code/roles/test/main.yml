@@ -1,5 +1,0 @@
-resources:
-  - title: "test_debug"
-    type: "builtin.debug"
-    parameters:
-      message: "test"

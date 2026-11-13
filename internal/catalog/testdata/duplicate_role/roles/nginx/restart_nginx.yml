@@ -1,5 +1,0 @@
-- title: "restart_nginx"
-  type: "builtin.systemd_service"
-  parameters:
-    name: "nginx"
-    state: "restarted"

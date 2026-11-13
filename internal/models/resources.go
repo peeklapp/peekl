@@ -1,26 +1,47 @@
 package models
 
-type ResourceRequire struct {
-	Title string `yaml:"title" json:"title"`
-	Type  string `yaml:"type" json:"type"`
-}
+import (
+	"fmt"
+
+	"github.com/zclconf/go-cty/cty"
+)
 
 type Resource struct {
-	Title      string           `yaml:"title" json:"title"`
-	Type       string           `yaml:"type" json:"type"`
-	Parameters map[string]any   `yaml:"parameters" json:"parameters"`
-	Present    *bool            `yaml:"present" json:"present"`
-	Require    ResourceRequire  `yaml:"require" json:"require"`
-	When       string           `yaml:"when" json:"when"`
-	Register   string           `yaml:"register" json:"register"`
-	With       []map[string]any `yaml:"with" json:"with"`
+	Type          string    `hcl:"type,label"`
+	Title         string    `hcl:"title,label"`
+	RawParameters cty.Value `hcl:"parameters,optional"`
+	Parameters    map[string]any
+	Present       *bool       `hcl:"present,optional"`
+	When          string      `hcl:"when,optional"`
+	Register      string      `hcl:"register,optional"`
+	RawWith       []cty.Value `hcl:"with,optional"`
+	With          []map[string]any
+}
+
+func (r *Resource) Resolve() error {
+	parameters, err := CtyToMap(r.RawParameters)
+	if err != nil {
+		return fmt.Errorf("invalid parameters for resource '%s' : %w", r.Title, err)
+	}
+	r.Parameters = parameters
+
+	r.With = make([]map[string]any, len(r.RawWith))
+	for i, v := range r.RawWith {
+		item, err := CtyToMap(v)
+		if err != nil {
+			return fmt.Errorf("invalid 'with' item %d for resource '%s' : %w", i, r.Title, err)
+		}
+		r.With[i] = item
+	}
+
+	return nil
 }
 
 type ResourceResult struct {
-	Created bool `yaml:"created" json:"created"`
-	Updated bool `yaml:"updated" json:"updated"`
-	Deleted bool `yaml:"deleted" json:"deleted"`
-	Failed  bool `yaml:"failed" json:"failed"`
+	Created bool `json:"created"`
+	Updated bool `json:"updated"`
+	Deleted bool `json:"deleted"`
+	Failed  bool `json:"failed"`
 }
 
 type LoadedResource interface {

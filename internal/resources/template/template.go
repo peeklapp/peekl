@@ -24,7 +24,7 @@ type TemplateParameters struct {
 	Source      string         `mapstructure:"source"`
 	Path        string         `mapstructure:"path"`
 	Owner       string         `mapstructure:"owner"`
-	Group       string         `mapstrucutre:"group"`
+	Group       string         `mapstructure:"group"`
 	Mode        fs.FileMode    `mapstructure:"mode"`
 	Content     string         `mapstructure:"content"`
 	Variables   map[string]any `mapstructure:"variables"`
@@ -411,7 +411,7 @@ func (t *TemplateResource) Validate() error {
 		)
 	}
 
-	if len(validationErrors) > 1 {
+	if len(validationErrors) >= 1 {
 		return models.ResourceValidationError{
 			Type:             t.Type,
 			Title:            t.Title,

@@ -1,4 +1,0 @@
-- title: "simple_debug_message"
-  type: "builtin.debug"
-  data:
-    message: "Hello, world!"

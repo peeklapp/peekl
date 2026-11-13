@@ -10,71 +10,95 @@ import (
 func TestOrderingRolesWithDependencies(t *testing.T) {
 	rolesToOrder := []models.Role{
 		{
-			Name:              "nginx",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{"common", "apt"},
+			Name: "nginx",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{"common", "apt"},
+				},
+			},
 		},
 		{
-			Name:              "apt",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{"common"},
+			Name: "apt",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{"common"},
+				},
+			},
 		},
 		{
-			Name:              "common",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{},
+			Name: "common",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{},
+				},
+			},
 		},
 		{
-			Name:              "myapp",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{"nginx"},
+			Name: "myapp",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{"nginx"},
+				},
+			},
 		},
 	}
 
 	expectedFinalOrder := []models.Role{
 		{
-			Name:              "common",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{},
+			Name: "common",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{},
+				},
+			},
 		},
 		{
-			Name:              "apt",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{"common"},
+			Name: "apt",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{"common"},
+				},
+			},
 		},
 		{
-			Name:              "nginx",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{"common", "apt"},
+			Name: "nginx",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{"common", "apt"},
+				},
+			},
 		},
 		{
-			Name:              "myapp",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{"nginx"},
+			Name: "myapp",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{"nginx"},
+				},
+			},
 		},
 	}
 
@@ -88,20 +112,26 @@ func TestOrderingRolesWithDependencies(t *testing.T) {
 func TestDependencyCycle(t *testing.T) {
 	rolesToOrder := []models.Role{
 		{
-			Name:              "nginx",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{"apt"},
+			Name: "nginx",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{"apt"},
+				},
+			},
 		},
 		{
-			Name:              "apt",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{"nginx"},
+			Name: "apt",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{"nginx"},
+				},
+			},
 		},
 	}
 
@@ -114,12 +144,15 @@ func TestDependencyCycle(t *testing.T) {
 func TestNonExistingRole(t *testing.T) {
 	rolesToOrder := []models.Role{
 		{
-			Name:              "nginx",
-			Resources:         []models.Resource{},
-			LoadedResources:   []models.LoadedResource{},
-			IncludedResources: map[string]models.IncludedResources{},
-			Variables:         map[string]any{},
-			DependsOn:         []string{"apt"},
+			Name: "nginx",
+			Entrypoint: models.RoleEntrypoint{
+				Resources:       []models.Resource{},
+				LoadedResources: []models.LoadedResource{},
+				Includes:        []models.RoleIncludeEntry{},
+				Meta: &models.RoleMeta{
+					Requires: []string{"apt"},
+				},
+			},
 		},
 	}
 

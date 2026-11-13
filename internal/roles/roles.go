@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	yaml "github.com/goccy/go-yaml"
+	"github.com/hashicorp/hcl/v2/hclsimple"
 	"github.com/peeklapp/peekl/internal/models"
 	"github.com/peeklapp/peekl/internal/utils"
 	"github.com/peeklapp/peekl/internal/variables"
@@ -20,80 +20,60 @@ func DoesRoleExist(codeRoot *os.Root, roleName string) error {
 }
 
 func LoadRoleFromCode(codeRoot *os.Root, roleName string) (*models.Role, error) {
+	if err := DoesRoleExist(codeRoot, roleName); err != nil {
+		return nil, err
+	}
+
 	var role models.Role
-
 	role.Name = roleName
-	role.IncludedResources = map[string]models.IncludedResources{}
 
-	err := DoesRoleExist(codeRoot, roleName)
-	if err != nil {
-		return &role, err
-	}
-
-	// Open root of role
-	rolePath := filepath.Join("roles", roleName)
-	roleRoot, err := codeRoot.OpenRoot(rolePath)
-	if err != nil {
-		return &role, fmt.Errorf("could not open root inside role when loading role %s", roleName)
-	}
-
-	// Open main.yml file, handle error if it does not exist
-	mainFile, err := roleRoot.ReadFile("main.yml")
+	entrypointFilePath := filepath.Join("roles", roleName, "main.hcl")
+	entrypointFile, err := codeRoot.ReadFile(entrypointFilePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return &role, fmt.Errorf("could not find any main.yml file in the %s role", roleName)
-		} else {
-			return &role, err
+			return nil, models.RoleEntrypointNotFoundError{RoleName: roleName}
+		}
+		return nil, err
+	}
+	if err := hclsimple.Decode(entrypointFilePath, entrypointFile, nil, &role.Entrypoint); err != nil {
+		return nil, err
+	}
+	for i := range role.Entrypoint.Resources {
+		if err := role.Entrypoint.Resources[i].Resolve(); err != nil {
+			return nil, err
 		}
 	}
 
-	// Load main file into struct
-	var roleMain models.RoleMain
-	err = yaml.Unmarshal(mainFile, &roleMain)
-	if err != nil {
-		return &role, err
-	}
-
-	// Append resources of role main to role resources
-	role.Resources = roleMain.Resources
-
-	if len(roleMain.DependsOn) == 0 {
-		role.DependsOn = []string{}
-	} else {
-		role.DependsOn = roleMain.DependsOn
-	}
-
-	// For each include in roleMain, include resources
-	if len(roleMain.Includes) > 0 {
-		// For each extra file, process
-		for _, extraFile := range roleMain.Includes {
-			// Open extra file, handle error if it does not exist
-			rawExtraFile, err := roleRoot.ReadFile(fmt.Sprintf("%s.yml", extraFile.Name))
-			if err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					return &role, fmt.Errorf("the include `%s` in role `%s` could not be found", extraFile.Name, roleName)
-				} else {
-					return &role, err
-				}
-			}
-
-			// Load file resources
-			var resources []models.Resource
-			err = yaml.Unmarshal(rawExtraFile, &resources)
-			if err != nil {
-				return &role, err
-			}
-
-			// Append to Role conditional resources
-			role.IncludedResources[extraFile.Name] = models.IncludedResources{
-				Resources: resources,
+	role.Included = map[string]models.RoleInclude{}
+	for _, includedFile := range role.Entrypoint.Includes {
+		currIncludeFilePath := filepath.Join("roles", roleName, includedFile.Path)
+		if filepath.Ext(includedFile.Path) != ".hcl" {
+			return nil, fmt.Errorf("included file '%s' in role '%s' must have a '.hcl' extension", includedFile.Path, roleName)
+		}
+		currIncludeFileRaw, err := codeRoot.ReadFile(currIncludeFilePath)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return nil, fmt.Errorf("included file '%s' could not be found in role '%s'", includedFile.Path, roleName)
+			} else {
+				return nil, err
 			}
 		}
+
+		var currIncludedFile models.RoleInclude
+		if err := hclsimple.Decode(currIncludeFilePath, currIncludeFileRaw, nil, &currIncludedFile); err != nil {
+			return nil, err
+		}
+		for i := range currIncludedFile.Resources {
+			if err := currIncludedFile.Resources[i].Resolve(); err != nil {
+				return nil, err
+			}
+		}
+		role.Included[includedFile.Name] = currIncludedFile
 	}
 
-	role.Variables, err = variables.LoadRoleVariables(codeRoot, roleName)
-	if err != nil {
-		return &role, err
+	role.Variables = map[string]any{}
+	if err := variables.LoadRoleVariables(codeRoot, roleName, &role.Variables); err != nil {
+		return nil, err
 	}
 
 	return &role, nil

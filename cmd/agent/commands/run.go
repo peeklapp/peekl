@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -159,7 +160,7 @@ func runAgent(client *client.Client, environment string, cachePath string) error
 	}
 
 	logrus.Debug("Compiling raw catalog based on extracted archives")
-	rawCatalog.GlobalResources, rawCatalog.Roles, rawCatalog.Tags, rawCatalog.Variables, err = catalog.CompileCatalog(extractDirRoot, rawCatalog.Facts.Hostname)
+	rawCatalog.Roles, rawCatalog.Variables, rawCatalog.Tags, err = catalog.CompileCatalog(extractDirRoot, rawCatalog.Facts.Hostname)
 	if err != nil {
 		logrus.Error(err)
 		return err
@@ -188,7 +189,8 @@ func runAgent(client *client.Client, environment string, cachePath string) error
 			return err
 		}
 	} else {
-		logrus.Error("Catalog is not valid. Not running.")
+		err = errors.New("catalog is not valid, not running")
+		logrus.Error(err)
 		return err
 	}
 

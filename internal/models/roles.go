@@ -1,26 +1,31 @@
 package models
 
-type IncludedResources struct {
-	Resources       []Resource       `json:"resources" yaml:"resources" mapstructure:"resources"`
-	LoadedResources []LoadedResource `json:"loaded_resources,omitempty"`
+type RoleIncludeEntry struct {
+	Name string `hcl:"name,label"`
+	Path string `hcl:"path"`
+	When string `hcl:"when,optional"`
+}
+
+type RoleInclude struct {
+	Resources       []Resource `hcl:"resource,block"`
+	LoadedResources []LoadedResource
+	When            string
+}
+
+type RoleMeta struct {
+	Requires []string `hcl:"requires,optional"`
+}
+
+type RoleEntrypoint struct {
+	Resources       []Resource `hcl:"resource,block"`
+	LoadedResources []LoadedResource
+	Includes        []RoleIncludeEntry `hcl:"include,block"`
+	Meta            *RoleMeta          `hcl:"meta,block"`
 }
 
 type Role struct {
-	Name              string                       `json:"name" yaml:"string"`
-	Resources         []Resource                   `json:"resources" yaml:"resources" mapstructure:"resources"`
-	LoadedResources   []LoadedResource             `json:"loaded_resources,omitempty"`
-	IncludedResources map[string]IncludedResources `json:"included_resources" yaml:"included_resources" mapstructure:"included_resources"`
-	Variables         map[string]any               `json:"variables" yaml:"variables"`
-	DependsOn         []string                     `json:"depends_on" yaml:"depends_on"`
-}
-
-type IncludeEntry struct {
-	Name string `json:"name" yaml:"name" mapstructure:"name"`
-}
-
-type RoleMain struct {
-	Resources      []Resource       `json:"resources" yaml:"resources" mapstructure:"resources"`
-	LoadedResource []LoadedResource `json:"loaded_resources,omitempty"`
-	Includes       []IncludeEntry   `json:"includes" yaml:"includes" mapstructure:"includes"`
-	DependsOn      []string         `json:"depends_on" yaml:"depends_on"`
+	Name       string
+	Entrypoint RoleEntrypoint
+	Included   map[string]RoleInclude
+	Variables  map[string]any
 }
